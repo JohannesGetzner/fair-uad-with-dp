@@ -38,6 +38,7 @@ class DeepSVDD(nn.Module):
         self.repr_dim = config.repr_dim
 
         # Input size: 1 x 128 x 128
+        # not used
         self.conv_in = nn.Sequential(
             nn.Conv2d(1, 32, kernel_size=3, stride=1, padding=1, bias=False),
             nn.InstanceNorm2d(32, affine=False),
@@ -53,11 +54,13 @@ class DeepSVDD(nn.Module):
         self.linear_out = nn.Linear(512, self.repr_dim, bias=False)
 
         # hypersphere center c
+        # why + 10?
         self.register_buffer('c', torch.randn(1, self.repr_dim) + 10)
 
     def forward(self, x: Tensor) -> Tensor:
         for block in self.blocks:
             x = block(x)
+        # we do the average pooling instead of flatting I guess?
         x = x.mean(dim=(2, 3))  # Global average pooling
         x = self.linear_out(x)  # (N, repr_dim)
         return x
@@ -89,6 +92,7 @@ class DeepSVDD(nn.Module):
 
 def one_class_scores(pred: Tensor, c: Tensor) -> Tensor:
     """Compute anomaly_score for the one-class objective."""
+    # squared difference from prediction to center
     return torch.sum((pred - c) ** 2, dim=1)  # (N,)
 
 

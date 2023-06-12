@@ -8,9 +8,8 @@ dependencies:
   - conda-forge::python=3.10
   - conda-forge::pip
   - conda-forge::flake8
-
-  - pytorch::pytorch-cuda=11.8
-  - pytorch::pytorch=2.0.0
+  - pytorch::pytorch-cuda
+  - pytorch::pytorch
   - pytorch::torchvision=0.15.0
   - conda-forge::torchmetrics
   - conda-forge::matplotlib

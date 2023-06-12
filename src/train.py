@@ -28,56 +28,39 @@ parser.add_argument('--experiment_name', type=str, default='')
 
 # Data settings
 parser.add_argument('--dataset', type=str, default='rsna', choices=['rsna'])
-parser.add_argument('--protected_attr', type=str, default='none',
-                    choices=['none', 'age', 'sex'])
+parser.add_argument('--protected_attr', type=str, default='none', choices=['none', 'age', 'sex'])
 parser.add_argument('--male_percent', type=float, default=0.5)
 parser.add_argument('--old_percent', type=float, default=0.5)
 parser.add_argument('--img_size', type=int, default=128, help='Image size')
-parser.add_argument('--num_workers', type=int, default=0,
-                    help='Number of workers for dataloader')
+parser.add_argument('--num_workers', type=int, default=0, help='Number of workers for dataloader')
 
 # Logging settings
-parser.add_argument('--val_frequency', type=int, default=200,
-                    help='Validation frequency')
-parser.add_argument('--val_steps', type=int, default=50,
-                    help='Steps per validation')
-parser.add_argument('--log_frequency', type=int, default=100,
-                    help='Logging frequency')
+parser.add_argument('--val_frequency', type=int, default=200, help='Validation frequency')
+parser.add_argument('--val_steps', type=int, default=50, help='Steps per validation')
+parser.add_argument('--log_frequency', type=int, default=100, help='Logging frequency')
 parser.add_argument('--log_img_freq', type=int, default=1000)
 parser.add_argument('--num_imgs_log', type=int, default=8)
-parser.add_argument(
-    '--log_dir', type=str, help="Logging directory",
-    default=os.path.join(
-        'logs',
-        datetime.strftime(datetime.now(), format="%Y.%m.%d-%H:%M:%S")
-    )
-)
+parser.add_argument('--log_dir', type=str, help="Logging directory",
+    default=os.path.join('logs', datetime.strftime(datetime.now(), format="%Y.%m.%d-%H:%M:%S")))
 
 # Hyperparameters
 parser.add_argument('--lr', type=float, default=2e-4, help='Learning rate')
-parser.add_argument('--weight_decay', type=float, default=0.0,
-                    help='Weight decay')
-parser.add_argument('--max_steps', type=int, default=8000,  # 10000
+parser.add_argument('--weight_decay', type=float, default=0.0, help='Weight decay')
+parser.add_argument('--max_steps', type=int, default=100,  # 8000,  # 10000,
                     help='Number of training steps')
 parser.add_argument('--batch_size', type=int, default=32, help='Batch size')
 
 # Model settings
-parser.add_argument('--model_type', type=str, default='FAE',
-                    choices=['FAE', 'DeepSVDD'])
+parser.add_argument('--model_type', type=str, default='FAE', choices=['FAE', 'DeepSVDD'])
 # FAE settings
-parser.add_argument('--hidden_dims', type=int, nargs='+',
-                    default=[100, 150, 200, 300],
+parser.add_argument('--hidden_dims', type=int, nargs='+', default=[100, 150, 200, 300],
                     help='Autoencoder hidden dimensions')
 parser.add_argument('--dropout', type=float, default=0.1, help='Dropout rate')
-parser.add_argument('--loss_fn', type=str, default='ssim', help='loss function',
-                    choices=['mse', 'ssim'])
-parser.add_argument('--extractor_cnn_layers', type=str, nargs='+',
-                    default=['layer0', 'layer1', 'layer2'])
-parser.add_argument('--keep_feature_prop', type=float, default=1.0,
-                    help='Proportion of ResNet features to keep')
+parser.add_argument('--loss_fn', type=str, default='ssim', help='loss function', choices=['mse', 'ssim'])
+parser.add_argument('--extractor_cnn_layers', type=str, nargs='+', default=['layer0', 'layer1', 'layer2'])
+parser.add_argument('--keep_feature_prop', type=float, default=1.0, help='Proportion of ResNet features to keep')
 # DeepSVDD settings
-parser.add_argument('--repr_dim', type=int, default=256,
-                    help='Dimensionality of the hypersphere c')
+parser.add_argument('--repr_dim', type=int, default=256, help='Dimensionality of the hypersphere c')
 
 config = parser.parse_args()
 
@@ -92,23 +75,14 @@ if config.debug:
     config.val_steps = 1
     config.log_frequency = 1
 
-
 """"""""""""""""""""""""""""""""" Load data """""""""""""""""""""""""""""""""
-
 
 print("Loading data...")
 t_load_data_start = time()
-train_loader, val_loader, test_loader = get_dataloaders(
-    dataset=config.dataset,
-    batch_size=config.batch_size,
-    img_size=config.img_size,
-    num_workers=config.num_workers,
-    protected_attr=config.protected_attr,
-    male_percent=config.male_percent,
-    old_percent=config.old_percent,
-)
+train_loader, val_loader, test_loader = get_dataloaders(dataset=config.dataset, batch_size=config.batch_size,
+    img_size=config.img_size, num_workers=config.num_workers, protected_attr=config.protected_attr,
+    male_percent=config.male_percent, old_percent=config.old_percent, )
 print(f'Loaded datasets in {time() - t_load_data_start:.2f}s')
-
 
 """"""""""""""""""""""""""""""""" Init model """""""""""""""""""""""""""""""""
 
@@ -117,6 +91,7 @@ def init_model(config):
     print("Initializing model...")
     if config.model_type == 'FAE':
         model = FeatureReconstructor(config)
+        print(model)
     elif config.model_type == 'DeepSVDD':
         model = DeepSVDD(config)
     else:
@@ -125,8 +100,7 @@ def init_model(config):
     compiled_model = torch.compile(model)
 
     # Init optimizer
-    optimizer = torch.optim.Adam(model.parameters(), lr=config.lr,
-                                 weight_decay=config.weight_decay)
+    optimizer = torch.optim.Adam(model.parameters(), lr=config.lr, weight_decay=config.weight_decay)
 
     return model, compiled_model, optimizer
 
@@ -159,15 +133,8 @@ def train(train_loader, val_loader, config, log_dir):
     if not config.debug:
         os.makedirs(log_dir, exist_ok=True)
     wandb_tags = [config.model_type, config.dataset, config.protected_attr]
-    wandb.init(
-        project='unsupervised-fairness',
-        entity='felix-meissen',
-        dir=log_dir,
-        name=log_dir.lstrip('logs/'),
-        tags=wandb_tags,
-        config=config,
-        mode="disabled" if (config.debug or config.disable_wandb) else "online"
-    )
+    wandb.init(project='unsupervised-fairness', entity='j-getzner', dir=log_dir, name=log_dir.lstrip('logs/'),
+        tags=wandb_tags, config=config, mode="disabled" if (config.debug or config.disable_wandb) else "online")
 
     print('Starting training...')
     step = 0
@@ -205,14 +172,12 @@ def train(train_loader, val_loader, config, log_dir):
 
             if step % config.val_frequency == 0:
                 log_imgs = step % config.log_img_freq == 0
-                val_results = validate(config, model, val_loader, step,
-                                       log_imgs)
+                val_results = validate(config, model, val_loader, step, log_imgs)
                 # Log to w&b
                 wandb.log(val_results, step=step)
 
             if step >= config.max_steps:
-                print(f'Reached {config.max_steps} iterations.',
-                      'Finished training.')
+                print(f'Reached {config.max_steps} iterations.', 'Finished training.')
 
                 # Final validation
                 print("Final validation...")
@@ -277,7 +242,8 @@ def validate(config, model, loader, step, log_imgs=False):
     losses_c = {f'{k}_{m}': v[m] for k, v in losses_c.items() for m in v.keys()}
     if log_imgs:
         imgs = {f'{k}_imgs': wandb.Image(torch.cat(v)[:config.num_imgs_log]) for k, v in imgs.items()}
-        anomaly_maps = {f'{k}_anomaly_maps': wandb.Image(torch.cat(v)[:config.num_imgs_log]) for k, v in anomaly_maps.items()}
+        anomaly_maps = {f'{k}_anomaly_maps': wandb.Image(torch.cat(v)[:config.num_imgs_log]) for k, v in
+                        anomaly_maps.items()}
         imgs_log = {**imgs, **anomaly_maps}
         wandb.log(imgs_log, step=step)
 
@@ -353,7 +319,9 @@ def test(config, model, loader, log_dir):
     # Save test results to csv
     if not config.debug:
         csv_path = os.path.join(log_dir, 'test_results.csv')
-        df = pd.DataFrame(metrics_c)
+        # create dataframe from dict, keys are the columns and values are single row
+        metrics_c = {k: v.item() for k, v in metrics_c.items()}
+        df = pd.DataFrame.from_dict(metrics_c, orient='index').T
         for k, v in vars(config).items():
             df[k] = pd.Series([v])
         df.to_csv(csv_path, index=False)
@@ -367,7 +335,6 @@ def test(config, model, loader, log_dir):
 
 
 """"""""""""""""""""""""""""""""" Main """""""""""""""""""""""""""""""""
-
 
 if __name__ == '__main__':
     for i in range(config.num_seeds):
