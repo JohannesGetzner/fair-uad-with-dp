@@ -356,6 +356,83 @@ class AvgDictMeter:
         return {key: value / self.n for key, value in self.values.items()}
 
 
+class SubgroupAUROC(Metric):
+    """
+    Computes the AUROC for each subgroup of the data individually.
+    The TPRs are computed from each subgroup individually, while the FPRs are
+    computed from the whole dataset.
+    """
+    is_differentiable: bool = False
+    higher_is_better: bool = True
+
+    def __init__(self, subgroup_names: List[str]):
+        super().__init__()
+        self.subgroup_names = subgroup_names
+        self.add_state("preds", default=[], dist_reduce_fx=None)
+        self.add_state("targets", default=[], dist_reduce_fx=None)
+        self.add_state("subgroups", default=[], dist_reduce_fx=None)
+        self.preds: List
+        self.targets: List
+        self.subgroups: List
+
+    def update(self, subgroups: Tensor, preds: Tensor, targets: Tensor):
+        """
+        subgroups: Tensor of sub-group labels of shape [b]
+        preds: Tensor of anomaly scores of shape [b]
+        targets: Tensor of anomaly labels of shape [b]
+        """
+        assert len(preds) == len(targets) == len(subgroups)
+        self.preds.append(preds)
+        self.targets.append(targets)
+        self.subgroups.append(subgroups)
+
+    @property
+    def num_subgroups(self):
+        return len(self.subgroup_names)
+
+    @staticmethod
+    def compute_subgroup(preds: Tensor, targets: Tensor, subgroups: Tensor, subgroup: int):
+        if targets.sum() == 0 or targets.sum() == len(targets):
+            return torch.tensor(0.)
+
+        # Sort predictions and targets by descending prediction score
+        sorted_indices = torch.argsort(preds, descending=True)
+        sorted_targets = targets[sorted_indices]
+        sorted_subgroups = subgroups[sorted_indices]
+
+        # Compute the false positive rate for the subgroup
+        # Points on the curve where the tpr for the subgroup doesn't change
+        # are kept constant
+        negatives = (sorted_targets[sorted_subgroups == subgroup] == 0).sum()
+        false_positives = torch.where(sorted_subgroups == subgroup, sorted_targets == 0, 0).cumsum(dim=0)
+        fpr = false_positives / (negatives + 1e-7)
+
+        # Compute the true positive rate for the whole dataset
+        positives = sorted_targets.sum()
+        true_positives = torch.cumsum(sorted_targets, dim=0)
+        tpr = true_positives / (positives + 1e-7)
+
+        # Insert thresholds of min_val and max_val to ensure the ROC curve starts at (0, 0) and ends at (1, 1)
+        tpr = torch.cat([torch.tensor([0.0]), tpr, torch.tensor([1.0])])
+        fpr = torch.cat([torch.tensor([0.0]), fpr, torch.tensor([1.0])])
+
+        # Compute the area under the ROC curve (equivalent to sklearn.metrics.auc)
+        auroc = (((tpr[1:] - tpr[:-1]) / 2 + tpr[:-1]) * (fpr[1:] - fpr[:-1])).sum()
+
+        return auroc
+
+    def compute(self, **kwargs):
+        preds = torch.cat(self.preds)  # [N]
+        targets = torch.cat(self.targets)  # [N]
+        subgroups = torch.cat(self.subgroups)  # [N]
+        res = {}
+        for subgroup, subgroup_name in enumerate(self.subgroup_names):
+            result = self.compute_subgroup(preds, targets, subgroups, subgroup)
+            res[f'{subgroup_name}_subgroupAUROC'] = result
+        return res
+
+
+
 if __name__ == '__main__':
     subgroup_names = ['subgroup1', 'subgroup2']
     metrics = MyMetricCollection({
@@ -364,6 +441,7 @@ if __name__ == '__main__':
         'AveragePrecision': AveragePrecision(subgroup_names),
         'tpr@5fpr': TPR_at_FPR(subgroup_names, xfpr=0.05),
         'fpr@5tpr': FPR_at_TPR(subgroup_names, xtpr=0.95),
+        'subgroupAUROC': SubgroupAUROC(subgroup_names),
     })
 
     scores = torch.tensor([0.8, 0.6, 0.2, 0.9, 0.5, 0.7, 0.3])
