@@ -1,5 +1,5 @@
 import os
-from argparse import ArgumentParser
+from argparse import ArgumentParser,BooleanOptionalAction
 from collections import defaultdict
 from datetime import datetime
 from time import time
@@ -85,7 +85,7 @@ parser.add_argument('--keep_feature_prop', type=float, default=1.0, help='Propor
 parser.add_argument('--repr_dim', type=int, default=256, help='Dimensionality of the hypersphere c')
 
 # Differential Privacy settings
-parser.add_argument('--dp', type=bool, default=False, help='Use differential privacy')
+parser.add_argument('--dp', action=BooleanOptionalAction, default=False, help='Use differential privacy')
 parser.add_argument('--e', type=float, default=8, help='Noise multiplier')
 parser.add_argument('--delta', type=float, help='Target delta')
 parser.add_argument('--max_grad_norm', type=float, default=1, help='Max gradient norm')
