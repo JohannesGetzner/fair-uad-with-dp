@@ -7,12 +7,33 @@ from time import time
 import pandas as pd
 import torch
 import wandb
+import math
 
 from src.data.datasets import get_dataloaders
 from src.models.DeepSVDD.deepsvdd import DeepSVDD
 from src.models.FAE.fae import FeatureReconstructor
 from src.utils.metrics import AvgDictMeter, build_metrics
 from src.utils.utils import seed_everything, save_checkpoint
+from opacus import PrivacyEngine
+from deepee import ModelSurgeon, SurgicalProcedures
+from functools import partial
+from opacus.validators.utils import register_module_fixer
+from torch import nn
+from opacus.validators import ModuleValidator
+from src.models.pytorch_ssim import SSIMLoss
+
+
+@register_module_fixer(
+    [nn.BatchNorm1d, nn.BatchNorm2d, nn.BatchNorm3d, nn.SyncBatchNorm]
+)
+def _batchnorm_to_groupnorm(module) -> nn.GroupNorm:
+    num_groups = 32
+    if module.num_features % num_groups != 0:
+        num_groups = 25
+    return nn.GroupNorm(
+        min(num_groups, module.num_features), module.num_features, affine=module.affine
+    )
+
 
 """"""""""""""""""""""""""""""""""" Config """""""""""""""""""""""""""""""""""
 
@@ -46,13 +67,14 @@ parser.add_argument('--log_dir', type=str, help="Logging directory",
 # Hyperparameters
 parser.add_argument('--lr', type=float, default=2e-4, help='Learning rate')
 parser.add_argument('--weight_decay', type=float, default=0.0, help='Weight decay')
-parser.add_argument('--max_steps', type=int, default=100,  # 8000,  # 10000,
+parser.add_argument('--max_steps', type=int, default=8000,  # 8000,  # 10000,
                     help='Number of training steps')
 parser.add_argument('--batch_size', type=int, default=32, help='Batch size')
 
 # Model settings
 parser.add_argument('--model_type', type=str, default='FAE', choices=['FAE', 'DeepSVDD'])
 # FAE settings
+# 128, 160, 224, 320
 parser.add_argument('--hidden_dims', type=int, nargs='+', default=[100, 150, 200, 300],
                     help='Autoencoder hidden dimensions')
 parser.add_argument('--dropout', type=float, default=0.1, help='Dropout rate')
@@ -61,6 +83,12 @@ parser.add_argument('--extractor_cnn_layers', type=str, nargs='+', default=['lay
 parser.add_argument('--keep_feature_prop', type=float, default=1.0, help='Proportion of ResNet features to keep')
 # DeepSVDD settings
 parser.add_argument('--repr_dim', type=int, default=256, help='Dimensionality of the hypersphere c')
+
+# Differential Privacy settings
+parser.add_argument('--dp', type=bool, default=False, help='Use differential privacy')
+parser.add_argument('--e', type=float, default=8, help='Noise multiplier')
+parser.add_argument('--delta', type=float, help='Target delta')
+parser.add_argument('--max_grad_norm', type=float, default=1, help='Max gradient norm')
 
 config = parser.parse_args()
 
@@ -91,13 +119,17 @@ def init_model(config):
     print("Initializing model...")
     if config.model_type == 'FAE':
         model = FeatureReconstructor(config)
-        print(model)
     elif config.model_type == 'DeepSVDD':
         model = DeepSVDD(config)
     else:
         raise ValueError(f'Unknown model type {config.model_type}')
     model = model.to(config.device)
-    compiled_model = torch.compile(model)
+
+    # perform model surgery if DP is enabled
+    if config.dp:
+        model = ModuleValidator.fix(model)
+
+    compiled_model = model #torch.compile(model)
 
     # Init optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=config.lr, weight_decay=config.weight_decay)
@@ -114,7 +146,11 @@ def train_step(model, optimizer, x, y, meta, device):
     x = x.to(device)
     y = y.to(device)
     meta = meta.to(device)
-    loss_dict = model.loss(x, y=y)
+    # TODO: find a better way to compute the loss when wrapped with DP (don't access protected attribute)
+    if config.dp:
+        loss_dict = model._module.loss(x, y=y)
+    else:
+        loss_dict = model.loss(x, y=y)
     loss = loss_dict['loss']
     loss.backward()
     optimizer.step()
@@ -128,6 +164,7 @@ def train(train_loader, val_loader, config, log_dir):
 
     # Init model
     _, model, optimizer = init_model(config)
+    loss_fn = SSIMLoss(window_size=5, size_average=False)
 
     # Init logging
     if not config.debug:
@@ -136,6 +173,23 @@ def train(train_loader, val_loader, config, log_dir):
     wandb.init(project='unsupervised-fairness', entity='j-getzner', dir=log_dir, name=log_dir.lstrip('logs/'),
         tags=wandb_tags, config=config, mode="disabled" if (config.debug or config.disable_wandb) else "online")
 
+    # Init DP
+    if config.dp:
+        privacy_engine = PrivacyEngine(accountant="rdp")
+        epochs = math.ceil(config.max_steps / len(train_loader))
+        delta = config.delta if config.delta else 1/(len(train_loader)*train_loader.batch_size)
+        model, optimizer, data_loader = privacy_engine.make_private_with_epsilon(
+            module=model,
+            optimizer=optimizer,
+            data_loader=train_loader,
+            target_epsilon=config.e,
+            target_delta=delta,
+            max_grad_norm=config.max_grad_norm,
+            epochs=epochs,
+        )
+        errors = ModuleValidator.validate(model, strict=False)
+        if len(errors) > 0:
+            print(f'WARNING: model validation failed with errors: {errors}')
     print('Starting training...')
     step = 0
     i_epoch = 0
@@ -197,8 +251,13 @@ def val_step(model, x, y, meta, device):
     y = y.to(device)
     meta = meta.to(device)
     with torch.no_grad():
-        loss_dict = model.loss(x, y=y)
-        anomaly_map, anomaly_score = model.predict_anomaly(x)
+        # TODO: find a better way to compute the loss when wrapped with DP
+        if config.dp:
+            loss_dict = model._module.loss(x, y=y)
+            anomaly_map, anomaly_score = model._module.predict_anomaly(x)
+        else:
+            loss_dict = model.loss(x, y=y)
+            anomaly_map, anomaly_score = model.predict_anomaly(x)
     x = x.cpu()
     y = y.cpu()
     anomaly_score = anomaly_score.cpu() if anomaly_score is not None else None
