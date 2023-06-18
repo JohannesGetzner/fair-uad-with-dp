@@ -1,3 +1,5 @@
+import sys
+sys.path.append('..')
 import os
 from argparse import ArgumentParser,BooleanOptionalAction
 from collections import defaultdict
@@ -15,8 +17,6 @@ from src.models.FAE.fae import FeatureReconstructor
 from src.utils.metrics import AvgDictMeter, build_metrics
 from src.utils.utils import seed_everything, save_checkpoint
 from opacus import PrivacyEngine
-from deepee import ModelSurgeon, SurgicalProcedures
-from functools import partial
 from opacus.validators.utils import register_module_fixer
 from torch import nn
 from opacus.validators import ModuleValidator
@@ -157,7 +157,7 @@ def train_step(model, optimizer, x, y, meta, device):
     return loss_dict
 
 
-def train(train_loader, val_loader, config, log_dir):
+def train(train_loader, val_loader, config, log_dir, experiment_date):
     # Reproducibility
     print(f"Setting seed to {config.seed}...")
     seed_everything(config.seed)
@@ -170,9 +170,17 @@ def train(train_loader, val_loader, config, log_dir):
     if not config.debug:
         os.makedirs(log_dir, exist_ok=True)
     wandb_tags = [config.model_type, config.dataset, config.protected_attr]
-    wandb.init(project='unsupervised-fairness', entity='j-getzner', dir=log_dir, name=log_dir.lstrip('logs/'),
-        tags=wandb_tags, config=config, mode="disabled" if (config.debug or config.disable_wandb) else "online")
-
+    wandb_group_name = log_dir[:log_dir.rindex('/')]
+    wandb_group_name += f"_{experiment_date}"
+    wandb.init(
+        project="unsupervised-fairness",
+        config=config,
+        group=wandb_group_name,
+        dir=log_dir,
+        tags=wandb_tags,
+        job_type="seed_"+str(config.seed),
+        mode="disabled" if (config.debug or config.disable_wandb) else "online"
+    )
     # Init DP
     if config.dp:
         privacy_engine = PrivacyEngine(accountant="rdp")
@@ -396,8 +404,15 @@ def test(config, model, loader, log_dir):
 """"""""""""""""""""""""""""""""" Main """""""""""""""""""""""""""""""""
 
 if __name__ == '__main__':
+    experiment_date = datetime.strftime(datetime.now(), format='%Y.%m.%d-%H:%M:%S')
     for i in range(config.num_seeds):
+        torch.cuda.empty_cache()
         config.seed = config.initial_seed + i
-        log_dir = os.path.join(config.log_dir, f'seed_{config.seed}')
-        model = train(train_loader, val_loader, config, log_dir)
+        log_dir = config.log_dir
+        if config.dp:
+            log_dir += '_DP'
+        log_dir = os.path.join(log_dir, f'seed_{config.seed}')
+        #print(log_dir)
+        model = train(train_loader, val_loader, config, log_dir, experiment_date)
         test(config, model, test_loader, log_dir)
+        wandb.finish()

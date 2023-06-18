@@ -33,6 +33,7 @@ def build_metrics(subgroup_names: List[str]) -> MyMetricCollection:
         'tpr@5fpr': TPR_at_FPR(subgroup_names, xfpr=0.05),
         'fpr@95tpr': FPR_at_TPR(subgroup_names, xtpr=0.95),
         'avg_anomaly_score': AvgAnomalyScore(subgroup_names),
+        'subgroupAUROC': SubgroupAUROC(subgroup_names),
     })
     return classification_metrics
 

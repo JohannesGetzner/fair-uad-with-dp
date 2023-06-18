@@ -30,11 +30,12 @@ import numpy as np
 import pandas as pd
 
 
-def gather_data_seeds(experiment_dir: str, attr_key: str, metric_names: List[str]):
+def gather_data_seeds(experiment_dir: str, attr_key: str, metric_names: List[str], dp: bool = False):
     """Gather the data of multiple random seeds
     For every metric, it returns a matrix of shape (num_runs, num_seeds)
     """
     run_dirs = [os.path.join(experiment_dir, run_dir) for run_dir in os.listdir(experiment_dir)]
+    run_dirs = [run_dir for run_dir in run_dirs if run_dir.endswith('DP') and dp or not run_dir.endswith('DP') and not dp]
     run_dfs = []
     attr_key_values = []
     for run_dir in run_dirs:

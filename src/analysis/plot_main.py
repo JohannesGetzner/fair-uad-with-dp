@@ -28,39 +28,36 @@ def plot_metric(
     """Plots the given metrics as different plots"""
     # Collect data from all runs
     data, attr_key_values = gather_data_seeds(experiment_dir, attr_key, metrics)
+    data_dp, attr_key_values_dp = gather_data_seeds(experiment_dir, attr_key, metrics, dp=True)
+    assert (attr_key_values == attr_key_values_dp).all()
 
     # Plot scatter plot
-    plot_metric_scatter(
-        data=data,
-        attr_key_values=attr_key_values,
-        metrics=metrics,
-        xlabel=xlabel,
-        ylabel=ylabel,
-        title=title,
-        plt_name=plt_name + '_scatter.png'
-    )
+    plot_metric_scatter(data=data, attr_key_values=attr_key_values, metrics=metrics, xlabel=xlabel, ylabel=ylabel,
+                        title=title, plt_name=plt_name + '_scatter.png')
 
     # Plot bar plot
-    plot_metric_bar(
-        data=data,
-        attr_key_values=attr_key_values,
-        metrics=metrics,
-        xlabel=xlabel,
-        ylabel=ylabel,
-        title=title,
-        plt_name=plt_name + '_bar.png'
-    )
+    plot_metric_bar(data=data, attr_key_values=attr_key_values, metrics=metrics, xlabel=xlabel, ylabel=ylabel,
+                    title=title, plt_name=plt_name + '_bar.png')
 
     # Plot box-whisker plot
-    plot_metric_box_whisker(
-        data=data,
-        attr_key_values=attr_key_values,
-        metrics=metrics,
-        xlabel=xlabel,
-        ylabel=ylabel,
-        title=title,
-        plt_name=plt_name + '_box.png'
-    )
+    plot_metric_box_whisker(data=data, attr_key_values=attr_key_values, metrics=metrics, xlabel=xlabel, ylabel=ylabel,
+                            title=title, plt_name=plt_name + '_box.png')
+
+    # -------
+    # DP
+    # -------
+
+    # Plot scatter plot
+    plot_metric_scatter(data=data_dp, attr_key_values=attr_key_values, metrics=metrics, xlabel=xlabel, ylabel=ylabel,
+        title=title+"_DP", plt_name=plt_name + '_scatter' + "_DP" + '.png')
+
+    # Plot bar plot
+    plot_metric_bar(data=data_dp, attr_key_values=attr_key_values, metrics=metrics, xlabel=xlabel, ylabel=ylabel,
+        title=title+"_DP", plt_name=plt_name + '_bar' + "_DP" + '.png')
+
+    # Plot box-whisker plot
+    plot_metric_box_whisker(data=data_dp, attr_key_values=attr_key_values, metrics=metrics, xlabel=xlabel, ylabel=ylabel,
+        title=title+"_DP", plt_name=plt_name + '_box' + "_DP" + '.png')
 
 
 def plot_metric_scatter(
@@ -272,36 +269,36 @@ def plot_metric_box_whisker(
 if __name__ == '__main__':
     """ FAE RSNA """
     # FAE rsna sex
-    experiment_dir = os.path.join(THIS_DIR, '../../logs/FAE_rsna_sex')
-    plot_metric(
-        experiment_dir=experiment_dir,
-        metrics=["test/lungOpacity_male_fpr@0.95", "test/lungOpacity_female_fpr@0.95"],
-        attr_key='male_percent',
-        xlabel="percentage of male subjects in training set",
-        ylabel="fpr@0.95",
-        title="FAE fpr@0.95tpr on RSNA for different proportions of male patients in training",
-        plt_name="fae_rsna_sex_fpr@0.95"
-    )
-    plot_metric(
-        experiment_dir=experiment_dir,
-        metrics=["test/lungOpacity_male_anomaly_score", "test/lungOpacity_female_anomaly_score"],
-        attr_key='male_percent',
-        xlabel="percentage of male subjects in training set",
-        ylabel="anomaly score",
-        title="FAE anomaly scores on RSNA for different proportions of male patients in training",
-        plt_name="fae_rsna_sex_anomaly_score"
-    )
-    plot_metric(
-        experiment_dir=experiment_dir,
-        metrics=["test/lungOpacity_male_AUROC", "test/lungOpacity_female_AUROC"],
-        attr_key='male_percent',
-        xlabel="percentage of male subjects in training set",
-        ylabel="AUROC",
-        title="FAE AUROC on RSNA for different proportions of male patients in training",
-        plt_name="fae_rsna_sex_AUROC"
-    )
+    # experiment_dir = os.path.join(THIS_DIR, '../../logs/FAE_rsna_sex')
+    # plot_metric(
+    #     experiment_dir=experiment_dir,
+    #     metrics=["test/lungOpacity_male_fpr@0.95", "test/lungOpacity_female_fpr@0.95"],
+    #     attr_key='male_percent',
+    #     xlabel="percentage of male subjects in training set",
+    #     ylabel="fpr@0.95",
+    #     title="FAE fpr@0.95tpr on RSNA for different proportions of male patients in training",
+    #     plt_name="fae_rsna_sex_fpr@0.95"
+    # )
+    # plot_metric(
+    #     experiment_dir=experiment_dir,
+    #     metrics=["test/lungOpacity_male_anomaly_score", "test/lungOpacity_female_anomaly_score"],
+    #     attr_key='male_percent',
+    #     xlabel="percentage of male subjects in training set",
+    #     ylabel="anomaly score",
+    #     title="FAE anomaly scores on RSNA for different proportions of male patients in training",
+    #     plt_name="fae_rsna_sex_anomaly_score"
+    # )
+    # plot_metric(
+    #     experiment_dir=experiment_dir,
+    #     metrics=["test/lungOpacity_male_AUROC", "test/lungOpacity_female_AUROC"],
+    #     attr_key='male_percent',
+    #     xlabel="percentage of male subjects in training set",
+    #     ylabel="AUROC",
+    #     title="FAE AUROC on RSNA for different proportions of male patients in training",
+    #     plt_name="fae_rsna_sex_AUROC"
+    # )
     # FAE rsna age
-    experiment_dir = os.path.join(THIS_DIR, '../../logs/FAE_rsna_age')
+    experiment_dir = os.path.join(THIS_DIR, '../logs/FAE_rsna_age')
     plot_metric(
         experiment_dir=experiment_dir,
         metrics=["test/lungOpacity_old_fpr@0.95", "test/lungOpacity_young_fpr@0.95"],
