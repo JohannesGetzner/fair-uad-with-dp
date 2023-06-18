@@ -163,7 +163,6 @@ cython_debug/
 .vscode/
 *.egg-info
 logs
-src/data/**/*.csv
 src/analysis/**/*.csv
 src/analysis/**/*.png
 /src/datasets/
