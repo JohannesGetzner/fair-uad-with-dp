@@ -105,12 +105,14 @@ if config.debug:
 
 """"""""""""""""""""""""""""""""" Load data """""""""""""""""""""""""""""""""
 
-print("Loading data...")
-t_load_data_start = time()
-train_loader, val_loader, test_loader = get_dataloaders(dataset=config.dataset, batch_size=config.batch_size,
-    img_size=config.img_size, num_workers=config.num_workers, protected_attr=config.protected_attr,
-    male_percent=config.male_percent, old_percent=config.old_percent, )
-print(f'Loaded datasets in {time() - t_load_data_start:.2f}s')
+def load_data():
+    print("Loading data...")
+    t_load_data_start = time()
+    train_loader, val_loader, test_loader = get_dataloaders(dataset=config.dataset, batch_size=config.batch_size,
+        img_size=config.img_size, num_workers=config.num_workers, protected_attr=config.protected_attr,
+        male_percent=config.male_percent, old_percent=config.old_percent, )
+    print(f'Loaded datasets in {time() - t_load_data_start:.2f}s')
+    return train_loader, val_loader, test_loader
 
 """"""""""""""""""""""""""""""""" Init model """""""""""""""""""""""""""""""""
 
@@ -405,6 +407,9 @@ def test(config, model, loader, log_dir):
 
 if __name__ == '__main__':
     experiment_date = datetime.strftime(datetime.now(), format='%Y.%m.%d-%H:%M:%S')
+    config.protected_attr = "age"
+    config.disable_wandb = True
+    train_loader, val_loader, test_loader = load_data()
     for i in range(config.num_seeds):
         torch.cuda.empty_cache()
         config.seed = config.initial_seed + i
@@ -412,7 +417,6 @@ if __name__ == '__main__':
         if config.dp:
             log_dir += '_DP'
         log_dir = os.path.join(log_dir, f'seed_{config.seed}')
-        #print(log_dir)
         model = train(train_loader, val_loader, config, log_dir, experiment_date)
         test(config, model, test_loader, log_dir)
         wandb.finish()
