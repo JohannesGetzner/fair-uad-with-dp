@@ -1,4 +1,6 @@
 """This script is used to plot the results of the experiments."""
+import sys
+sys.path.append('..')
 import math
 import os
 from typing import Dict, List
@@ -10,7 +12,7 @@ import numpy as np
 from einops import repeat
 from scipy import stats
 
-from src.analysis.utils import gather_data_seeds
+from utils import gather_data_seeds
 
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -269,7 +271,7 @@ def plot_metric_box_whisker(
 if __name__ == '__main__':
     """ FAE RSNA """
     # FAE rsna sex
-    experiment_dir = os.path.join(THIS_DIR, '../../logs/FAE_rsna_sex')
+    experiment_dir = os.path.join(THIS_DIR, '../logs/FAE_rsna_sex')
     plot_metric(
          experiment_dir=experiment_dir,
          metrics=["test/lungOpacity_male_fpr@0.95", "test/lungOpacity_female_fpr@0.95"],
