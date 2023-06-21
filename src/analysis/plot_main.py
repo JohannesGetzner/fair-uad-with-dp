@@ -248,13 +248,13 @@ if __name__ == '__main__':
                 metrics=["test/lungOpacity_male_fpr@0.95", "test/lungOpacity_female_fpr@0.95"], attr_key='male_percent',
                 xlabel="percentage of male subjects in training set", ylabel="fpr@0.95",
                 title="FAE fpr@0.95tpr on RSNA for different proportions of male patients in training",
-                plt_name="fae_rsna_sex_fpr@0.95")
+                plt_name="fae_rsna_sex_fpr@0.95tpr")
     # tpr@0.05
     plot_metric(experiment_dir=experiment_dir,
                 metrics=["test/lungOpacity_male_tpr@0.05", "test/lungOpacity_female_tpr@0.05"], attr_key='male_percent',
-                xlabel="percentage of male subjects in training set", ylabel="tpr@0.05",
-                title="FAE tpr@0.05tpr on RSNA for different proportions of male patients in training",
-                plt_name="fae_rsna_sex_tpr@0.05")
+                xlabel="percentage of male subjects in training set", ylabel="tpr@0.05fpr",
+                title="FAE tpr@0.05fpr on RSNA for different proportions of male patients in training",
+                plt_name="fae_rsna_sex_tpr@0.05fpr")
     # anomaly score
     plot_metric(experiment_dir=experiment_dir,
                 metrics=["test/lungOpacity_male_anomaly_score", "test/lungOpacity_female_anomaly_score"],
@@ -285,13 +285,13 @@ if __name__ == '__main__':
                 metrics=["test/lungOpacity_old_fpr@0.95", "test/lungOpacity_young_fpr@0.95"], attr_key='old_percent',
                 xlabel="percentage of old subjects in training set", ylabel="fpr@0.95tpr",
                 title="FAE fpr@0.95tpr on RSNA for different proportions of old patients in training",
-                plt_name="fae_rsna_age_fpr@095tpr")
+                plt_name="fae_rsna_age_fpr@0.95tpr")
     # tpr@0.05
     plot_metric(experiment_dir=experiment_dir,
                 metrics=["test/lungOpacity_old_tpr@0.05", "test/lungOpacity_young_tpr@0.05"], attr_key='old_percent',
-                xlabel="percentage of old subjects in training set", ylabel="tpr@0.05",
-                title="FAE tpr@0.05tpr on RSNA for different proportions of old patients in training",
-                plt_name="fae_rsna_age_tpr@0.05")
+                xlabel="percentage of old subjects in training set", ylabel="tpr@0.05fpr",
+                title="FAE tpr@0.05fpr on RSNA for different proportions of old patients in training",
+                plt_name="fae_rsna_age_tpr@0.05fpr")
     # anomaly score
     plot_metric(experiment_dir=experiment_dir,
                 metrics=["test/lungOpacity_old_anomaly_score", "test/lungOpacity_young_anomaly_score"],

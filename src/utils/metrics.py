@@ -441,7 +441,7 @@ if __name__ == '__main__':
         'AUROC': AUROC(subgroup_names),
         'AveragePrecision': AveragePrecision(subgroup_names),
         'tpr@5fpr': TPR_at_FPR(subgroup_names, xfpr=0.05),
-        'fpr@5tpr': FPR_at_TPR(subgroup_names, xtpr=0.95),
+        'fpr@95tpr': FPR_at_TPR(subgroup_names, xtpr=0.95),
         'subgroupAUROC': SubgroupAUROC(subgroup_names),
     })
 
