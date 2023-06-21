@@ -159,7 +159,7 @@ def train_step(model, optimizer, x, y, meta, device):
     return loss_dict
 
 
-def train(train_loader, val_loader, config, log_dir, experiment_date):
+def train(train_loader, val_loader, config, log_dir):
     # Reproducibility
     print(f"Setting seed to {config.seed}...")
     seed_everything(config.seed)
@@ -171,16 +171,21 @@ def train(train_loader, val_loader, config, log_dir, experiment_date):
     # Init logging
     if not config.debug:
         os.makedirs(log_dir, exist_ok=True)
-    wandb_tags = [config.model_type, config.dataset, config.protected_attr]
-    wandb_group_name = log_dir[:log_dir.rindex('/')]
-    wandb_group_name += f"_{experiment_date}"
+    wandb_tags = [config.model_type, config.dataset, config.protected_attr, str(config.dp)]
+    if config.protected_attr == "age":
+        job_type = f"old_percent_{config.old_percent}".replace('.', '')
+    else:
+        job_type = f"male_percent_{config.male_percent}".replace('.', '')
+    if config.dp:
+        job_type += '_DP'
     wandb.init(
         project="unsupervised-fairness",
         config=config,
-        group=wandb_group_name,
+        group=config.experiment_name,
         dir=log_dir,
         tags=wandb_tags,
-        job_type="seed_"+str(config.seed),
+        job_type=job_type,
+        name="seed_"+str(config.seed),
         mode="disabled" if (config.debug or config.disable_wandb) else "online"
     )
     # Init DP
@@ -406,17 +411,13 @@ def test(config, model, loader, log_dir):
 """"""""""""""""""""""""""""""""" Main """""""""""""""""""""""""""""""""
 
 if __name__ == '__main__':
-    experiment_date = datetime.strftime(datetime.now(), format='%Y.%m.%d-%H:%M:%S')
-    config.protected_attr = "age"
-    config.disable_wandb = True
     train_loader, val_loader, test_loader = load_data()
     for i in range(config.num_seeds):
-        torch.cuda.empty_cache()
         config.seed = config.initial_seed + i
         log_dir = config.log_dir
         if config.dp:
             log_dir += '_DP'
         log_dir = os.path.join(log_dir, f'seed_{config.seed}')
-        model = train(train_loader, val_loader, config, log_dir, experiment_date)
+        model = train(train_loader, val_loader, config, log_dir)
         test(config, model, test_loader, log_dir)
         wandb.finish()
