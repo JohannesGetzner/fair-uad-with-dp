@@ -284,11 +284,11 @@ if __name__ == '__main__':
     plot_metric(experiment_dir=experiment_dir,
                 metrics=["test/lungOpacity_old_fpr@0.95", "test/lungOpacity_young_fpr@0.95"], attr_key='old_percent',
                 xlabel="percentage of old subjects in training set", ylabel="fpr@0.95tpr",
-                title="FAE fpr@0.05tpr on RSNA for different proportions of old patients in training",
+                title="FAE fpr@0.95tpr on RSNA for different proportions of old patients in training",
                 plt_name="fae_rsna_age_fpr@095tpr")
     # tpr@0.05
     plot_metric(experiment_dir=experiment_dir,
-                metrics=["test/lungOpacity_old_tpr@0.05", "test/lungOpacity_young_tpr@0.05"], attr_key='male_percent',
+                metrics=["test/lungOpacity_old_tpr@0.05", "test/lungOpacity_young_tpr@0.05"], attr_key='old_percent',
                 xlabel="percentage of old subjects in training set", ylabel="tpr@0.05",
                 title="FAE tpr@0.05tpr on RSNA for different proportions of old patients in training",
                 plt_name="fae_rsna_age_tpr@0.05")
@@ -310,7 +310,7 @@ if __name__ == '__main__':
                 plt_name="fae_rsna_age_subgroupAUROC")
     # Average precision
     plot_metric(experiment_dir=experiment_dir, metrics=["test/lungOpacity_old_AP", "test/lungOpacity_young_AP"],
-                attr_key='male_percent', xlabel="percentage of old subjects in training set",
+                attr_key='old_percent', xlabel="percentage of old subjects in training set",
                 ylabel="AveragePrecision",
                 title="FAE AveragePrecision on RSNA for different proportions of old patients in training",
                 plt_name="fae_rsna_age_AP")
