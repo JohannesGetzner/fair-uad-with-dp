@@ -314,7 +314,8 @@ def validate(config, model, loader, step, log_imgs=False):
     metrics_c = metrics.compute()
     losses_c = {k: v.compute() for k, v in losses.items()}
     losses_c = {f'{k}_{m}': v[m] for k, v in losses_c.items() for m in v.keys()}
-    if log_imgs:
+    # TODO: image logging disabled for now
+    if log_imgs and False:
         imgs = {f'{k}_imgs': wandb.Image(torch.cat(v)[:config.num_imgs_log]) for k, v in imgs.items()}
         anomaly_maps = {f'{k}_anomaly_maps': wandb.Image(torch.cat(v)[:config.num_imgs_log]) for k, v in
                         anomaly_maps.items()}
@@ -331,7 +332,8 @@ def validate(config, model, loader, step, log_imgs=False):
     print(log_msg)
 
     # Save checkpoint
-    if not config.debug:
+    # TODO: checkpoint saving disabled for now
+    if not config.debug and False:
         ckpt_name = os.path.join(log_dir, 'ckpt_last.pth')
         print(f'Saving checkpoint to {ckpt_name}')
         save_checkpoint(ckpt_name, model, step, vars(config))
