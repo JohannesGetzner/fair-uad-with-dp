@@ -1,4 +1,8 @@
+import functools
 import sys
+
+import yaml
+
 sys.path.append('..')
 import os
 from argparse import ArgumentParser,BooleanOptionalAction
@@ -15,7 +19,7 @@ from src.data.datasets import get_dataloaders
 from src.models.DeepSVDD.deepsvdd import DeepSVDD
 from src.models.FAE.fae import FeatureReconstructor
 from src.utils.metrics import AvgDictMeter, build_metrics
-from src.utils.utils import seed_everything, save_checkpoint
+from src.utils.utils import seed_everything, save_checkpoint, init_wandb
 from opacus import PrivacyEngine
 from opacus.validators.utils import register_module_fixer
 from torch import nn
@@ -90,32 +94,25 @@ parser.add_argument('--e', type=float, default=8, help='Noise multiplier')
 parser.add_argument('--delta', type=float, help='Target delta')
 parser.add_argument('--max_grad_norm', type=float, default=1, help='Max gradient norm')
 
-config = parser.parse_args()
 
-config.seed = config.initial_seed
-config.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-print(f"Using {config.device}")
+# Other
+parser.add_argument('--sweep',  action=BooleanOptionalAction, default=False, help='do a hyperparam sweep')
 
-if config.debug:
-    config.num_workers = 0
-    config.max_steps = 1
-    config.val_frequency = 1
-    config.val_steps = 1
-    config.log_frequency = 1
+
 
 """"""""""""""""""""""""""""""""" Load data """""""""""""""""""""""""""""""""
 
-def load_data():
+def load_data(config):
     print("Loading data...")
     t_load_data_start = time()
     train_loader, val_loader, test_loader = get_dataloaders(dataset=config.dataset, batch_size=config.batch_size,
-        img_size=config.img_size, num_workers=config.num_workers, protected_attr=config.protected_attr,
-        male_percent=config.male_percent, old_percent=config.old_percent, )
+                                                            img_size=config.img_size, num_workers=config.num_workers, protected_attr=config.protected_attr,
+                                                            male_percent=config.male_percent, old_percent=config.old_percent, )
     print(f'Loaded datasets in {time() - t_load_data_start:.2f}s')
     return train_loader, val_loader, test_loader
 
-""""""""""""""""""""""""""""""""" Init model """""""""""""""""""""""""""""""""
 
+""""""""""""""""""""""""""""""""" Init model """""""""""""""""""""""""""""""""
 
 def init_model(config):
     print("Initializing model...")
@@ -142,14 +139,14 @@ def init_model(config):
 """"""""""""""""""""""""""""""""" Training """""""""""""""""""""""""""""""""
 
 
-def train_step(model, optimizer, x, y, meta, device):
+def train_step(model, optimizer, x, y, meta, device, dp=False):
     model.train()
     optimizer.zero_grad()
     x = x.to(device)
     y = y.to(device)
     meta = meta.to(device)
     # TODO: find a better way to compute the loss when wrapped with DP (don't access protected attribute)
-    if config.dp:
+    if dp:
         loss_dict = model._module.loss(x, y=y)
     else:
         loss_dict = model.loss(x, y=y)
@@ -171,23 +168,7 @@ def train(train_loader, val_loader, config, log_dir):
     # Init logging
     if not config.debug:
         os.makedirs(log_dir, exist_ok=True)
-    wandb_tags = [config.model_type, config.dataset, config.protected_attr, str(config.dp)]
-    if config.protected_attr == "age":
-        job_type = f"old_percent_{config.old_percent}".replace('.', '')
-    else:
-        job_type = f"male_percent_{config.male_percent}".replace('.', '')
-    if config.dp:
-        job_type += '_DP'
-    wandb.init(
-        project="unsupervised-fairness",
-        config=config,
-        group=config.experiment_name,
-        dir=log_dir,
-        tags=wandb_tags,
-        job_type=job_type,
-        name="seed_"+str(config.seed),
-        mode="disabled" if (config.debug or config.disable_wandb) else "online"
-    )
+    init_wandb(config, "unsupervised_fairness", log_dir)
     # Init DP
     if config.dp:
         privacy_engine = PrivacyEngine(accountant="rdp")
@@ -199,7 +180,7 @@ def train(train_loader, val_loader, config, log_dir):
             data_loader=train_loader,
             target_epsilon=config.e,
             target_delta=delta,
-            max_grad_norm=config.max_grad_norm,
+            max_grad_norm=config.max_grad_norm if not config.sweep else wandb.config.max_grad_norm,
             epochs=epochs,
         )
         errors = ModuleValidator.validate(model, strict=False)
@@ -214,7 +195,7 @@ def train(train_loader, val_loader, config, log_dir):
         for x, y, meta in train_loader:
             step += 1
 
-            loss_dict = train_step(model, optimizer, x, y, meta, config.device)
+            loss_dict = train_step(model, optimizer, x, y, meta, config.device, config.dp)
             train_losses.add(loss_dict)
 
             if step % config.log_frequency == 0:
@@ -241,7 +222,7 @@ def train(train_loader, val_loader, config, log_dir):
 
             if step % config.val_frequency == 0:
                 log_imgs = step % config.log_img_freq == 0
-                val_results = validate(config, model, val_loader, step, log_imgs)
+                val_results = validate(config, model, val_loader, step, log_dir, log_imgs)
                 # Log to w&b
                 wandb.log(val_results, step=step)
 
@@ -250,7 +231,7 @@ def train(train_loader, val_loader, config, log_dir):
 
                 # Final validation
                 print("Final validation...")
-                validate(config, model, val_loader, step, False)
+                validate(config, model, val_loader, step, log_dir, False)
                 return model
 
         i_epoch += 1
@@ -260,14 +241,14 @@ def train(train_loader, val_loader, config, log_dir):
 """"""""""""""""""""""""""""""""" Validation """""""""""""""""""""""""""""""""
 
 
-def val_step(model, x, y, meta, device):
+def val_step(model, x, y, meta, device, dp=False):
     model.eval()
     x = x.to(device)
     y = y.to(device)
     meta = meta.to(device)
     with torch.no_grad():
         # TODO: find a better way to compute the loss when wrapped with DP
-        if config.dp:
+        if dp:
             loss_dict = model._module.loss(x, y=y)
             anomaly_map, anomaly_score = model._module.predict_anomaly(x)
         else:
@@ -280,7 +261,7 @@ def val_step(model, x, y, meta, device):
     return loss_dict, anomaly_map, anomaly_score
 
 
-def validate(config, model, loader, step, log_imgs=False):
+def validate(config, model, loader, step, log_dir, log_imgs=False):
     i_step = 0
     device = next(model.parameters()).device
     x, y, meta = next(iter(loader))
@@ -293,7 +274,7 @@ def validate(config, model, loader, step, log_imgs=False):
         # x, y, anomaly_map: [b, 1, h, w]
         # Compute loss, anomaly map and anomaly score
         for i, k in enumerate(x.keys()):
-            loss_dict, anomaly_map, anomaly_score = val_step(model, x[k], y[k], meta[k], device)
+            loss_dict, anomaly_map, anomaly_score = val_step(model, x[k], y[k], meta[k], device, config.dp)
 
             # Update metrics
             group = torch.tensor([i] * len(anomaly_score))
@@ -359,7 +340,7 @@ def test(config, model, loader, log_dir):
         # x, y, anomaly_map: [b, 1, h, w]
         # Compute loss, anomaly map and anomaly score
         for i, k in enumerate(x.keys()):
-            loss_dict, _, anomaly_score = val_step(model, x[k], y[k], meta[k], device)
+            loss_dict, _, anomaly_score = val_step(model, x[k], y[k], meta[k], device, config.dp)
 
             # Update metrics
             group = torch.tensor([i] * len(anomaly_score))
@@ -412,14 +393,36 @@ def test(config, model, loader, log_dir):
 
 """"""""""""""""""""""""""""""""" Main """""""""""""""""""""""""""""""""
 
+
+
+
 if __name__ == '__main__':
-    train_loader, val_loader, test_loader = load_data()
-    for i in range(config.num_seeds):
-        config.seed = config.initial_seed + i
-        log_dir = config.log_dir
-        if config.dp:
-            log_dir += '_DP'
-        log_dir = os.path.join(log_dir, f'seed_{config.seed}')
-        model = train(train_loader, val_loader, config, log_dir)
-        test(config, model, test_loader, log_dir)
-        wandb.finish()
+    CONFIG = parser.parse_args()
+    CONFIG.seed = CONFIG.initial_seed
+    CONFIG.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    print(f"Using {CONFIG.device}")
+    if CONFIG.debug:
+        CONFIG.num_workers = 0
+        CONFIG.max_steps = 1
+        CONFIG.val_frequency = 1
+        CONFIG.val_steps = 1
+        CONFIG.log_frequency = 1
+
+    train_loader, val_loader, test_loader = load_data(CONFIG)
+    log_dir = CONFIG.log_dir
+    if CONFIG.dp:
+        log_dir += '_DP'
+    if CONFIG.sweep:
+        with open('sweep_config.yml', 'r') as f:
+            sweep_configuration = yaml.safe_load(f)
+        sweep_id = wandb.sweep(sweep_configuration, project='unsupervised-fairness-hyperparam-tuning')
+        train_p = functools.partial(train, train_loader, val_loader, CONFIG, log_dir)
+        wandb.agent(sweep_id, function=train_p, count=30)
+    else:
+        for i in range(CONFIG.num_seeds):
+            CONFIG.seed = CONFIG.initial_seed + i
+            log_dir = os.path.join(log_dir, f'seed_{CONFIG.seed}')
+            model = train(train_loader, val_loader, CONFIG, log_dir)
+            test(CONFIG, model, test_loader, log_dir)
+            wandb.finish()
+

@@ -1,3 +1,4 @@
+import functools
 import os
 import random
 from argparse import Namespace
@@ -7,6 +8,8 @@ from typing import Any, Dict
 import numpy as np
 import torch
 import torch.nn as nn
+import wandb
+import yaml
 from torch.utils.tensorboard import SummaryWriter
 
 
@@ -37,6 +40,32 @@ def save_checkpoint(path: str, model: nn.Module, step: int, config: Dict):
     }
     torch.save(checkpoint, path)
 
+
+def init_wandb(config, project:str, log_dir:str):
+    wandb_tags = [config.model_type, config.dataset, config.protected_attr, str(config.dp)]
+    if config.sweep:
+        wandb.init(
+            project="unsupervised-fairness-hyperparam-tuning",
+            config=config,
+            dir=log_dir
+        )
+    else:
+        if config.protected_attr == "age":
+            job_type = f"old_percent_{config.old_percent}".replace('.', '')
+        else:
+            job_type = f"male_percent_{config.male_percent}".replace('.', '')
+        if config.dp:
+            job_type += '_DP'
+        wandb.init(
+            project=project,
+            config=config,
+            group=config.experiment_name,
+            dir=log_dir,
+            tags=wandb_tags,
+            job_type=job_type,
+            name="seed_" + str(config.seed),
+            mode="disabled" if (config.debug or config.disable_wandb) else "online"
+        )
 
 class TensorboardLogger(SummaryWriter):
     def __init__(
@@ -90,3 +119,5 @@ class TensorboardLogger(SummaryWriter):
 
                 else:
                     raise ValueError(f'Unsupported data type: {type(v)}')
+
+

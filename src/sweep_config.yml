@@ -1,0 +1,10 @@
+---
+method: 'random'
+name: 'max_grad_norm_1_01'
+parameters:
+  max_grad_norm:
+    max: 1.0
+    min: 0.01
+metric:
+  goal: 'minimize'
+  name: "train/loss"
