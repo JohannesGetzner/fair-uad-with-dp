@@ -168,7 +168,7 @@ def train(train_loader, val_loader, config, log_dir):
     # Init logging
     if not config.debug:
         os.makedirs(log_dir, exist_ok=True)
-    init_wandb(config, "unsupervised_fairness", log_dir)
+    run = init_wandb(config, "unsupervised-fairness", log_dir)
     # Init DP
     if config.dp:
         privacy_engine = PrivacyEngine(accountant="rdp")
@@ -414,14 +414,13 @@ if __name__ == '__main__':
         log_dir += '_DP'
     if CONFIG.sweep:
         with open('sweep_config.yml', 'r') as f:
-            sweep_configuration = yaml.safe_load(f)
-            if CONFIG.protected_attr == "age":
-                sweep_configuration["name"] = f"old_percent_{CONFIG.old_percent}".replace('.', '') + sweep_configuration["name"]
-            else:
-                sweep_configuration["name"] = f"male_percent_{CONFIG.male_percent}".replace('.', '') + sweep_configuration["name"]
-        sweep_id = wandb.sweep(sweep_configuration, project='unsupervised-fairness-hyperparam-tuning')
+            s = yaml.safe_load(f)
+        sweep_configuration = s["sweep_config"]
+        sweep_meta = s["meta"]
+        sweep_configuration["name"] = CONFIG.experiment_name
+        sweep_id = wandb.sweep(sweep_configuration, project='unsupervised-fairness')
         train_p = functools.partial(train, train_loader, val_loader, CONFIG, log_dir)
-        wandb.agent(sweep_id, function=train_p, count=10)
+        wandb.agent(sweep_id, function=train_p, count=sweep_meta["num_runs"])
     else:
         for i in range(CONFIG.num_seeds):
             CONFIG.seed = CONFIG.initial_seed + i

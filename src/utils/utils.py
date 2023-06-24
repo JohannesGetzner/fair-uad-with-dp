@@ -42,21 +42,26 @@ def save_checkpoint(path: str, model: nn.Module, step: int, config: Dict):
 
 
 def init_wandb(config, project:str, log_dir:str):
-    wandb_tags = [config.model_type, config.dataset, config.protected_attr, str(config.dp)]
+    sweep_tag = "sweep" if config.sweep else "no_sweep"
+    dp_tag = "DP" if config.dp else "no_DP"
+    if config.protected_attr == "age":
+        job_type = f"old_percent_{config.old_percent}".replace('.', '')
+    else:
+        job_type = f"male_percent_{config.male_percent}".replace('.', '')
+    if config.dp:
+        job_type += '_DP'
+    wandb_tags = [config.model_type, config.dataset, config.protected_attr, dp_tag, sweep_tag]
     if config.sweep:
-        wandb.init(
-            project="unsupervised-fairness-hyperparam-tuning",
+        run = wandb.init(
+            project=project,
             config=config,
-            dir=log_dir
+            dir=log_dir,
+            tags=wandb_tags,
+            job_type=job_type,
+            group = config.experiment_name
         )
     else:
-        if config.protected_attr == "age":
-            job_type = f"old_percent_{config.old_percent}".replace('.', '')
-        else:
-            job_type = f"male_percent_{config.male_percent}".replace('.', '')
-        if config.dp:
-            job_type += '_DP'
-        wandb.init(
+        run = wandb.init(
             project=project,
             config=config,
             group=config.experiment_name,
@@ -66,6 +71,7 @@ def init_wandb(config, project:str, log_dir:str):
             name="seed_" + str(config.seed),
             mode="disabled" if (config.debug or config.disable_wandb) else "online"
         )
+    return run
 
 class TensorboardLogger(SummaryWriter):
     def __init__(

@@ -1,10 +1,12 @@
 ---
-method: 'random'
-name: 'max_grad_norm_01_001'
-parameters:
-  max_grad_norm:
-    max: 0.1
-    min: 0.01
-metric:
-  goal: 'minimize'
-  name: "train/loss"
+meta:
+  num_runs: 50
+sweep_config:
+  method: 'random'
+  parameters:
+    max_grad_norm:
+      max: 1.0
+      min: 0.01
+  metric:
+    goal: 'minimize'
+    name: "train/loss"
