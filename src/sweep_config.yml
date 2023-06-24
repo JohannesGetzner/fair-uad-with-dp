@@ -1,6 +1,6 @@
 ---
 method: 'random'
-name: 'max_grad_norm_1_01'
+name: 'max_grad_norm_1_001'
 parameters:
   max_grad_norm:
     max: 1.0
