@@ -415,9 +415,13 @@ if __name__ == '__main__':
     if CONFIG.sweep:
         with open('sweep_config.yml', 'r') as f:
             sweep_configuration = yaml.safe_load(f)
+            if CONFIG.protected_attr == "age":
+                sweep_configuration["name"] = f"old_percent_{CONFIG.old_percent}".replace('.', '') + sweep_configuration["name"]
+            else:
+                sweep_configuration["name"] = f"male_percent_{CONFIG.male_percent}".replace('.', '') + sweep_configuration["name"]
         sweep_id = wandb.sweep(sweep_configuration, project='unsupervised-fairness-hyperparam-tuning')
         train_p = functools.partial(train, train_loader, val_loader, CONFIG, log_dir)
-        wandb.agent(sweep_id, function=train_p, count=30)
+        wandb.agent(sweep_id, function=train_p, count=10)
     else:
         for i in range(CONFIG.num_seeds):
             CONFIG.seed = CONFIG.initial_seed + i

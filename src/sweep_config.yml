@@ -1,9 +1,9 @@
 ---
 method: 'random'
-name: 'max_grad_norm_1_01'
+name: 'max_grad_norm_01_001'
 parameters:
   max_grad_norm:
-    max: 1.0
+    max: 0.1
     min: 0.01
 metric:
   goal: 'minimize'
