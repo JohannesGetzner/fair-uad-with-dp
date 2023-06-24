@@ -400,6 +400,7 @@ if __name__ == '__main__':
     CONFIG = parser.parse_args()
     CONFIG.seed = CONFIG.initial_seed
     CONFIG.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    CONFIG.protected_attr = "age"
     print(f"Using {CONFIG.device}")
     if CONFIG.debug:
         CONFIG.num_workers = 0
@@ -407,6 +408,7 @@ if __name__ == '__main__':
         CONFIG.val_frequency = 1
         CONFIG.val_steps = 1
         CONFIG.log_frequency = 1
+        CONFIG.batch_size = 16
 
     train_loader, val_loader, test_loader = load_data(CONFIG)
     log_dir = CONFIG.log_dir
