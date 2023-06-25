@@ -166,3 +166,4 @@ logs
 src/analysis/**/*.csv
 src/analysis/**/*.png
 /src/datasets/
+/src/wandb/

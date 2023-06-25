@@ -1,13 +1,15 @@
 import functools
 import sys
 
+import numpy as np
 import yaml
 
 sys.path.append('..')
 import os
-from argparse import ArgumentParser,BooleanOptionalAction
+from argparse import ArgumentParser, BooleanOptionalAction
 from collections import defaultdict
 from datetime import datetime
+from dotmap import DotMap
 from time import time
 
 import pandas as pd
@@ -27,92 +29,92 @@ from opacus.validators import ModuleValidator
 from src.models.pytorch_ssim import SSIMLoss
 
 
-@register_module_fixer(
-    [nn.BatchNorm1d, nn.BatchNorm2d, nn.BatchNorm3d, nn.SyncBatchNorm]
-)
+@register_module_fixer([nn.BatchNorm1d, nn.BatchNorm2d, nn.BatchNorm3d, nn.SyncBatchNorm])
 def _batchnorm_to_groupnorm(module) -> nn.GroupNorm:
     num_groups = 32
     if module.num_features % num_groups != 0:
         num_groups = 25
-    return nn.GroupNorm(
-        min(num_groups, module.num_features), module.num_features, affine=module.affine
-    )
+    return nn.GroupNorm(min(num_groups, module.num_features), module.num_features, affine=module.affine)
 
 
 """"""""""""""""""""""""""""""""""" Config """""""""""""""""""""""""""""""""""
 
+DEFAULT_CONFIG = {
+    # General script settings
+    "initial_seed": 1,
+    "num_seeds": 1,
+    "debug": False,
+    "disable_wandb": False,
+    # Experiment settings
+    "experiment_name": "insert-experiment-name",
+    # Data settings
+    "dataset": "rsna",
+    "protected_attr": None,
+    "protected_attr_percent": 0.5,
+    "img_size": 128,
+    "num_workers": 0,
+    # Logging settings
+    "val_frequency": 200,
+    "val_steps": 50,
+    "log_frequency": 100,
+    "log_img_freq": 1000,
+    "num_imgs_log": 8,
+    "log_dir": os.path.join('logs', datetime.strftime(datetime.now(), format="%Y.%m.%d-%H:%M:%S")), # Hyperparameters
+    "lr": 2e-4,
+    "weight_decay": 0.0,
+    "max_steps": 8000,
+    "batch_size": 32,
+    # Model settings
+    "model_type": "FAE",
+    # FAE settings
+    "hidden_dims": [100, 150, 200, 300],
+    "dropout": 0.1,
+    "loss_fn": "ssim",
+    "extractor_cnn_layers": ["layer0", "layer1", "layer2"],
+    "keep_feature_prop": 1.0,
+    # DeepSVDD settings
+    "repr_dim": 256,
+    # DP settings
+    "dp": False,
+    "epsilon": 8.0,
+    "delta": None,
+    "max_grad_norm": 1.0
+}
+DEFAULT_CONFIG = DotMap(DEFAULT_CONFIG)
+
 parser = ArgumentParser()
-# General script settings
-parser.add_argument('--initial_seed', type=int, default=1, help='Random seed')
-parser.add_argument('--num_seeds', type=int, default=1, help='Number of random seed')
-parser.add_argument('--debug', action='store_true', help='Debug mode')
-parser.add_argument('--disable_wandb', action='store_true', help='Debug mode')
+parser.add_argument('--sweep', action=BooleanOptionalAction, default=False)
+parser.add_argument('--run_all', action=BooleanOptionalAction, default=False)
+parser.add_argument('--run_name', default="run1", type=str)
+RUN_SETTINGS = parser.parse_args()
 
-# Experiment settings
-parser.add_argument('--experiment_name', type=str, default='')
-
-# Data settings
-parser.add_argument('--dataset', type=str, default='rsna', choices=['rsna'])
-parser.add_argument('--protected_attr', type=str, default='none', choices=['none', 'age', 'sex'])
-parser.add_argument('--male_percent', type=float, default=0.5)
-parser.add_argument('--old_percent', type=float, default=0.5)
-parser.add_argument('--img_size', type=int, default=128, help='Image size')
-parser.add_argument('--num_workers', type=int, default=0, help='Number of workers for dataloader')
-
-# Logging settings
-parser.add_argument('--val_frequency', type=int, default=200, help='Validation frequency')
-parser.add_argument('--val_steps', type=int, default=50, help='Steps per validation')
-parser.add_argument('--log_frequency', type=int, default=100, help='Logging frequency')
-parser.add_argument('--log_img_freq', type=int, default=1000)
-parser.add_argument('--num_imgs_log', type=int, default=8)
-parser.add_argument('--log_dir', type=str, help="Logging directory",
-    default=os.path.join('logs', datetime.strftime(datetime.now(), format="%Y.%m.%d-%H:%M:%S")))
-
-# Hyperparameters
-parser.add_argument('--lr', type=float, default=2e-4, help='Learning rate')
-parser.add_argument('--weight_decay', type=float, default=0.0, help='Weight decay')
-parser.add_argument('--max_steps', type=int, default=8000,  # 8000,  # 10000,
-                    help='Number of training steps')
-parser.add_argument('--batch_size', type=int, default=32, help='Batch size')
-
-# Model settings
-parser.add_argument('--model_type', type=str, default='FAE', choices=['FAE', 'DeepSVDD'])
-# FAE settings
-# 128, 160, 224, 320
-parser.add_argument('--hidden_dims', type=int, nargs='+', default=[100, 150, 200, 300],
-                    help='Autoencoder hidden dimensions')
-parser.add_argument('--dropout', type=float, default=0.1, help='Dropout rate')
-parser.add_argument('--loss_fn', type=str, default='ssim', help='loss function', choices=['mse', 'ssim'])
-parser.add_argument('--extractor_cnn_layers', type=str, nargs='+', default=['layer0', 'layer1', 'layer2'])
-parser.add_argument('--keep_feature_prop', type=float, default=1.0, help='Proportion of ResNet features to keep')
-# DeepSVDD settings
-parser.add_argument('--repr_dim', type=int, default=256, help='Dimensionality of the hypersphere c')
-
-# Differential Privacy settings
-parser.add_argument('--dp', action=BooleanOptionalAction, default=False, help='Use differential privacy')
-parser.add_argument('--e', type=float, default=8, help='Noise multiplier')
-parser.add_argument('--delta', type=float, help='Target delta')
-parser.add_argument('--max_grad_norm', type=float, default=1, help='Max gradient norm')
-
-
-# Other
-parser.add_argument('--sweep',  action=BooleanOptionalAction, default=False, help='do a hyperparam sweep')
-
-
+DEFAULT_CONFIG.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+print(f"Using {DEFAULT_CONFIG.device}")
+if DEFAULT_CONFIG.debug:
+    DEFAULT_CONFIG.num_workers = 0
+    DEFAULT_CONFIG.max_steps = 1
+    DEFAULT_CONFIG.val_frequency = 1
+    DEFAULT_CONFIG.val_steps = 1
+    DEFAULT_CONFIG.log_frequency = 1
+    DEFAULT_CONFIG.batch_size = 8
 
 """"""""""""""""""""""""""""""""" Load data """""""""""""""""""""""""""""""""
+
 
 def load_data(config):
     print("Loading data...")
     t_load_data_start = time()
     train_loader, val_loader, test_loader = get_dataloaders(dataset=config.dataset, batch_size=config.batch_size,
-                                                            img_size=config.img_size, num_workers=config.num_workers, protected_attr=config.protected_attr,
-                                                            male_percent=config.male_percent, old_percent=config.old_percent, )
+                                                            img_size=config.img_size, num_workers=config.num_workers,
+                                                            protected_attr=config.protected_attr,
+                                                            male_percent=config.protected_attr_percent,
+                                                            old_percent=config.protected_attr_percent, )
     print(f'Loaded datasets in {time() - t_load_data_start:.2f}s')
     return train_loader, val_loader, test_loader
 
 
 """"""""""""""""""""""""""""""""" Init model """""""""""""""""""""""""""""""""
+
 
 def init_model(config):
     print("Initializing model...")
@@ -128,7 +130,7 @@ def init_model(config):
     if config.dp:
         model = ModuleValidator.fix(model)
 
-    compiled_model = model #torch.compile(model)
+    compiled_model = model  # torch.compile(model)
 
     # Init optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=config.lr, weight_decay=config.weight_decay)
@@ -168,21 +170,15 @@ def train(train_loader, val_loader, config, log_dir):
     # Init logging
     if not config.debug:
         os.makedirs(log_dir, exist_ok=True)
-    init_wandb(config, "unsupervised_fairness", log_dir)
+    run = init_wandb(config, "unsupervised-fairness", log_dir)
     # Init DP
     if config.dp:
         privacy_engine = PrivacyEngine(accountant="rdp")
         epochs = math.ceil(config.max_steps / len(train_loader))
-        delta = config.delta if config.delta else 1/(len(train_loader)*train_loader.batch_size)
-        model, optimizer, data_loader = privacy_engine.make_private_with_epsilon(
-            module=model,
-            optimizer=optimizer,
-            data_loader=train_loader,
-            target_epsilon=config.e,
-            target_delta=delta,
-            max_grad_norm=config.max_grad_norm if not config.sweep else wandb.config.max_grad_norm,
-            epochs=epochs,
-        )
+        delta = config.delta if config.delta else 1 / (len(train_loader) * train_loader.batch_size)
+        model, optimizer, data_loader = privacy_engine.make_private_with_epsilon(module=model, optimizer=optimizer,
+            data_loader=train_loader, target_epsilon=config.epsilon, target_delta=delta,
+            max_grad_norm=config.max_grad_norm if not config.sweep else wandb.config.max_grad_norm, epochs=epochs, )
         errors = ModuleValidator.validate(model, strict=False)
         if len(errors) > 0:
             print(f'WARNING: model validation failed with errors: {errors}')
@@ -393,36 +389,70 @@ def test(config, model, loader, log_dir):
 
 """"""""""""""""""""""""""""""""" Main """""""""""""""""""""""""""""""""
 
-
-
-
 if __name__ == '__main__':
-    CONFIG = parser.parse_args()
-    CONFIG.seed = CONFIG.initial_seed
-    CONFIG.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    print(f"Using {CONFIG.device}")
-    if CONFIG.debug:
-        CONFIG.num_workers = 0
-        CONFIG.max_steps = 1
-        CONFIG.val_frequency = 1
-        CONFIG.val_steps = 1
-        CONFIG.log_frequency = 1
-
-    train_loader, val_loader, test_loader = load_data(CONFIG)
-    log_dir = CONFIG.log_dir
-    if CONFIG.dp:
-        log_dir += '_DP'
-    if CONFIG.sweep:
+    current_time = datetime.strftime(datetime.now(), format="%Y.%m.%d-%H:%M:%S")
+    DEFAULT_CONFIG.sweep = RUN_SETTINGS.sweep
+    if RUN_SETTINGS.sweep:
+        print("Sweeping...")
+        config = DEFAULT_CONFIG.copy()
+        config.seed = config.initial_seed
+        if config.dp:
+            config.log_dir += '_DP'
         with open('sweep_config.yml', 'r') as f:
-            sweep_configuration = yaml.safe_load(f)
-        sweep_id = wandb.sweep(sweep_configuration, project='unsupervised-fairness-hyperparam-tuning')
-        train_p = functools.partial(train, train_loader, val_loader, CONFIG, log_dir)
-        wandb.agent(sweep_id, function=train_p, count=30)
-    else:
-        for i in range(CONFIG.num_seeds):
-            CONFIG.seed = CONFIG.initial_seed + i
-            log_dir = os.path.join(log_dir, f'seed_{CONFIG.seed}')
-            model = train(train_loader, val_loader, CONFIG, log_dir)
-            test(CONFIG, model, test_loader, log_dir)
+            sweep_configs = yaml.safe_load(f)
+        sweep_configs = sweep_configs if RUN_SETTINGS.run_all else {RUN_SETTINGS.run_name: sweep_configs[RUN_SETTINGS.run_name]}
+        for sweep_name, sweep_config in sweep_configs.items():
+            sweep_configuration = sweep_config["sweep_config"]
+            for arg_name, arg_value in sweep_config["exp_config"].items():
+                config[arg_name] = arg_value
+            config.experiment_name += f"-{current_time}"
+            sweep_configuration["name"] = config.experiment_name
+            if config.protected_attr == "age":
+                config["old_percent"] = config.protected_attr_percent
+            else:
+                config["male_percent"] = config.protected_attr_percent
+            sweep_id = wandb.sweep(sweep_configuration, project='unsupervised-fairness')
+            train_loader, val_loader, test_loader = load_data(config)
+            train_p = functools.partial(train, train_loader, val_loader, config, config.log_dir)
+            wandb.agent(sweep_id, function=train_p, count=config.num_runs)
             wandb.finish()
-
+    else:
+        with open('run_config.yml', 'r') as f:
+            run_configs = yaml.safe_load(f)
+        # choose runs to execute
+        run_configs = run_configs if RUN_SETTINGS.run_all else {RUN_SETTINGS.run_name: run_configs[RUN_SETTINGS.run_name]}
+        for run_name, run_config in run_configs.items():
+            print(f"Running {run_name}")
+            # update default values config
+            config = DEFAULT_CONFIG.copy()
+            if config.dp:
+                config.log_dir += '_DP'
+            protected_attr_values = []
+            # set protected attribute values
+            for arg_name, arg_value in run_config.items():
+                if arg_name == "protected_attr_percent":
+                    if isinstance(arg_value, float):
+                        protected_attr_values.append(arg_value)
+                    else:
+                        protected_attr_values += list(np.arange(arg_value[0], arg_value[1]+arg_value[2], arg_value[2]))
+                else:
+                    config[arg_name] = arg_value
+            # add timestamp and protected attribute to experiment name
+            config.experiment_name += f"-{current_time}"
+            if config.dp:
+                config.log_dir += '_DP'
+            for protected_attr_value in protected_attr_values:
+                log_dir = config.log_dir + f"_{str(protected_attr_value)[:4].replace('.', '')}"
+                if config.protected_attr == "age":
+                    config["old_percent"] = protected_attr_value
+                else:
+                    config["male_percent"] = protected_attr_value
+                # load data
+                train_loader, val_loader, test_loader = load_data(config)
+                # iterate over seeds
+                for i in range(config.num_seeds):
+                    config.seed = config.initial_seed + i
+                    log_dir = os.path.join(log_dir, f'seed_{config.seed}')
+                    model = train(train_loader, val_loader, config, log_dir)
+                    test(config, model, test_loader, log_dir)
+                    wandb.finish()
