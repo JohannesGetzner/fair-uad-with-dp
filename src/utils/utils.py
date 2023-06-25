@@ -58,7 +58,8 @@ def init_wandb(config, project:str, log_dir:str):
             dir=log_dir,
             tags=wandb_tags,
             job_type=job_type,
-            group = config.experiment_name
+            group = config.experiment_name,
+            mode="disabled" if (config.debug or config.disable_wandb) else "online"
         )
     else:
         run = wandb.init(
