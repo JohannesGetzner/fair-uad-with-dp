@@ -6,6 +6,7 @@ run1:
     experiment_name: "FAE-rsna-sweep-maxgradnorm-001-0001"
     max_steps: 6000
     dp: True
+    wandb_project: "unsupervised-fairness"
   sweep_config:
     method: 'random'
     parameters:

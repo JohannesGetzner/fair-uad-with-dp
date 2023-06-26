@@ -45,6 +45,7 @@ DEFAULT_CONFIG = {
     "num_seeds": 1,
     "debug": False,
     "disable_wandb": False,
+    "wandb_project": "test",
     # Experiment settings
     "experiment_name": "insert-experiment-name",
     # Data settings
@@ -170,7 +171,7 @@ def train(train_loader, val_loader, config, log_dir):
     # Init logging
     if not config.debug:
         os.makedirs(log_dir, exist_ok=True)
-    run = init_wandb(config, "unsupervised-fairness", log_dir)
+    run = init_wandb(config, config.wandb_project, log_dir)
     # Init DP
     if config.dp:
         privacy_engine = PrivacyEngine(accountant="rdp")
@@ -411,7 +412,7 @@ if __name__ == '__main__':
                 config["old_percent"] = config.protected_attr_percent
             else:
                 config["male_percent"] = config.protected_attr_percent
-            sweep_id = wandb.sweep(sweep_configuration, project='unsupervised-fairness')
+            sweep_id = wandb.sweep(sweep_configuration, project=config.wandb.wandb_project)
             train_loader, val_loader, test_loader = load_data(config)
             train_p = functools.partial(train, train_loader, val_loader, config, config.log_dir)
             wandb.agent(sweep_id, function=train_p, count=config.num_runs)
