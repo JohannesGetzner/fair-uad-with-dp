@@ -1,7 +1,7 @@
 ---
 run1:
   exp_config:
-    num_runs: 5
+    num_runs: 50
     protected_attr: "sex"
     experiment_name: "FAE-rsna-sweep-maxgradnorm-001-0001"
     max_steps: 6000
