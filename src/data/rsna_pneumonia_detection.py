@@ -220,7 +220,6 @@ def load_rsna_age_two_split(rsna_dir: str = RSNA_DIR,
     test_young = val_test_young.iloc[50:, :]
     test_old = val_test_old.iloc[50:, :]
     # Aggregate validation and test sets and shuffle
-    # TODO: why normal data the same for val and test sets?
     val_young = pd.concat([val_test_normal_young, val_young]).sample(frac=1, random_state=42).reset_index(drop=True)
     val_old = pd.concat([val_test_normal_old, val_old]).sample(frac=1, random_state=42).reset_index(drop=True)
     test_young = pd.concat([val_test_normal_young, test_young]).sample(frac=1, random_state=42).reset_index(drop=True)

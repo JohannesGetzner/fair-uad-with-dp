@@ -177,9 +177,15 @@ def train(train_loader, val_loader, config, log_dir):
         privacy_engine = PrivacyEngine(accountant="rdp")
         epochs = math.ceil(config.max_steps / len(train_loader))
         delta = config.delta if config.delta else 1 / (len(train_loader) * train_loader.batch_size)
-        model, optimizer, data_loader = privacy_engine.make_private_with_epsilon(module=model, optimizer=optimizer,
-            data_loader=train_loader, target_epsilon=config.epsilon, target_delta=delta,
-            max_grad_norm=config.max_grad_norm if not config.sweep else wandb.config.max_grad_norm, epochs=epochs, )
+        model, optimizer, data_loader = privacy_engine.make_private_with_epsilon(
+            module=model,
+            optimizer=optimizer,
+            data_loader=train_loader,
+            target_epsilon=config.epsilon,
+            target_delta=delta,
+            max_grad_norm=config.max_grad_norm if not config.sweep else wandb.config.max_grad_norm,
+            epochs=epochs
+        )
         errors = ModuleValidator.validate(model, strict=False)
         if len(errors) > 0:
             print(f'WARNING: model validation failed with errors: {errors}')
@@ -220,8 +226,19 @@ def train(train_loader, val_loader, config, log_dir):
             if step % config.val_frequency == 0:
                 log_imgs = step % config.log_img_freq == 0
                 val_results = validate(config, model, val_loader, step, log_dir, log_imgs)
+                if config.dp:
+                    eps = privacy_engine.get_epsilon(delta)
+                    print(f"ɛ: {eps:.2f} (target: 8)")
+                    val_results['epsilon'] = eps
                 # Log to w&b
                 wandb.log(val_results, step=step)
+                if config.dp:
+                    if eps > config.epsilon:
+                        print(f'Reached maximum ɛ {eps}/{config.epsilon}.', 'Finished training.')
+                        # Final validation
+                        print("Final validation...")
+                        validate(config, model, val_loader, step, log_dir, False)
+                        return model
 
             if step >= config.max_steps:
                 print(f'Reached {config.max_steps} iterations.', 'Finished training.')
@@ -277,7 +294,6 @@ def validate(config, model, loader, step, log_dir, log_imgs=False):
             group = torch.tensor([i] * len(anomaly_score))
             metrics.update(group, anomaly_score, y[k])
             losses[k].add(loss_dict)
-
             imgs[k].append(x[k])
             if anomaly_map is not None:
                 anomaly_maps[k].append(anomaly_map)
@@ -292,8 +308,7 @@ def validate(config, model, loader, step, log_dir, log_imgs=False):
     metrics_c = metrics.compute()
     losses_c = {k: v.compute() for k, v in losses.items()}
     losses_c = {f'{k}_{m}': v[m] for k, v in losses_c.items() for m in v.keys()}
-    # TODO: image logging disabled for now
-    if log_imgs and False:
+    if log_imgs:
         imgs = {f'{k}_imgs': wandb.Image(torch.cat(v)[:config.num_imgs_log]) for k, v in imgs.items()}
         anomaly_maps = {f'{k}_anomaly_maps': wandb.Image(torch.cat(v)[:config.num_imgs_log]) for k, v in
                         anomaly_maps.items()}
@@ -310,8 +325,7 @@ def validate(config, model, loader, step, log_dir, log_imgs=False):
     print(log_msg)
 
     # Save checkpoint
-    # TODO: checkpoint saving disabled for now
-    if not config.debug and False:
+    if not config.debug:
         ckpt_name = os.path.join(log_dir, 'ckpt_last.pth')
         print(f'Saving checkpoint to {ckpt_name}')
         save_checkpoint(ckpt_name, model, step, vars(config))
@@ -454,6 +468,6 @@ if __name__ == '__main__':
                 for i in range(config.num_seeds):
                     config.seed = config.initial_seed + i
                     log_dir = os.path.join(log_dir, f'seed_{config.seed}')
-                    model = train(train_loader, val_loader, config, log_dir)
-                    test(config, model, test_loader, log_dir)
+                    final_model = train(train_loader, val_loader, config, log_dir)
+                    test(config, final_model, test_loader, log_dir)
                     wandb.finish()
