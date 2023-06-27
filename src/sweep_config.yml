@@ -4,7 +4,7 @@ run1:
     num_runs: 50
     protected_attr: "sex"
     experiment_name: "FAE-rsna-sweep-maxgradnorm-001-0001"
-    max_steps: 6000
+    max_steps: 10000
     dp: True
   sweep_config:
     method: 'random'

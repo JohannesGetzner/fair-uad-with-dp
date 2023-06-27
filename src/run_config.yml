@@ -5,8 +5,9 @@ run1:
   dataset: "rsna"
   protected_attr: "age"
   protected_attr_percent: [0, 1, 0.25]
-  num_seeds: 1
+  num_seeds: 10
   log_dir: "logs/FAE_rsna_age/old_percent"
+  wandb_project: "unsupervised-fairness"
   max_steps: 200
   dp: True
 run2:
@@ -17,5 +18,16 @@ run2:
   protected_attr_percent: [0, 1, 0.1]
   num_seeds: 1
   log_dir: "logs/FAE_rsna_sex/male_percent"
+  wandb_project: "unsupervised-fairness"
   max_steps: 200
   dp: True
+run3:
+  model_type: "FAE"
+  experiment_name: "FAE-rsna-sex-05"
+  dataset: "rsna"
+  protected_attr: "sex"
+  protected_attr_percent: 0.5
+  num_seeds: 10
+  log_dir: "logs/FAE_rsna_sex/male_percent"
+  wandb_project: "unsupervised-fairness"
+  max_steps: 8000
