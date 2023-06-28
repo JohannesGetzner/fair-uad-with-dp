@@ -1,51 +1,35 @@
 ---
 run1:
-  model_type: "FAE"
-  experiment_name: "FAE-rsna-sex-05-mgn0015-bs512"
-  dataset: "rsna"
   protected_attr: "sex"
   protected_attr_percent: 0.5
   num_seeds: 3
-  log_dir: "logs/FAE_rsna_sex/male_percent"
   wandb_project: "unsupervised-fairness"
   max_steps: 20000
   dp: True
   batch_size: 512
   max_grad_norm: 0.015
 run2:
-  model_type: "FAE"
-  experiment_name: "FAE-rsna-sex-05-mgn0015-bs1024"
-  dataset: "rsna"
   protected_attr: "sex"
   protected_attr_percent: 0.5
   num_seeds: 3
-  log_dir: "logs/FAE_rsna_sex/male_percent"
   wandb_project: "unsupervised-fairness"
   max_steps: 20000
   dp: True
   batch_size: 1024
   max_grad_norm: 0.015
 run3:
-  model_type: "FAE"
-  experiment_name: "FAE-rsna-sex-05-mgn001-bs512"
-  dataset: "rsna"
   protected_attr: "sex"
   protected_attr_percent: 0.5
   num_seeds: 3
-  log_dir: "logs/FAE_rsna_sex/male_percent"
   wandb_project: "unsupervised-fairness"
   max_steps: 20000
   dp: True
   batch_size: 512
   max_grad_norm: 0.01
 run4:
-  model_type: "FAE"
-  experiment_name: "FAE-rsna-sex-05-mgn001-bs1024"
-  dataset: "rsna"
   protected_attr: "sex"
   protected_attr_percent: 0.5
   num_seeds: 3
-  log_dir: "logs/FAE_rsna_sex/male_percent"
   wandb_project: "unsupervised-fairness"
   max_steps: 20000
   dp: True

@@ -22,7 +22,7 @@ from src.data.datasets import get_dataloaders
 from src.models.DeepSVDD.deepsvdd import DeepSVDD
 from src.models.FAE.fae import FeatureReconstructor
 from src.utils.metrics import AvgDictMeter, build_metrics
-from src.utils.utils import seed_everything, save_checkpoint, init_wandb
+from src.utils.utils import seed_everything, save_checkpoint, init_wandb, construct_log_dir
 from opacus import PrivacyEngine
 from opacus.validators.utils import register_module_fixer
 from torch import nn
@@ -81,15 +81,17 @@ DEFAULT_CONFIG = {
     "dp": False,
     "epsilon": 8.0,
     "delta": None,
-    "max_grad_norm": 1.0
+    "max_grad_norm": 1.0,
+    # Other
+    "sweep_param:": None
 }
 DEFAULT_CONFIG = DotMap(DEFAULT_CONFIG)
 
 parser = ArgumentParser()
-parser.add_argument('--sweep', action=BooleanOptionalAction, default=False)
 parser.add_argument('--run_all', action=BooleanOptionalAction, default=False)
 parser.add_argument('--run_name', default="run1", type=str)
-RUN_SETTINGS = parser.parse_args()
+parser.add_argument('--sweep', action=BooleanOptionalAction, default=False)
+RUN_CONFIG = parser.parse_args()
 
 DEFAULT_CONFIG.device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print(f"Using {DEFAULT_CONFIG.device}")
@@ -173,7 +175,6 @@ def train(train_loader, val_loader, config, log_dir):
     # Init logging
     if not config.debug:
         os.makedirs(log_dir, exist_ok=True)
-    run = init_wandb(config, config.wandb_project, log_dir)
     # Init DP
     if config.dp:
         privacy_engine = PrivacyEngine(accountant="rdp")
@@ -185,7 +186,7 @@ def train(train_loader, val_loader, config, log_dir):
             data_loader=train_loader,
             target_epsilon=config.epsilon,
             target_delta=delta,
-            max_grad_norm=config.max_grad_norm if not config.sweep else wandb.config.max_grad_norm,
+            max_grad_norm=config.max_grad_norm if not config.sweep_param else wandb.config.max_grad_norm,
             epochs=epochs
         )
         errors = ModuleValidator.validate(model, strict=False)
@@ -237,7 +238,7 @@ def train(train_loader, val_loader, config, log_dir):
                     # Log to w&b
                     wandb.log(val_results, step=step)
                     if config.dp:
-                        if eps > config.epsilon:
+                        if eps > 2:
                             print(f'Reached maximum ɛ {eps}/{config.epsilon}.', 'Finished training.')
                             # Final validation
                             print("Final validation...")
@@ -406,73 +407,86 @@ def test(config, model, loader, log_dir):
         df.to_csv(csv_path, index=False)
 
 
+
+
+
 """"""""""""""""""""""""""""""""" Main """""""""""""""""""""""""""""""""
 
+
+def hyper_param_sweep():
+    print("Sweeping...")
+    with open('sweep_config.yml', 'r') as f:
+        sweep_config = yaml.safe_load(f)
+        sweep_configuration = sweep_config["sweep_config"]
+        # replace the default config values with the sweep config values
+        for arg_n, arg_v in sweep_config["exp_config"].items():
+            config[arg_n] = arg_v
+        if config.protected_attr == "age":
+            config["old_percent"] = config.protected_attr_percent
+        else:
+            config["male_percent"] = config.protected_attr_percent
+        # get log dir
+        log_dir, group_name, job_type = construct_log_dir(config, current_time, sweep_configuration)
+        sweep_configuration["name"] = group_name
+        # load data
+        train_loader, val_loader, test_loader = load_data(config)
+
+        execute_functions = lambda func1, func2: (func1(), func2())
+        func1 = lambda: init_wandb(config, log_dir, group_name, job_type)
+        func2 = lambda: train(train_loader, val_loader, config, log_dir)
+        sweep_function = functools.partial(execute_functions, func1, func2)
+
+
+        #func1 = functools.partial(init_wandb, config, log_dir, group_name, job_type)
+        #func2 = functools.partial(train, train_loader, val_loader, config, log_dir)
+
+        sweep_id = wandb.sweep(sweep_configuration, project=config.wandb_project)
+        wandb.agent(sweep_id, function=sweep_function, count=config.num_runs)
+        wandb.finish()
+
+
 if __name__ == '__main__':
+    # get time
     current_time = datetime.strftime(datetime.now(), format="%Y.%m.%d-%H:%M:%S")
-    DEFAULT_CONFIG.sweep = RUN_SETTINGS.sweep
-    if RUN_SETTINGS.sweep:
-        print("Sweeping...")
-        config = DEFAULT_CONFIG.copy()
-        config.seed = config.initial_seed
-        if config.dp:
-            config.log_dir += '_DP'
-        with open('sweep_config.yml', 'r') as f:
-            sweep_configs = yaml.safe_load(f)
-        sweep_configs = sweep_configs if RUN_SETTINGS.run_all else {RUN_SETTINGS.run_name: sweep_configs[RUN_SETTINGS.run_name]}
-        for sweep_name, sweep_config in sweep_configs.items():
-            sweep_configuration = sweep_config["sweep_config"]
-            for arg_name, arg_value in sweep_config["exp_config"].items():
-                config[arg_name] = arg_value
-            config.experiment_name += f"-{current_time}"
-            sweep_configuration["name"] = config.experiment_name
-            if config.protected_attr == "age":
-                config["old_percent"] = config.protected_attr_percent
-            else:
-                config["male_percent"] = config.protected_attr_percent
-            sweep_id = wandb.sweep(sweep_configuration, project=config.wandb.wandb_project)
-            train_loader, val_loader, test_loader = load_data(config)
-            train_p = functools.partial(train, train_loader, val_loader, config, config.log_dir)
-            wandb.agent(sweep_id, function=train_p, count=config.num_runs)
-            wandb.finish()
+    # copy default config
+    config = DEFAULT_CONFIG.copy()
+    # set initial seed
+    config.seed = config.initial_seed
+    # check if we are doing a hyper-param sweep or not
+    if RUN_CONFIG.sweep:
+        hyper_param_sweep()
     else:
+        # get run configs
         with open('run_config.yml', 'r') as f:
             run_configs = yaml.safe_load(f)
-        # choose runs to execute
-        run_configs = run_configs if RUN_SETTINGS.run_all else {RUN_SETTINGS.run_name: run_configs[RUN_SETTINGS.run_name]}
+        # choose runs to execute or run all
+        run_configs = run_configs if RUN_CONFIG.run_all else {RUN_CONFIG.run_name: run_configs[RUN_CONFIG.run_name]}
         for run_name, run_config in run_configs.items():
             print(f"Running {run_name}")
             # update default values config
             config = DEFAULT_CONFIG.copy()
-            if config.dp:
-                config.log_dir += '_DP'
-            protected_attr_values = []
-            # set protected attribute values
+            # replace the default config values with the run config
             for arg_name, arg_value in run_config.items():
-                if arg_name == "protected_attr_percent":
-                    if isinstance(arg_value, float):
-                        protected_attr_values.append(arg_value)
-                    else:
-                        protected_attr_values += list(np.arange(arg_value[0], arg_value[1]+arg_value[2], arg_value[2]))
-                else:
-                    config[arg_name] = arg_value
-            # add timestamp and protected attribute to experiment name
-            config.experiment_name += f"-{current_time}"
-            if config.dp:
-                config.log_dir += '_DP'
+                config[arg_name] = arg_value
+            # get protected attribute values (can be a list or a single value)
+            if isinstance(config.protected_attr_percent, float):
+                protected_attr_values = [config.protected_attr_percent]
+            else:
+                protected_attr_values=list(np.arange(config.protected_attr_percent[0],
+                               config.protected_attr_percent[1] + config.protected_attr_percent[2],
+                               config.protected_attr_percent[2]))
+            # one run per protected attribute value
             for protected_attr_value in protected_attr_values:
-                log_dir = config.log_dir+ f"_{str(protected_attr_value)[:4].replace('.', '')}"
-                if config.protected_attr == "age":
-                    config["old_percent"] = protected_attr_value
-                else:
-                    config["male_percent"] = protected_attr_value
+                # set the correct protected attribute value
+                config.protected_attr_percent = protected_attr_value
                 # load data
                 train_loader, val_loader, test_loader = load_data(config)
                 # iterate over seeds
-                log_dir_no_seed = log_dir
                 for i in range(config.num_seeds):
                     config.seed = config.initial_seed + i
-                    log_dir = os.path.join(log_dir_no_seed, f'seed_{config.seed}')
+                    # get log dir
+                    log_dir, group_name, job_type = construct_log_dir(config, current_time)
+                    init_wandb(config, log_dir, group_name, job_type)
                     final_model = train(train_loader, val_loader, config, log_dir)
                     test(config, final_model, test_loader, log_dir)
                     wandb.finish()

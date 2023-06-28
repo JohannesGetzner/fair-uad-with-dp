@@ -41,31 +41,25 @@ def save_checkpoint(path: str, model: nn.Module, step: int, config: Dict):
     torch.save(checkpoint, path)
 
 
-def init_wandb(config, project:str, log_dir:str):
-    sweep_tag = "sweep" if config.sweep else "no_sweep"
+def init_wandb(config, log_dir: str, group_name: str, job_type: str):
+    sweep_tag = "sweep" if config.sweep_param else "no_sweep"
     dp_tag = "DP" if config.dp else "no_DP"
-    if config.protected_attr == "age":
-        job_type = f"old_percent_{config.old_percent}".replace('.', '')
-    else:
-        job_type = f"male_percent_{config.male_percent}".replace('.', '')
-    if config.dp:
-        job_type += '_DP'
     wandb_tags = [config.model_type, config.dataset, config.protected_attr, dp_tag, sweep_tag]
-    if config.sweep:
+    if config.sweep_param:
         run = wandb.init(
-            project=project,
+            # project=config.wandb_project,
             config=config,
-            dir=log_dir,
+            # dir=log_dir,
             tags=wandb_tags,
             job_type=job_type,
-            group = config.experiment_name,
+            group=group_name,
             mode="disabled" if (config.debug or config.disable_wandb) else "online"
         )
     else:
         run = wandb.init(
-            project=project,
+            project=config.wandb_project,
             config=config,
-            group=config.experiment_name,
+            group=group_name,
             dir=log_dir,
             tags=wandb_tags,
             job_type=job_type,
@@ -73,6 +67,34 @@ def init_wandb(config, project:str, log_dir:str):
             mode="disabled" if (config.debug or config.disable_wandb) else "online"
         )
     return run
+
+
+def construct_log_dir(config, current_time, sweep_config=None):
+    log_path = ""
+    # job_type is always the same
+    if config.protected_attr == "sex":
+        jt = f"male_percent"
+    else:
+        jt = "old_percent"
+    jt += f"_{str(config.protected_attr_percent).replace('.', '')}"
+    if config.dp:
+        jt += "_DP"
+    # build log_dir and group_name
+    if config.sweep_param:
+        min_val = sweep_config["parameters"][config.sweep_param]["min"]
+        max_val = sweep_config["parameters"][config.sweep_param]["max"]
+        log_path += f"{config.model_type}-{config.dataset}-{config.sweep_param}-{str(min_val).replace('.','')}-{str(max_val).replace('.','')}-{current_time}"
+        gn = "sweep_"+log_path
+        log_path = f"{log_path}/{jt}"
+    else:
+        log_path += f"{config.model_type}-{config.dataset}-{config.protected_attr}-{current_time}"
+        gn = log_path
+        log_path = f"{log_path}/{jt}/seed_{config.seed}"
+    # prepend dirs to log_path
+    log_path = f"logs/{'sweeps/' if config.sweep_param else ''}{log_path}"
+    return log_path, gn, jt
+
+
 
 class TensorboardLogger(SummaryWriter):
     def __init__(
