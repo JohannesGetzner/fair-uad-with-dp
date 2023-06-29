@@ -6,7 +6,7 @@ run1:
   wandb_project: "unsupervised-fairness"
   max_steps: 20000
   dp: True
-  batch_size: 8
+  batch_size: 256
   max_grad_norm: 0.015
   job_type_mod: "bs256_mgn0015"
 run2:
