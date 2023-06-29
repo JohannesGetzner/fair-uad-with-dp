@@ -55,7 +55,10 @@ DEFAULT_CONFIG = {# General script settings
     "extractor_cnn_layers": ["layer0", "layer1", "layer2"], "keep_feature_prop": 1.0, # DeepSVDD settings
     "repr_dim": 256, # DP settings
     "dp": False, "epsilon": 8.0, "delta": None, "max_grad_norm": 1.0, # Other
-    "sweep_param:": None}
+    "sweep_param:": None,
+    "group_name_mod": None,
+    "job_type_mod": None
+}
 DEFAULT_CONFIG = DotMap(DEFAULT_CONFIG)
 
 parser = ArgumentParser()
@@ -203,7 +206,7 @@ def train(train_loader, val_loader, config, log_dir):
                 # Log to w&b
                 wandb.log(val_results, step=step)
                 if config.dp:
-                    if eps > 2:
+                    if eps > config.epsilon:
                         print(f'Reached maximum ɛ {eps}/{config.epsilon}.', 'Finished training.')
                         # Final validation
                         print("Final validation...")

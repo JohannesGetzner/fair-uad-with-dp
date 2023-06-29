@@ -6,8 +6,9 @@ run1:
   wandb_project: "unsupervised-fairness"
   max_steps: 20000
   dp: True
-  batch_size: 256
+  batch_size: 8
   max_grad_norm: 0.015
+  job_type_mod: "bs256_mgn0015"
 run2:
   protected_attr: "sex"
   protected_attr_percent: 0.5
@@ -17,6 +18,7 @@ run2:
   dp: True
   batch_size: 512
   max_grad_norm: 0.015
+  job_type_mod: "bs512_mgn0015"
 run3:
   protected_attr: "sex"
   protected_attr_percent: 0.5
@@ -26,6 +28,7 @@ run3:
   dp: True
   batch_size: 256
   max_grad_norm: 0.01
+  job_type_mod: "bs256_mgn001"
 run4:
   protected_attr: "sex"
   protected_attr_percent: 0.5
@@ -35,3 +38,4 @@ run4:
   dp: True
   batch_size: 512
   max_grad_norm: 0.01
+  job_type_mod: "bs512_mgn001"
