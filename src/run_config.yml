@@ -6,7 +6,7 @@ run1:
   wandb_project: "unsupervised-fairness"
   max_steps: 20000
   dp: True
-  batch_size: 512
+  batch_size: 256
   max_grad_norm: 0.015
 run2:
   protected_attr: "sex"
@@ -15,7 +15,7 @@ run2:
   wandb_project: "unsupervised-fairness"
   max_steps: 20000
   dp: True
-  batch_size: 1024
+  batch_size: 512
   max_grad_norm: 0.015
 run3:
   protected_attr: "sex"
@@ -24,7 +24,7 @@ run3:
   wandb_project: "unsupervised-fairness"
   max_steps: 20000
   dp: True
-  batch_size: 512
+  batch_size: 256
   max_grad_norm: 0.01
 run4:
   protected_attr: "sex"
@@ -33,5 +33,5 @@ run4:
   wandb_project: "unsupervised-fairness"
   max_steps: 20000
   dp: True
-  batch_size: 1024
+  batch_size: 512
   max_grad_norm: 0.01

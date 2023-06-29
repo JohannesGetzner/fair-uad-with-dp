@@ -3,7 +3,8 @@ import sys
 
 import numpy as np
 import yaml
-from opacus.utils.batch_memory_manager import BatchMemoryManager
+
+# from opacus.utils.batch_memory_manager import BatchMemoryManager
 
 sys.path.append('..')
 import os
@@ -40,51 +41,21 @@ def _batchnorm_to_groupnorm(module) -> nn.GroupNorm:
 
 """"""""""""""""""""""""""""""""""" Config """""""""""""""""""""""""""""""""""
 
-DEFAULT_CONFIG = {
-    # General script settings
-    "initial_seed": 1,
-    "num_seeds": 1,
-    "debug": False,
-    "disable_wandb": False,
-    "wandb_project": "test",
+DEFAULT_CONFIG = {# General script settings
+    "initial_seed": 1, "num_seeds": 1, "debug": False, "disable_wandb": False, "wandb_project": "test",
     # Experiment settings
-    "experiment_name": "insert-experiment-name",
-    # Data settings
-    "dataset": "rsna",
-    "protected_attr": None,
-    "protected_attr_percent": 0.5,
-    "img_size": 128,
-    "num_workers": 0,
+    "experiment_name": "insert-experiment-name", # Data settings
+    "dataset": "rsna", "protected_attr": None, "protected_attr_percent": 0.5, "img_size": 128, "num_workers": 0,
     # Logging settings
-    "val_frequency": 200,
-    "val_steps": 50,
-    "log_frequency": 100,
-    "log_img_freq": 1000,
-    "num_imgs_log": 8,
-    "log_dir": os.path.join('logs', datetime.strftime(datetime.now(), format="%Y.%m.%d-%H:%M:%S")),
-    # Hyperparameters
-    "lr": 2e-4,
-    "weight_decay": 0.0,
-    "max_steps": 8000,
-    "batch_size": 32,
-    # Model settings
-    "model_type": "FAE",
-    # FAE settings
-    "hidden_dims": [100, 150, 200, 300],
-    "dropout": 0.1,
-    "loss_fn": "ssim",
-    "extractor_cnn_layers": ["layer0", "layer1", "layer2"],
-    "keep_feature_prop": 1.0,
-    # DeepSVDD settings
-    "repr_dim": 256,
-    # DP settings
-    "dp": False,
-    "epsilon": 8.0,
-    "delta": None,
-    "max_grad_norm": 1.0,
-    # Other
-    "sweep_param:": None
-}
+    "val_frequency": 200, "val_steps": 50, "log_frequency": 100, "log_img_freq": 1000, "num_imgs_log": 8,
+    "log_dir": os.path.join('logs', datetime.strftime(datetime.now(), format="%Y.%m.%d-%H:%M:%S")), # Hyperparameters
+    "lr": 2e-4, "weight_decay": 0.0, "max_steps": 8000, "batch_size": 32, # Model settings
+    "model_type": "FAE", # FAE settings
+    "hidden_dims": [100, 150, 200, 300], "dropout": 0.1, "loss_fn": "ssim",
+    "extractor_cnn_layers": ["layer0", "layer1", "layer2"], "keep_feature_prop": 1.0, # DeepSVDD settings
+    "repr_dim": 256, # DP settings
+    "dp": False, "epsilon": 8.0, "delta": None, "max_grad_norm": 1.0, # Other
+    "sweep_param:": None}
 DEFAULT_CONFIG = DotMap(DEFAULT_CONFIG)
 
 parser = ArgumentParser()
@@ -180,15 +151,9 @@ def train(train_loader, val_loader, config, log_dir):
         privacy_engine = PrivacyEngine(accountant="rdp")
         epochs = math.ceil(config.max_steps / len(train_loader))
         delta = config.delta if config.delta else 1 / (len(train_loader) * train_loader.batch_size)
-        model, optimizer, data_loader = privacy_engine.make_private_with_epsilon(
-            module=model,
-            optimizer=optimizer,
-            data_loader=train_loader,
-            target_epsilon=config.epsilon,
-            target_delta=delta,
-            max_grad_norm=config.max_grad_norm if not config.sweep_param else wandb.config.max_grad_norm,
-            epochs=epochs
-        )
+        model, optimizer, data_loader = privacy_engine.make_private_with_epsilon(module=model, optimizer=optimizer,
+            data_loader=train_loader, target_epsilon=config.epsilon, target_delta=delta,
+            max_grad_norm=config.max_grad_norm if not config.sweep_param else wandb.config.max_grad_norm, epochs=epochs)
         errors = ModuleValidator.validate(model, strict=False)
         if len(errors) > 0:
             print(f'WARNING: model validation failed with errors: {errors}')
@@ -198,60 +163,60 @@ def train(train_loader, val_loader, config, log_dir):
     train_losses = AvgDictMeter()
     t_start = time()
     while True:
-        with BatchMemoryManager(data_loader=train_loader, max_physical_batch_size=512, optimizer=optimizer) \
-                as new_train_loader:
-            for x, y, meta in new_train_loader:
-                step += 1
+        # with BatchMemoryManager(data_loader=train_loader, max_physical_batch_size=512, optimizer=optimizer) \
+        #        as new_train_loader:
+        for x, y, meta in train_loader:
+            step += 1
 
-                loss_dict = train_step(model, optimizer, x, y, meta, config.device, config.dp)
-                train_losses.add(loss_dict)
+            loss_dict = train_step(model, optimizer, x, y, meta, config.device, config.dp)
+            train_losses.add(loss_dict)
 
-                if step % config.log_frequency == 0:
-                    train_results = train_losses.compute()
-                    # Print training loss
-                    log_msg = " - ".join([f'{k}: {v:.4f}' for k, v in train_results.items()])
-                    log_msg = f"Iteration {step} - " + log_msg
-                    # Elapsed time
-                    elapsed_time = datetime.utcfromtimestamp(time() - t_start)
-                    log_msg += f" - time: {elapsed_time.strftime('%H:%M:%S')}s"
-                    # Estimate remaining time
-                    time_per_step = (time() - t_start) / step
-                    remaining_steps = config.max_steps - step
-                    remaining_time = remaining_steps * time_per_step
-                    remaining_time = datetime.utcfromtimestamp(remaining_time)
-                    log_msg += f" - remaining time: {remaining_time.strftime('%H:%M:%S')}"
-                    print(log_msg)
+            if step % config.log_frequency == 0:
+                train_results = train_losses.compute()
+                # Print training loss
+                log_msg = " - ".join([f'{k}: {v:.4f}' for k, v in train_results.items()])
+                log_msg = f"Iteration {step} - " + log_msg
+                # Elapsed time
+                elapsed_time = datetime.utcfromtimestamp(time() - t_start)
+                log_msg += f" - time: {elapsed_time.strftime('%H:%M:%S')}s"
+                # Estimate remaining time
+                time_per_step = (time() - t_start) / step
+                remaining_steps = config.max_steps - step
+                remaining_time = remaining_steps * time_per_step
+                remaining_time = datetime.utcfromtimestamp(remaining_time)
+                log_msg += f" - remaining time: {remaining_time.strftime('%H:%M:%S')}"
+                print(log_msg)
 
-                    # Log to w&b or tensorboard
-                    wandb.log({f'train/{k}': v for k, v in train_results.items()}, step=step)
+                # Log to w&b or tensorboard
+                wandb.log({f'train/{k}': v for k, v in train_results.items()}, step=step)
 
-                    # Reset
-                    train_losses.reset()
+                # Reset
+                train_losses.reset()
 
-                if step % config.val_frequency == 0:
-                    log_imgs = step % config.log_img_freq == 0
-                    val_results = validate(config, model, val_loader, step, log_dir, log_imgs)
-                    if config.dp:
-                        eps = privacy_engine.get_epsilon(delta)
-                        print(f"ɛ: {eps:.2f} (target: 8)")
-                        val_results['epsilon'] = eps
-                    # Log to w&b
-                    wandb.log(val_results, step=step)
-                    if config.dp:
-                        if eps > 2:
-                            print(f'Reached maximum ɛ {eps}/{config.epsilon}.', 'Finished training.')
-                            # Final validation
-                            print("Final validation...")
-                            validate(config, model, val_loader, step, log_dir, False)
-                            return model
+            if step % config.val_frequency == 0:
+                log_imgs = step % config.log_img_freq == 0
+                val_results = validate(config, model, val_loader, step, log_dir, log_imgs)
+                if config.dp:
+                    eps = privacy_engine.get_epsilon(delta)
+                    print(f"ɛ: {eps:.2f} (target: 8)")
+                    val_results['epsilon'] = eps
+                # Log to w&b
+                wandb.log(val_results, step=step)
+                if config.dp:
+                    if eps > 2:
+                        print(f'Reached maximum ɛ {eps}/{config.epsilon}.', 'Finished training.')
+                        # Final validation
+                        print("Final validation...")
+                        validate(config, model, val_loader, step, log_dir, False)
+                        return model
 
-                if step >= config.max_steps:
-                    print(f'Reached {config.max_steps} iterations.', 'Finished training.')
+            if step >= config.max_steps:
+                print(f'Reached {config.max_steps} iterations.', 'Finished training.')
 
-                    # Final validation
-                    print("Final validation...")
-                    validate(config, model, val_loader, step, log_dir, False)
-                    return model
+                # Final validation
+                print("Final validation...")
+                validate(config, model, val_loader, step, log_dir, False)
+                return model
 
             i_epoch += 1
         print(f'Finished epoch {i_epoch}, ({step} iterations)')
@@ -407,9 +372,6 @@ def test(config, model, loader, log_dir):
         df.to_csv(csv_path, index=False)
 
 
-
-
-
 """"""""""""""""""""""""""""""""" Main """""""""""""""""""""""""""""""""
 
 
@@ -436,9 +398,8 @@ def hyper_param_sweep():
         func2 = lambda: train(train_loader, val_loader, config, log_dir)
         sweep_function = functools.partial(execute_functions, func1, func2)
 
-
-        #func1 = functools.partial(init_wandb, config, log_dir, group_name, job_type)
-        #func2 = functools.partial(train, train_loader, val_loader, config, log_dir)
+        # func1 = functools.partial(init_wandb, config, log_dir, group_name, job_type)
+        # func2 = functools.partial(train, train_loader, val_loader, config, log_dir)
 
         sweep_id = wandb.sweep(sweep_configuration, project=config.wandb_project)
         wandb.agent(sweep_id, function=sweep_function, count=config.num_runs)
@@ -472,9 +433,9 @@ if __name__ == '__main__':
             if isinstance(config.protected_attr_percent, float):
                 protected_attr_values = [config.protected_attr_percent]
             else:
-                protected_attr_values=list(np.arange(config.protected_attr_percent[0],
-                               config.protected_attr_percent[1] + config.protected_attr_percent[2],
-                               config.protected_attr_percent[2]))
+                protected_attr_values = list(np.arange(config.protected_attr_percent[0],
+                                                       config.protected_attr_percent[1] + config.protected_attr_percent[
+                                                           2], config.protected_attr_percent[2]))
             # one run per protected attribute value
             for protected_attr_value in protected_attr_values:
                 # set the correct protected attribute value
