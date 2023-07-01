@@ -4,7 +4,7 @@ import sys
 import numpy as np
 import yaml
 
-# from opacus.utils.batch_memory_manager import BatchMemoryManager
+from opacus.utils.batch_memory_manager import BatchMemoryManager
 
 sys.path.append('..')
 import os
@@ -166,63 +166,62 @@ def train(train_loader, val_loader, config, log_dir):
     train_losses = AvgDictMeter()
     t_start = time()
     while True:
-        # with BatchMemoryManager(data_loader=train_loader, max_physical_batch_size=512, optimizer=optimizer) \
-        #        as new_train_loader:
-        for x, y, meta in train_loader:
-            step += 1
+        with BatchMemoryManager(data_loader=train_loader, max_physical_batch_size=3, optimizer=optimizer) as new_train_loader:
+            for x, y, meta in new_train_loader:
+                step += 1
 
-            loss_dict = train_step(model, optimizer, x, y, meta, config.device, config.dp)
-            train_losses.add(loss_dict)
+                loss_dict = train_step(model, optimizer, x, y, meta, config.device, config.dp)
+                train_losses.add(loss_dict)
 
-            if step % config.log_frequency == 0:
-                train_results = train_losses.compute()
-                # Print training loss
-                log_msg = " - ".join([f'{k}: {v:.4f}' for k, v in train_results.items()])
-                log_msg = f"Iteration {step} - " + log_msg
-                # Elapsed time
-                elapsed_time = datetime.utcfromtimestamp(time() - t_start)
-                log_msg += f" - time: {elapsed_time.strftime('%H:%M:%S')}s"
-                # Estimate remaining time
-                time_per_step = (time() - t_start) / step
-                remaining_steps = config.max_steps - step
-                remaining_time = remaining_steps * time_per_step
-                remaining_time = datetime.utcfromtimestamp(remaining_time)
-                log_msg += f" - remaining time: {remaining_time.strftime('%H:%M:%S')}"
-                print(log_msg)
+                if step % config.log_frequency == 0:
+                    train_results = train_losses.compute()
+                    # Print training loss
+                    log_msg = " - ".join([f'{k}: {v:.4f}' for k, v in train_results.items()])
+                    log_msg = f"Iteration {step} - " + log_msg
+                    # Elapsed time
+                    elapsed_time = datetime.utcfromtimestamp(time() - t_start)
+                    log_msg += f" - time: {elapsed_time.strftime('%H:%M:%S')}s"
+                    # Estimate remaining time
+                    time_per_step = (time() - t_start) / step
+                    remaining_steps = config.max_steps - step
+                    remaining_time = remaining_steps * time_per_step
+                    remaining_time = datetime.utcfromtimestamp(remaining_time)
+                    log_msg += f" - remaining time: {remaining_time.strftime('%H:%M:%S')}"
+                    print(log_msg)
 
-                # Log to w&b or tensorboard
-                wandb.log({f'train/{k}': v for k, v in train_results.items()}, step=step)
+                    # Log to w&b or tensorboard
+                    wandb.log({f'train/{k}': v for k, v in train_results.items()}, step=step)
 
-                # Reset
-                train_losses.reset()
+                    # Reset
+                    train_losses.reset()
 
-            if step % config.val_frequency == 0:
-                log_imgs = step % config.log_img_freq == 0
-                val_results = validate(config, model, val_loader, step, log_dir, log_imgs)
-                if config.dp:
-                    eps = privacy_engine.get_epsilon(delta)
-                    print(f"ɛ: {eps:.2f} (target: 8)")
-                    val_results['epsilon'] = eps
-                # Log to w&b
-                wandb.log(val_results, step=step)
-                if config.dp:
-                    if eps > config.epsilon:
-                        print(f'Reached maximum ɛ {eps}/{config.epsilon}.', 'Finished training.')
-                        # Final validation
-                        print("Final validation...")
-                        validate(config, model, val_loader, step, log_dir, False)
-                        return model
+                if step % config.val_frequency == 0:
+                    log_imgs = step % config.log_img_freq == 0
+                    val_results = validate(config, model, val_loader, step, log_dir, log_imgs)
+                    if config.dp:
+                        eps = privacy_engine.get_epsilon(delta)
+                        print(f"ɛ: {eps:.2f} (target: 8)")
+                        val_results['epsilon'] = eps
+                    # Log to w&b
+                    wandb.log(val_results, step=step)
+                    if config.dp:
+                        if eps > config.epsilon:
+                            print(f'Reached maximum ɛ {eps}/{config.epsilon}.', 'Finished training.')
+                            # Final validation
+                            print("Final validation...")
+                            validate(config, model, val_loader, step, log_dir, False)
+                            return model
 
-            if step >= config.max_steps:
-                print(f'Reached {config.max_steps} iterations.', 'Finished training.')
+                if step >= config.max_steps:
+                    print(f'Reached {config.max_steps} iterations.', 'Finished training.')
 
-                # Final validation
-                print("Final validation...")
-                validate(config, model, val_loader, step, log_dir, False)
-                return model
+                    # Final validation
+                    print("Final validation...")
+                    validate(config, model, val_loader, step, log_dir, False)
+                    return model
 
-            i_epoch += 1
-        print(f'Finished epoch {i_epoch}, ({step} iterations)')
+                i_epoch += 1
+            print(f'Finished epoch {i_epoch}, ({step} iterations)')
 
 
 """"""""""""""""""""""""""""""""" Validation """""""""""""""""""""""""""""""""
