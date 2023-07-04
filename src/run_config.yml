@@ -2,40 +2,10 @@
 run1:
   protected_attr: "sex"
   protected_attr_percent: 0.5
-  num_seeds: 3
+  num_seeds: 2
   wandb_project: "unsupervised-fairness"
-  max_steps: 20000
-  dp: True
-  batch_size: 1024
-  max_grad_norm: 0.01
-  job_type_mod: "bs1024_mgn001"
-run2:
-  protected_attr: "sex"
-  protected_attr_percent: 0.5
-  num_seeds: 3
-  wandb_project: "unsupervised-fairness"
-  max_steps: 20000
+  max_steps: 35000
   dp: True
   batch_size: 1024
   max_grad_norm: 0.015
   job_type_mod: "bs1024_mgn0015"
-run3:
-  protected_attr: "sex"
-  protected_attr_percent: 0.5
-  num_seeds: 3
-  wandb_project: "unsupervised-fairness"
-  max_steps: 20000
-  dp: True
-  batch_size: 256
-  max_grad_norm: 0.01
-  job_type_mod: "bs256_mgn001"
-run4:
-  protected_attr: "sex"
-  protected_attr_percent: 0.5
-  num_seeds: 3
-  wandb_project: "unsupervised-fairness"
-  max_steps: 20000
-  dp: True
-  batch_size: 512
-  max_grad_norm: 0.01
-  job_type_mod: "bs512_mgn001"

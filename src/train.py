@@ -166,7 +166,7 @@ def train(train_loader, val_loader, config, log_dir):
     train_losses = AvgDictMeter()
     t_start = time()
     while True:
-        with BatchMemoryManager(data_loader=train_loader, max_physical_batch_size=3, optimizer=optimizer) as new_train_loader:
+        with BatchMemoryManager(data_loader=train_loader, max_physical_batch_size=450, optimizer=optimizer) as new_train_loader:
             for x, y, meta in new_train_loader:
                 step += 1
 
