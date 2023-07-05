@@ -1,4 +1,4 @@
-name: fix
+name: thesis
 channels:
   - defaults
   - conda-forge
@@ -22,3 +22,5 @@ dependencies:
     - tqdm
     - matplotlib
     - opacus
+    - dotmap
+    - tensorboard

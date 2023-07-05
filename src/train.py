@@ -41,20 +41,49 @@ def _batchnorm_to_groupnorm(module) -> nn.GroupNorm:
 
 """"""""""""""""""""""""""""""""""" Config """""""""""""""""""""""""""""""""""
 
-DEFAULT_CONFIG = {# General script settings
-    "initial_seed": 1, "num_seeds": 1, "debug": False, "disable_wandb": False, "wandb_project": "test",
+DEFAULT_CONFIG = {
+    # General script settings
+    "initial_seed": 1,
+    "num_seeds": 1,
+    "debug": False,
+    "disable_wandb": False,
+    "wandb_project": "test",
     # Experiment settings
-    "experiment_name": "insert-experiment-name", # Data settings
-    "dataset": "rsna", "protected_attr": None, "protected_attr_percent": 0.5, "img_size": 128, "num_workers": 0,
+    "experiment_name": "insert-experiment-name",
+    # Data settings
+    "dataset": "rsna",
+    "protected_attr": None,
+    "protected_attr_percent": 0.5,
+    "img_size": 128,
+    "num_workers": 0,
     # Logging settings
-    "val_frequency": 200, "val_steps": 50, "log_frequency": 100, "log_img_freq": 1000, "num_imgs_log": 8,
-    "log_dir": os.path.join('logs', datetime.strftime(datetime.now(), format="%Y.%m.%d-%H:%M:%S")), # Hyperparameters
-    "lr": 2e-4, "weight_decay": 0.0, "max_steps": 8000, "batch_size": 32, # Model settings
-    "model_type": "FAE", # FAE settings
-    "hidden_dims": [100, 150, 200, 300], "dropout": 0.1, "loss_fn": "ssim",
-    "extractor_cnn_layers": ["layer0", "layer1", "layer2"], "keep_feature_prop": 1.0, # DeepSVDD settings
-    "repr_dim": 256, # DP settings
-    "dp": False, "epsilon": 8.0, "delta": None, "max_grad_norm": 1.0, # Other
+    "val_frequency": 200,
+    "val_steps": 50,
+    "log_frequency": 100,
+    "log_img_freq": 1000,
+    "num_imgs_log": 8,
+    "log_dir": os.path.join('logs', datetime.strftime(datetime.now(), format="%Y.%m.%d-%H:%M:%S")),
+    # Hyperparameters
+    "lr": 2e-4,
+    "weight_decay": 0.0,
+    "max_steps": 8000,
+    "batch_size": 32,
+    # Model settings
+    "model_type": "FAE",
+    # FAE settings
+    "hidden_dims": [100, 150, 200, 300],
+    "dropout": 0.1,
+    "loss_fn": "ssim",
+    "extractor_cnn_layers": ["layer0", "layer1", "layer2"],
+    "keep_feature_prop": 1.0,
+    # DeepSVDD settings
+    "repr_dim": 256,
+    # DP settings
+    "dp": False,
+    "epsilon": 8.0,
+    "delta": None,
+    "max_grad_norm": 1.0,
+    # Other
     "sweep_param:": None,
     "group_name_mod": None,
     "job_type_mod": None
@@ -133,8 +162,19 @@ def train_step(model, optimizer, x, y, meta, device, dp=False):
         loss_dict = model.loss(x, y=y)
     loss = loss_dict['loss']
     loss.backward()
+    mean_per_sample_grad_norm = torch.zeros(x.shape[0], 1)
+    c = 0
+    for p in model.parameters():
+        if p.grad is not None:
+            per_sample_grad = p.grad_sample.detach().clone()
+            # collapse tensor to all but the first dimension
+            per_sample_grad = per_sample_grad.view(per_sample_grad.shape[0], -1)
+            norm = torch.norm(per_sample_grad, dim=1, keepdim=True).to("cpu")
+            mean_per_sample_grad_norm += norm
+            c += 1
+    mean_per_sample_grad_norm = mean_per_sample_grad_norm / c
     optimizer.step()
-    return loss_dict
+    return loss_dict, mean_per_sample_grad_norm
 
 
 def train(train_loader, val_loader, config, log_dir):
@@ -166,13 +206,23 @@ def train(train_loader, val_loader, config, log_dir):
     train_losses = AvgDictMeter()
     t_start = time()
     while True:
-        with BatchMemoryManager(data_loader=train_loader, max_physical_batch_size=450, optimizer=optimizer) as new_train_loader:
+        with BatchMemoryManager(data_loader=train_loader, max_physical_batch_size=8, optimizer=optimizer) as new_train_loader:
+            mean_gradient_per_class = {
+                0: 0,
+                1: 0
+            }
+            count_per_class = {
+                0: 0,
+                1: 0
+            }
+            model.train()
             for x, y, meta in new_train_loader:
                 step += 1
-
-                loss_dict = train_step(model, optimizer, x, y, meta, config.device, config.dp)
+                loss_dict, accumulated_per_sample_norms = train_step(model, optimizer, x, y, meta, config.device, config.dp)
+                for g_norm, pv_label in zip(torch.squeeze(accumulated_per_sample_norms).tolist(), meta.tolist()):
+                    mean_gradient_per_class[pv_label] += g_norm
+                    count_per_class[pv_label] += 1
                 train_losses.add(loss_dict)
-
                 if step % config.log_frequency == 0:
                     train_results = train_losses.compute()
                     # Print training loss
@@ -220,7 +270,12 @@ def train(train_loader, val_loader, config, log_dir):
                     validate(config, model, val_loader, step, log_dir, False)
                     return model
 
-                i_epoch += 1
+            i_epoch += 1
+            mapping = {
+                0: "young" if config.protected_attr == 'age' else "male",
+                1: "old" if config.protected_attr == 'age' else "female"
+            }
+            wandb.log({"train/mean_grads": {mapping[k]: v/count_per_class[k] if count_per_class[k] != 0 else 0 for k, v in mean_gradient_per_class.items()}}, step=step)
             print(f'Finished epoch {i_epoch}, ({step} iterations)')
 
 

@@ -254,7 +254,7 @@ def load_rsna_age_two_split(rsna_dir: str = RSNA_DIR,
     for mode, data in sets.items():
         filenames[mode] = [f'{img_dir}/{patient_id}.dcm' for patient_id in data.patientId]
         labels[mode] = [min(1, label) for label in data.label.values]
-        meta[mode] = data['PatientAge'].values
+        meta[mode] = np.where(data['PatientAge'] < t[1], 0, np.where(data['PatientAge'] >= t[2], 1, None))
     return filenames, labels, meta
 
 
