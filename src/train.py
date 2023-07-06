@@ -148,21 +148,8 @@ def init_model(config):
 
 """"""""""""""""""""""""""""""""" Training """""""""""""""""""""""""""""""""
 
-
-def train_step(model, optimizer, x, y, meta, device, dp=False):
-    model.train()
-    optimizer.zero_grad()
-    x = x.to(device)
-    y = y.to(device)
-    meta = meta.to(device)
-    # TODO: find a better way to compute the loss when wrapped with DP (don't access protected attribute)
-    if dp:
-        loss_dict = model._module.loss(x, y=y)
-    else:
-        loss_dict = model.loss(x, y=y)
-    loss = loss_dict['loss']
-    loss.backward()
-    mean_per_sample_grad_norm = torch.zeros(x.shape[0], 1)
+def compute_mean_per_sample_gradient_norm(model, num_samples):
+    mean_per_sample_grad_norm = torch.zeros(num_samples, 1)
     c = 0
     for p in model.parameters():
         if p.grad is not None:
@@ -172,7 +159,22 @@ def train_step(model, optimizer, x, y, meta, device, dp=False):
             norm = torch.norm(per_sample_grad, dim=1, keepdim=True).to("cpu")
             mean_per_sample_grad_norm += norm
             c += 1
-    mean_per_sample_grad_norm = mean_per_sample_grad_norm / c
+    return mean_per_sample_grad_norm / c
+
+
+def train_step(model, optimizer, x, y, device, dp=False):
+    model.train()
+    optimizer.zero_grad()
+    x = x.to(device)
+    y = y.to(device)
+    # TODO: find a better way to compute the loss when wrapped with DP (don't access protected attribute)
+    if dp:
+        loss_dict = model._module.loss(x, y=y)
+    else:
+        loss_dict = model.loss(x, y=y)
+    loss = loss_dict['loss']
+    loss.backward()
+    mean_per_sample_grad_norm = compute_mean_per_sample_gradient_norm(model, x.shape[0])
     optimizer.step()
     return loss_dict, mean_per_sample_grad_norm
 
@@ -184,22 +186,25 @@ def train(train_loader, val_loader, config, log_dir):
 
     # Init model
     _, model, optimizer = init_model(config)
-    loss_fn = SSIMLoss(window_size=5, size_average=False)
 
-    # Init logging
-    if not config.debug:
-        os.makedirs(log_dir, exist_ok=True)
     # Init DP
+    privacy_engine = PrivacyEngine(accountant="rdp")
+    delta = config.delta if config.delta else 1 / (len(train_loader) * train_loader.batch_size)
     if config.dp:
-        privacy_engine = PrivacyEngine(accountant="rdp")
-        epochs = math.ceil(config.max_steps / len(train_loader))
-        delta = config.delta if config.delta else 1 / (len(train_loader) * train_loader.batch_size)
-        model, optimizer, data_loader = privacy_engine.make_private_with_epsilon(module=model, optimizer=optimizer,
-            data_loader=train_loader, target_epsilon=config.epsilon, target_delta=delta,
-            max_grad_norm=config.max_grad_norm if not config.sweep_param else wandb.config.max_grad_norm, epochs=epochs)
+        model, optimizer, data_loader = privacy_engine.make_private_with_epsilon(
+            module=model,
+            optimizer=optimizer,
+            data_loader=train_loader,
+            target_epsilon=config.epsilon,
+            target_delta=delta,
+            max_grad_norm=config.max_grad_norm if not config.sweep_param else wandb.config.max_grad_norm,
+            epochs=math.ceil(config.max_steps / len(train_loader))
+        )
+        # validate model
         errors = ModuleValidator.validate(model, strict=False)
         if len(errors) > 0:
             print(f'WARNING: model validation failed with errors: {errors}')
+    # Training
     print('Starting training...')
     step = 0
     i_epoch = 0
@@ -207,22 +212,20 @@ def train(train_loader, val_loader, config, log_dir):
     t_start = time()
     while True:
         with BatchMemoryManager(data_loader=train_loader, max_physical_batch_size=450, optimizer=optimizer) as new_train_loader:
-            mean_gradient_per_class = {
-                0: 0,
-                1: 0
-            }
-            count_per_class = {
-                0: 0,
-                1: 0
-            }
+            mean_gradient_per_class = {0: 0, 1: 0}
+            count_samples_per_class = {0: 0, 1: 0}
             model.train()
             for x, y, meta in new_train_loader:
                 step += 1
-                loss_dict, accumulated_per_sample_norms = train_step(model, optimizer, x, y, meta, config.device, config.dp)
+                # forward
+                loss_dict, accumulated_per_sample_norms = train_step(model, optimizer, x, y, config.device, config.dp)
+                # accumulate mean gradient norms per class
                 for g_norm, pv_label in zip(torch.squeeze(accumulated_per_sample_norms).tolist(), meta.tolist()):
                     mean_gradient_per_class[pv_label] += g_norm
-                    count_per_class[pv_label] += 1
+                    count_samples_per_class[pv_label] += 1
+                # add loss
                 train_losses.add(loss_dict)
+
                 if step % config.log_frequency == 0:
                     train_results = train_losses.compute()
                     # Print training loss
@@ -238,44 +241,42 @@ def train(train_loader, val_loader, config, log_dir):
                     remaining_time = datetime.utcfromtimestamp(remaining_time)
                     log_msg += f" - remaining time: {remaining_time.strftime('%H:%M:%S')}"
                     print(log_msg)
-
                     # Log to w&b or tensorboard
                     wandb.log({f'train/{k}': v for k, v in train_results.items()}, step=step)
-
                     # Reset
                     train_losses.reset()
 
+                if config.dp:
+                    eps = privacy_engine.get_epsilon(delta)
                 if step % config.val_frequency == 0:
                     log_imgs = step % config.log_img_freq == 0
                     val_results = validate(config, model, val_loader, step, log_dir, log_imgs)
                     if config.dp:
-                        eps = privacy_engine.get_epsilon(delta)
                         print(f"ɛ: {eps:.2f} (target: 8)")
                         val_results['epsilon'] = eps
                     # Log to w&b
                     wandb.log(val_results, step=step)
-                    if config.dp:
-                        if eps > config.epsilon:
-                            print(f'Reached maximum ɛ {eps}/{config.epsilon}.', 'Finished training.')
-                            # Final validation
-                            print("Final validation...")
-                            validate(config, model, val_loader, step, log_dir, False)
-                            return model
-
-                if step >= config.max_steps:
-                    print(f'Reached {config.max_steps} iterations.', 'Finished training.')
-
+                # check if maximum ɛ is reached
+                if config.dp and eps >= config.epsilon:
+                    print(f'Reached maximum ɛ {eps}/{config.epsilon}.', 'Finished training.')
                     # Final validation
                     print("Final validation...")
                     validate(config, model, val_loader, step, log_dir, False)
                     return model
 
+                if step >= config.max_steps:
+                    print(f'Reached {config.max_steps} iterations.', 'Finished training.')
+                    # Final validation
+                    print("Final validation...")
+                    validate(config, model, val_loader, step, log_dir, False)
+                    return model
             i_epoch += 1
             mapping = {
                 0: "young" if config.protected_attr == 'age' else "male",
                 1: "old" if config.protected_attr == 'age' else "female"
             }
-            wandb.log({"train/mean_grads": {mapping[k]: v/count_per_class[k] if count_per_class[k] != 0 else 0 for k, v in mean_gradient_per_class.items()}}, step=step)
+            # log mean gradient norms per class to wandb
+            wandb.log({"train/mean_grads": {mapping[k]: v/count_samples_per_class[k] if count_samples_per_class[k] != 0 else 0 for k, v in mean_gradient_per_class.items()}}, step=step)
             print(f'Finished epoch {i_epoch}, ({step} iterations)')
 
 
@@ -432,7 +433,7 @@ def test(config, model, loader, log_dir):
 """"""""""""""""""""""""""""""""" Main """""""""""""""""""""""""""""""""
 
 
-def hyper_param_sweep():
+def hyper_param_sweep(config):
     print("Sweeping...")
     with open('sweep_config.yml', 'r') as f:
         sweep_config = yaml.safe_load(f)
@@ -455,56 +456,61 @@ def hyper_param_sweep():
         func2 = lambda: train(train_loader, val_loader, config, log_dir)
         sweep_function = functools.partial(execute_functions, func1, func2)
 
-        # func1 = functools.partial(init_wandb, config, log_dir, group_name, job_type)
-        # func2 = functools.partial(train, train_loader, val_loader, config, log_dir)
-
         sweep_id = wandb.sweep(sweep_configuration, project=config.wandb_project)
         wandb.agent(sweep_id, function=sweep_function, count=config.num_runs)
         wandb.finish()
+
+
+def run(config, run_config):
+    # update default values config
+    # replace the default config values with the run config
+    for arg_name, arg_value in run_config.items():
+        config[arg_name] = arg_value
+    # get protected attribute values (can be a list or a single value)
+    protected_attr_values = []
+    if isinstance(config.protected_attr_percent, float):
+        protected_attr_values = [config.protected_attr_percent]
+    elif isinstance(config.protected_attr_percent, list):
+        protected_attr_values = list(np.arange(config.protected_attr_percent[0],
+                                               config.protected_attr_percent[1] + config.protected_attr_percent[2],
+                                               config.protected_attr_percent[2]
+                                               ))
+    # one run per protected attribute value
+    for protected_attr_value in protected_attr_values:
+        # set the correct protected attribute value
+        config.protected_attr_percent = protected_attr_value
+        # load data
+        train_loader, val_loader, test_loader = load_data(config)
+        # iterate over seeds
+        for i in range(config.num_seeds):
+            config.seed = config.initial_seed + i
+            # get log dir
+            log_dir, group_name, job_type = construct_log_dir(config, current_time)
+            init_wandb(config, log_dir, group_name, job_type)
+            # create log dir
+            if not config.debug:
+                os.makedirs(log_dir, exist_ok=True)
+            final_model = train(train_loader, val_loader, config, log_dir)
+            test(config, final_model, test_loader, log_dir)
+            wandb.finish()
 
 
 if __name__ == '__main__':
     # get time
     current_time = datetime.strftime(datetime.now(), format="%Y.%m.%d-%H:%M:%S")
     # copy default config
-    config = DEFAULT_CONFIG.copy()
+    new_config = DEFAULT_CONFIG.copy()
     # set initial seed
-    config.seed = config.initial_seed
+    new_config.seed = new_config.initial_seed
     # check if we are doing a hyper-param sweep or not
     if RUN_CONFIG.sweep:
-        hyper_param_sweep()
+        hyper_param_sweep(new_config.copy())
     else:
         # get run configs
         with open('run_config.yml', 'r') as f:
             run_configs = yaml.safe_load(f)
         # choose runs to execute or run all
         run_configs = run_configs if RUN_CONFIG.run_all else {RUN_CONFIG.run_name: run_configs[RUN_CONFIG.run_name]}
-        for run_name, run_config in run_configs.items():
+        for run_name, r_config in run_configs.items():
             print(f"Running {run_name}")
-            # update default values config
-            config = DEFAULT_CONFIG.copy()
-            # replace the default config values with the run config
-            for arg_name, arg_value in run_config.items():
-                config[arg_name] = arg_value
-            # get protected attribute values (can be a list or a single value)
-            if isinstance(config.protected_attr_percent, float):
-                protected_attr_values = [config.protected_attr_percent]
-            else:
-                protected_attr_values = list(np.arange(config.protected_attr_percent[0],
-                                                       config.protected_attr_percent[1] + config.protected_attr_percent[
-                                                           2], config.protected_attr_percent[2]))
-            # one run per protected attribute value
-            for protected_attr_value in protected_attr_values:
-                # set the correct protected attribute value
-                config.protected_attr_percent = protected_attr_value
-                # load data
-                train_loader, val_loader, test_loader = load_data(config)
-                # iterate over seeds
-                for i in range(config.num_seeds):
-                    config.seed = config.initial_seed + i
-                    # get log dir
-                    log_dir, group_name, job_type = construct_log_dir(config, current_time)
-                    init_wandb(config, log_dir, group_name, job_type)
-                    final_model = train(train_loader, val_loader, config, log_dir)
-                    test(config, final_model, test_loader, log_dir)
-                    wandb.finish()
+            run(new_config.copy(), r_config)
