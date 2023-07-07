@@ -261,14 +261,14 @@ def train(train_loader, val_loader, config, log_dir):
                     print(f'Reached maximum ɛ {eps}/{config.epsilon}.', 'Finished training.')
                     # Final validation
                     print("Final validation...")
-                    validate(config, model, val_loader, step, log_dir, False)
+                    validate(config, model, val_loader, step, log_dir, log_imgs)
                     return model
 
                 if step >= config.max_steps:
                     print(f'Reached {config.max_steps} iterations.', 'Finished training.')
                     # Final validation
                     print("Final validation...")
-                    validate(config, model, val_loader, step, log_dir, False)
+                    validate(config, model, val_loader, step, log_dir, log_imgs)
                     return model
             i_epoch += 1
             mapping = {
