@@ -483,6 +483,7 @@ def run(config, run_config):
         train_loader, val_loader, test_loader = load_data(config)
         # iterate over seeds
         for i in range(config.num_seeds):
+            torch.cuda.empty_cache()
             config.seed = config.initial_seed + i
             # get log dir
             log_dir, group_name, job_type = construct_log_dir(config, current_time)
