@@ -1,0 +1,29 @@
+name: ad_fairness
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+
+dependencies:
+  - conda-forge::python=3.10
+  - conda-forge::pip
+  - conda-forge::flake8
+  - pytorch::pytorch-cuda
+  - pytorch::pytorch=1.13.1
+  - pytorch::torchvision
+  - conda-forge::torchmetrics
+  - conda-forge::matplotlib
+  - conda-forge::scikit-learn
+  - conda-forge::pandas
+  - conda-forge::nibabel
+  - conda-forge::tqdm
+  - conda-forge::kaggle
+  - conda-forge::pydicom
+  - conda-forge::h5py
+  - conda-forge::einops
+  - conda-forge::wandb
+  - conda-forge::opacus
+
+  - pip:
+    - tensorboard
+    - dotmap
