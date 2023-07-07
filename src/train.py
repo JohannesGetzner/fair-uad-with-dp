@@ -86,7 +86,8 @@ DEFAULT_CONFIG = {
     # Other
     "sweep_param:": None,
     "group_name_mod": None,
-    "job_type_mod": None
+    "job_type_mod": None,
+    "max_physical_batch_size": 512,
 }
 DEFAULT_CONFIG = DotMap(DEFAULT_CONFIG)
 
@@ -211,7 +212,7 @@ def train(train_loader, val_loader, config, log_dir):
     train_losses = AvgDictMeter()
     t_start = time()
     while True:
-        with BatchMemoryManager(data_loader=train_loader, max_physical_batch_size=450, optimizer=optimizer) as new_train_loader:
+        with BatchMemoryManager(data_loader=train_loader, max_physical_batch_size=config.max_physical_batch_size, optimizer=optimizer) as new_train_loader:
             mean_gradient_per_class = {0: 0, 1: 0}
             count_samples_per_class = {0: 0, 1: 0}
             model.train()
