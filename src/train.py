@@ -47,7 +47,7 @@ DEFAULT_CONFIG = {
     "num_seeds": 1,
     "debug": False,
     "disable_wandb": False,
-    "wandb_project": "test",
+    "wandb_project": "unsupervised-fairness",
     # Experiment settings
     "experiment_name": "insert-experiment-name",
     # Data settings
@@ -84,7 +84,6 @@ DEFAULT_CONFIG = {
     "delta": None,
     "max_grad_norm": 1.0,
     # Other
-    "sweep_param:": None,
     "group_name_mod": None,
     "job_type_mod": None,
     "max_physical_batch_size": 512,
@@ -191,6 +190,12 @@ def train(train_loader, val_loader, config, log_dir):
     # Init DP
     privacy_engine = PrivacyEngine(accountant="rdp")
     delta = config.delta if config.delta else 1 / (len(train_loader) * train_loader.batch_size)
+    epochs = math.ceil(config.max_steps / len(train_loader))
+    # to use the complete privacy budget, we need to train for at least as many steps as epochs
+    config.max_steps = epochs * len(train_loader)
+    # also need to adjust the max_steps to account for the fact that we are using a larger batch size than the GPU
+    # can handle
+    config.max_steps = (config.batch_size / config.max_physical_batch_size) * config.max_steps
     if config.dp:
         model, optimizer, data_loader = privacy_engine.make_private_with_epsilon(
             module=model,
@@ -198,8 +203,8 @@ def train(train_loader, val_loader, config, log_dir):
             data_loader=train_loader,
             target_epsilon=config.epsilon,
             target_delta=delta,
-            max_grad_norm=config.max_grad_norm if not config.sweep_param else wandb.config.max_grad_norm,
-            epochs=math.ceil(config.max_steps / len(train_loader))
+            max_grad_norm=config.max_grad_norm,
+            epochs=epochs
         )
         # validate model
         errors = ModuleValidator.validate(model, strict=False)
@@ -211,8 +216,13 @@ def train(train_loader, val_loader, config, log_dir):
     i_epoch = 0
     train_losses = AvgDictMeter()
     t_start = time()
+
     while True:
-        with BatchMemoryManager(data_loader=train_loader, max_physical_batch_size=config.max_physical_batch_size, optimizer=optimizer) as new_train_loader:
+        with BatchMemoryManager(
+                data_loader=train_loader,
+                max_physical_batch_size=config.max_physical_batch_size,
+                optimizer=optimizer
+        ) as new_train_loader:
             mean_gradient_per_class = {0: 0, 1: 0}
             count_samples_per_class = {0: 0, 1: 0}
             model.train()
@@ -279,7 +289,6 @@ def train(train_loader, val_loader, config, log_dir):
             # log mean gradient norms per class to wandb
             wandb.log({"train/mean_grads": {mapping[k]: v/count_samples_per_class[k] if count_samples_per_class[k] != 0 else 0 for k, v in mean_gradient_per_class.items()}}, step=step)
             print(f'Finished epoch {i_epoch}, ({step} iterations)')
-
 
 """"""""""""""""""""""""""""""""" Validation """""""""""""""""""""""""""""""""
 

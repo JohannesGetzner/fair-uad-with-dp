@@ -42,10 +42,11 @@ def save_checkpoint(path: str, model: nn.Module, step: int, config: Dict):
 
 
 def init_wandb(config, log_dir: str, group_name: str, job_type: str):
-    sweep_tag = "sweep" if config.sweep_param else "no_sweep"
+    # sweep_tag = "sweep" if config.sweep_param else "no_sweep"
     dp_tag = "DP" if config.dp else "no_DP"
-    wandb_tags = [config.model_type, config.dataset, config.protected_attr, dp_tag, sweep_tag]
-    if config.sweep_param:
+    wandb_tags = [config.model_type, config.dataset, config.protected_attr, dp_tag]
+    if False:
+    #if config.sweep_param:
         run = wandb.init(
             # project=config.wandb_project,
             config=config,
@@ -83,7 +84,7 @@ def construct_log_dir(config, current_time, sweep_config=None):
     if config.dp:
         jt += "_DP"
     # build log_dir and group_name
-    if config.sweep_param:
+    if sweep_config:
         min_val = sweep_config["parameters"][config.sweep_param]["min"]
         max_val = sweep_config["parameters"][config.sweep_param]["max"]
         log_path += f"{config.model_type}-{config.dataset}-{config.sweep_param}-{str(min_val).replace('.','')}-{str(max_val).replace('.','')}-{current_time}"
@@ -94,7 +95,7 @@ def construct_log_dir(config, current_time, sweep_config=None):
         gn = log_path
         log_path = f"{log_path}/{jt}/seed_{config.seed}"
     # prepend dirs to log_path
-    log_path = f"logs/{'sweeps/' if config.sweep_param else ''}{log_path}"
+    log_path = f"logs/{'sweeps/' if sweep_config else ''}{log_path}"
     if config.group_name_mod:
         gn += f"-{config.group_name_mod}"
     return log_path, gn, jt
