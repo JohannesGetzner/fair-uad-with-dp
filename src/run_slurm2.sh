@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --partition=master
 #SBATCH --ntasks=1
-#SBATCH --time=03-00:00:00
+#SBATCH --time=05-00:00:00
 #SBATCH --mem=32G
 #SBATCH --gres=gpu:1
 
@@ -19,7 +19,7 @@ source activate $ANACONDA_ENV
 
 # Your commands using the Anaconda environment
 echo "Running script with Anaconda environment: $ANACONDA_ENV"
-$ANACONDA_PYTHON train.py --run_name run1
-$ANACONDA_PYTHON train.py --run_name run2
 $ANACONDA_PYTHON train.py --run_name run3
+$ANACONDA_PYTHON train.py --run_name run2
+$ANACONDA_PYTHON train.py --run_name run1
 $ANACONDA_PYTHON train.py --run_name run4

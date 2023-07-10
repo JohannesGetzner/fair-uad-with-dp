@@ -1,8 +1,8 @@
 ---
 run1:
   protected_attr: "age"
-  protected_attr_percent: [0,1,0.25]
-  num_seeds: 3
+  protected_attr_percent: 0.75
+  num_seeds: 1
   wandb_project: "unsupervised-fairness"
   max_steps: 100000
   dp: True
@@ -11,12 +11,31 @@ run1:
   group_name_mod: "bs1024_mgn001"
 run2:
   protected_attr: "age"
-  protected_attr_percent: [0.5,1,0.25]
-  num_seeds: 2
+  protected_attr_percent: 1
+  num_seeds: 1
   wandb_project: "unsupervised-fairness"
   max_steps: 100000
   dp: True
   batch_size: 1024
   max_grad_norm: 0.01
   group_name_mod: "bs1024_mgn001"
-
+run3:
+  protected_attr: "age"
+  protected_attr_percent: 0.25
+  num_seeds: 1
+  wandb_project: "unsupervised-fairness"
+  max_steps: 100000
+  dp: True
+  batch_size: 1024
+  max_grad_norm: 0.01
+  group_name_mod: "bs1024_mgn001"
+run4:
+  protected_attr: "age"
+  protected_attr_percent: [0,1,0.25]
+  num_seeds: 1
+  wandb_project: "unsupervised-fairness"
+  max_steps: 100000
+  dp: True
+  batch_size: 1024
+  max_grad_norm: 0.01
+  group_name_mod: "bs1024_mgn001"
