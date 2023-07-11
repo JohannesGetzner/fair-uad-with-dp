@@ -1,5 +1,5 @@
 ---
-run1:
+DP_1:
   protected_attr: "age"
   protected_attr_percent: [0,1,0.25]
   num_seeds: 1
@@ -10,3 +10,13 @@ run1:
   max_grad_norm: 0.01
   group_name_mod: "bs1024_mgn001"
   max_physical_batch_size: 512
+no_DP:
+  protected_attr: "age"
+  protected_attr_percent: [0,1,0.25]
+  num_seeds: 10
+  wandb_project: "unsupervised-fairness"
+  max_steps: 8000
+  dp: False
+  batch_size: 32
+  group_name_mod: "bs32"
+  max_physical_batch_size: 32

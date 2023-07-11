@@ -24,6 +24,7 @@ experiment_dir
 Each results.csv file contains the results of a single run of the experiment.
 """
 import os
+import re
 from typing import List
 
 import numpy as np
@@ -37,6 +38,8 @@ def gather_data_seeds(experiment_dir: str, attr_key: str, metric_names: List[str
     run_dirs = [os.path.join(experiment_dir, run_dir) for run_dir in os.listdir(experiment_dir)]
     run_dirs = [run_dir for run_dir in run_dirs if run_dir.endswith('DP') and dp or not run_dir.endswith('DP') and not dp]
     run_dfs = []
+    if len(run_dirs) == 0:
+        return None, None
     attr_key_values = []
     for run_dir in run_dirs:
         seed_dirs = [os.path.join(run_dir, seed_dir) for seed_dir in os.listdir(run_dir)]
@@ -47,7 +50,16 @@ def gather_data_seeds(experiment_dir: str, attr_key: str, metric_names: List[str
             seed_dfs.append(df)
         df = pd.concat(seed_dfs)
         run_dfs.append(df)
-        attr_key_values.append(df[attr_key].values[0])
+        if "_map" in df.columns:
+            # accidentally logged the map as a string
+            # get value from _map column
+            config_str = df["_map"].values[0]
+            pattern = r"'protected_attr_percent', ([\d.]+)"
+            result = re.search(pattern, config_str)
+            extracted_value = float(result.group(1))
+            attr_key_values.append(extracted_value)
+        else:
+            attr_key_values.append(df["protected_attr_percent"].values[0])
     # Sort by protected attribute
     run_dfs = [df for _, df in sorted(zip(attr_key_values, run_dfs))]
     attr_key_values = np.sort(np.array(attr_key_values))
