@@ -1,5 +1,5 @@
 ---
-DP_1:
+dp_1:
   protected_attr: "age"
   protected_attr_percent: [0,1,0.25]
   num_seeds: 1
@@ -10,7 +10,7 @@ DP_1:
   max_grad_norm: 0.01
   group_name_mod: "bs1024_mgn001"
   max_physical_batch_size: 512
-no_DP:
+no_dp:
   protected_attr: "age"
   protected_attr_percent: [0,1,0.25]
   num_seeds: 10

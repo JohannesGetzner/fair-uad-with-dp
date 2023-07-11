@@ -28,7 +28,6 @@ from opacus import PrivacyEngine
 from opacus.validators.utils import register_module_fixer
 from torch import nn
 from opacus.validators import ModuleValidator
-from src.models.pytorch_ssim import SSIMLoss
 
 
 @register_module_fixer([nn.BatchNorm1d, nn.BatchNorm2d, nn.BatchNorm3d, nn.SyncBatchNorm])
@@ -92,7 +91,7 @@ DEFAULT_CONFIG = DotMap(DEFAULT_CONFIG)
 
 parser = ArgumentParser()
 parser.add_argument('--run_all', action=BooleanOptionalAction, default=False)
-parser.add_argument('--run_name', default="DP_1", type=str)
+parser.add_argument('--run_name', default="dp_1", type=str)
 parser.add_argument('--sweep', action=BooleanOptionalAction, default=False)
 RUN_CONFIG = parser.parse_args()
 
@@ -162,16 +161,25 @@ def compute_mean_per_sample_gradient_norm(model, num_samples):
     return mean_per_sample_grad_norm / c
 
 
-def train_step(model, optimizer, x, y, device, dp=False):
+def train_step(model, optimizer, x, y, device):
+    model.train()
+    optimizer.zero_grad()
+    x = x.to(device)
+    y = y.to(device)
+    loss_dict = model.loss(x, y=y)
+    loss = loss_dict['loss']
+    loss.backward()
+    optimizer.step()
+    return loss_dict
+
+
+def train_step_dp(model, optimizer, x, y, device):
     model.train()
     optimizer.zero_grad()
     x = x.to(device)
     y = y.to(device)
     # TODO: find a better way to compute the loss when wrapped with DP (don't access protected attribute)
-    if dp:
-        loss_dict = model._module.loss(x, y=y)
-    else:
-        loss_dict = model.loss(x, y=y)
+    loss_dict = model._module.loss(x, y=y)
     loss = loss_dict['loss']
     loss.backward()
     mean_per_sample_grad_norm = compute_mean_per_sample_gradient_norm(model, x.shape[0])
@@ -180,6 +188,65 @@ def train_step(model, optimizer, x, y, device, dp=False):
 
 
 def train(train_loader, val_loader, config, log_dir):
+    # reproducibility
+    print(f"Setting seed to {config.seed}...")
+    seed_everything(config.seed)
+
+    # Init model
+    _, model, optimizer = init_model(config)
+    # Training
+    print('Starting training...')
+    step = 0
+    i_epoch = 0
+    train_losses = AvgDictMeter()
+    t_start = time()
+
+    while True:
+        model.train()
+        for x, y, meta in train_loader:
+            step += 1
+            # forward
+            loss_dict = train_step(model, optimizer, x, y, config.device)
+            # add loss
+            train_losses.add(loss_dict)
+            if step % config.log_frequency == 0:
+                train_results = train_losses.compute()
+                # Print training loss
+                log_msg = " - ".join([f'{k}: {v:.4f}' for k, v in train_results.items()])
+                log_msg = f"Iteration {step} - " + log_msg
+                # Elapsed time
+                elapsed_time = datetime.utcfromtimestamp(time() - t_start)
+                log_msg += f" - time: {elapsed_time.strftime('%H:%M:%S')}s"
+                # Estimate remaining time
+                time_per_step = (time() - t_start) / step
+                remaining_steps = config.max_steps - step
+                remaining_time = remaining_steps * time_per_step
+                remaining_time = datetime.utcfromtimestamp(remaining_time)
+                log_msg += f" - remaining time: {remaining_time.strftime('%H:%M:%S')}"
+                print(log_msg)
+                # Log to w&b or tensorboard
+                wandb.log({f'train/{k}': v for k, v in train_results.items()}, step=step)
+                # Reset
+                train_losses.reset()
+
+            # validation
+            if step % config.val_frequency == 0:
+                log_imgs = step % config.log_img_freq == 0
+                val_results = validate(config, model, val_loader, step, log_dir, log_imgs)
+                # Log to w&b
+                wandb.log(val_results, step=step)
+
+            if step >= config.max_steps:
+                print(f'Reached {config.max_steps} iterations.', 'Finished training.')
+                # Final validation
+                print("Final validation...")
+                validate(config, model, val_loader, step, log_dir, log_imgs)
+                return model
+        i_epoch += 1
+        print(f'Finished epoch {i_epoch}, ({step} iterations)')
+
+
+def train_dp(train_loader, val_loader, config, log_dir):
     # Reproducibility
     print(f"Setting seed to {config.seed}...")
     seed_everything(config.seed)
@@ -196,27 +263,25 @@ def train(train_loader, val_loader, config, log_dir):
     # also need to adjust the max_steps to account for the fact that we are using a larger batch size than the GPU
     # can handle
     config.max_steps = (config.batch_size / config.max_physical_batch_size) * config.max_steps
-    if config.dp:
-        model, optimizer, data_loader = privacy_engine.make_private_with_epsilon(
-            module=model,
-            optimizer=optimizer,
-            data_loader=train_loader,
-            target_epsilon=config.epsilon,
-            target_delta=delta,
-            max_grad_norm=config.max_grad_norm,
-            epochs=epochs
-        )
-        # validate model
-        errors = ModuleValidator.validate(model, strict=False)
-        if len(errors) > 0:
-            print(f'WARNING: model validation failed with errors: {errors}')
+    model, optimizer, data_loader = privacy_engine.make_private_with_epsilon(
+        module=model,
+        optimizer=optimizer,
+        data_loader=train_loader,
+        target_epsilon=config.epsilon,
+        target_delta=delta,
+        max_grad_norm=config.max_grad_norm,
+        epochs=epochs
+    )
+    # validate model
+    errors = ModuleValidator.validate(model, strict=False)
+    if len(errors) > 0:
+        print(f'WARNING: model validation failed with errors: {errors}')
     # Training
     print('Starting training...')
     step = 0
     i_epoch = 0
     train_losses = AvgDictMeter()
     t_start = time()
-
     while True:
         with BatchMemoryManager(
                 data_loader=train_loader,
@@ -229,7 +294,7 @@ def train(train_loader, val_loader, config, log_dir):
             for x, y, meta in new_train_loader:
                 step += 1
                 # forward
-                loss_dict, accumulated_per_sample_norms = train_step(model, optimizer, x, y, config.device, config.dp)
+                loss_dict, accumulated_per_sample_norms = train_step_dp(model, optimizer, x, y, config.device)
                 # accumulate mean gradient norms per class
                 for g_norm, pv_label in zip(torch.squeeze(accumulated_per_sample_norms).tolist(), meta.tolist()):
                     mean_gradient_per_class[pv_label] += g_norm
@@ -257,18 +322,16 @@ def train(train_loader, val_loader, config, log_dir):
                     # Reset
                     train_losses.reset()
 
-                if config.dp:
-                    eps = privacy_engine.get_epsilon(delta)
+                eps = privacy_engine.get_epsilon(delta)
                 if step % config.val_frequency == 0:
                     log_imgs = step % config.log_img_freq == 0
                     val_results = validate(config, model, val_loader, step, log_dir, log_imgs)
-                    if config.dp:
-                        print(f"ɛ: {eps:.2f} (target: 8)")
-                        val_results['epsilon'] = eps
+                    print(f"ɛ: {eps:.2f} (target: 8)")
+                    val_results['epsilon'] = eps
                     # Log to w&b
                     wandb.log(val_results, step=step)
                 # check if maximum ɛ is reached
-                if config.dp and eps >= config.epsilon:
+                if eps >= config.epsilon:
                     print(f'Reached maximum ɛ {eps}/{config.epsilon}.', 'Finished training.')
                     # Final validation
                     print("Final validation...")
@@ -289,6 +352,9 @@ def train(train_loader, val_loader, config, log_dir):
             # log mean gradient norms per class to wandb
             wandb.log({"train/mean_grads": {mapping[k]: v/count_samples_per_class[k] if count_samples_per_class[k] != 0 else 0 for k, v in mean_gradient_per_class.items()}}, step=step)
             print(f'Finished epoch {i_epoch}, ({step} iterations)')
+
+
+
 
 """"""""""""""""""""""""""""""""" Validation """""""""""""""""""""""""""""""""
 
@@ -367,7 +433,6 @@ def validate(config, model, loader, step, log_dir, log_imgs=False):
         ckpt_name = os.path.join(log_dir, 'ckpt_last.pth')
         print(f'Saving checkpoint to {ckpt_name}')
         save_checkpoint(ckpt_name, model, step, vars(config))
-
     return results
 
 
@@ -501,7 +566,10 @@ def run(config, run_config):
             # create log dir
             if not config.debug:
                 os.makedirs(log_dir, exist_ok=True)
-            final_model = train(train_loader, val_loader, config, log_dir)
+            if config.dp:
+                final_model = train_dp(train_loader, val_loader, config, log_dir)
+            else:
+                final_model = train(train_loader, val_loader, config, log_dir)
             test(config, final_model, test_loader, log_dir)
             wandb.finish()
 
