@@ -92,7 +92,7 @@ DEFAULT_CONFIG = DotMap(DEFAULT_CONFIG)
 
 parser = ArgumentParser()
 parser.add_argument('--run_all', action=BooleanOptionalAction, default=False)
-parser.add_argument('--run_name', default="run1", type=str)
+parser.add_argument('--run_name', default="DP_1", type=str)
 parser.add_argument('--sweep', action=BooleanOptionalAction, default=False)
 RUN_CONFIG = parser.parse_args()
 
