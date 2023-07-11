@@ -20,23 +20,24 @@ plt.rcParams["font.family"] = "Times New Roman"
 
 
 def plot_metric(experiment_dir: str, attr_key: str, metrics: List[str], xlabel: str, ylabel: str, title: str,
-        plt_name: str):
+                plt_name: str):
     """Plots the given metrics as different plots"""
     # Collect data from all runs
-    data, attr_key_values = gather_data_seeds(experiment_dir, attr_key, metrics)
+    # data, attr_key_values = gather_data_seeds(experiment_dir, attr_key, metrics)
     data_dp, attr_key_values_dp = gather_data_seeds(experiment_dir, attr_key, metrics, dp=True)
-    assert (attr_key_values == attr_key_values_dp).all()
+    attr_key_values = attr_key_values_dp
+    # assert (attr_key_values == attr_key_values_dp).all()
 
     # Plot scatter plot
-    #plot_metric_scatter(data=data, attr_key_values=attr_key_values, metrics=metrics, xlabel=xlabel, ylabel=ylabel,
+    # plot_metric_scatter(data=data, attr_key_values=attr_key_values, metrics=metrics, xlabel=xlabel, ylabel=ylabel,
     #                    title=title, plt_name=plt_name + '_scatter.png')
 
     # Plot bar plot
-    plot_metric_bar(data=data, attr_key_values=attr_key_values, metrics=metrics, xlabel=xlabel, ylabel=ylabel,
-                    title=title, plt_name=plt_name + '_bar.png')
+    # plot_metric_bar(data=data, attr_key_values=attr_key_values, metrics=metrics, xlabel=xlabel, ylabel=ylabel,
+    #                title=title, plt_name=plt_name + '_bar.png')
 
     # Plot box-whisker plot
-    #plot_metric_box_whisker(data=data, attr_key_values=attr_key_values, metrics=metrics, xlabel=xlabel, ylabel=ylabel,
+    # plot_metric_box_whisker(data=data, attr_key_values=attr_key_values, metrics=metrics, xlabel=xlabel, ylabel=ylabel,
     #                        title=title, plt_name=plt_name + '_box.png')
 
     # -------
@@ -44,20 +45,20 @@ def plot_metric(experiment_dir: str, attr_key: str, metrics: List[str], xlabel: 
     # -------
 
     # Plot scatter plot
-    #plot_metric_scatter(data=data_dp, attr_key_values=attr_key_values, metrics=metrics, xlabel=xlabel, ylabel=ylabel,
-    #                    title=title + "_DP", plt_name=plt_name + '_scatter' + "_DP" + '.png')
+    plot_metric_scatter(data=data_dp, attr_key_values=attr_key_values, metrics=metrics, xlabel=xlabel, ylabel=ylabel,
+                        title=title + "_DP", plt_name=plt_name + '_scatter' + "_DP" + '.png')
 
     # Plot bar plot
     plot_metric_bar(data=data_dp, attr_key_values=attr_key_values, metrics=metrics, xlabel=xlabel, ylabel=ylabel,
                     title=title + "_DP", plt_name=plt_name + '_bar' + "_DP" + '.png')
 
     # Plot box-whisker plot
-    #plot_metric_box_whisker(data=data_dp, attr_key_values=attr_key_values, metrics=metrics, xlabel=xlabel,
-    #                        ylabel=ylabel, title=title + "_DP", plt_name=plt_name + '_box' + "_DP" + '.png')
+    plot_metric_box_whisker(data=data_dp, attr_key_values=attr_key_values, metrics=metrics, xlabel=xlabel,
+                            ylabel=ylabel, title=title + "_DP", plt_name=plt_name + '_box' + "_DP" + '.png')
 
 
 def plot_metric_scatter(data: Dict[str, np.ndarray], attr_key_values: np.ndarray, metrics: List[str], xlabel: str,
-        ylabel: str, title: str, plt_name: str):
+                        ylabel: str, title: str, plt_name: str):
     """
     Plots the given metrics as a scatter plot. Each metric is plotted in a
     separate subplot. The positions on the x-axis are slightly perturbed.
@@ -133,7 +134,7 @@ def plot_metric_scatter(data: Dict[str, np.ndarray], attr_key_values: np.ndarray
 
 
 def plot_metric_bar(data: Dict[str, np.ndarray], attr_key_values: np.ndarray, metrics: List[str], xlabel: str,
-        ylabel: str, title: str, plt_name: str):
+                    ylabel: str, title: str, plt_name: str):
     # Prepare plot
     width = 0.25
     ind = np.arange(len(data[metrics[0]]))
@@ -189,7 +190,7 @@ def plot_metric_bar(data: Dict[str, np.ndarray], attr_key_values: np.ndarray, me
 
 
 def plot_metric_box_whisker(data: Dict[str, np.ndarray], attr_key_values: np.ndarray, metrics: List[str], xlabel: str,
-        ylabel: str, title: str, plt_name: str):
+                            ylabel: str, title: str, plt_name: str):
     """
     Plots the given metrics as a box and whisker plot.
     """
@@ -240,9 +241,8 @@ def plot_metric_box_whisker(data: Dict[str, np.ndarray], attr_key_values: np.nda
     plt.close()
 
 
-if __name__ == '__main__':
-    # FAE rsna sex
-    experiment_dir = os.path.join(THIS_DIR, '../logs/FAE_rsna_sex')
+def run_FAE_RSNA_sex():
+    # FAE rsna
     # fpr@0.95
     plot_metric(experiment_dir=experiment_dir,
                 metrics=["test/lungOpacity_male_fpr@0.95", "test/lungOpacity_female_fpr@0.95"], attr_key='male_percent',
@@ -267,19 +267,20 @@ if __name__ == '__main__':
                 title="FAE AUROC on RSNA for different proportions of male patients in training",
                 plt_name="fae_rsna_sex_AUROC")
     # subgroupAUROC
-    plot_metric(experiment_dir=experiment_dir, metrics=["test/lungOpacity_male_subgroupAUROC", "test/lungOpacity_female_subgroupAUROC"],
+    plot_metric(experiment_dir=experiment_dir,
+                metrics=["test/lungOpacity_male_subgroupAUROC", "test/lungOpacity_female_subgroupAUROC"],
                 attr_key='male_percent', xlabel="percentage of male subjects in training set", ylabel="subgroupAUROC",
                 title="FAE subgroupAUROC on RSNA for different proportions of male patients in training",
                 plt_name="fae_rsna_sex_subgroupAUROC")
     # Average precision
-    plot_metric(experiment_dir=experiment_dir,
-                metrics=["test/lungOpacity_male_AP", "test/lungOpacity_female_AP"],
-                attr_key='male_percent', xlabel="percentage of male subjects in training set", ylabel="AveragePrecision",
+    plot_metric(experiment_dir=experiment_dir, metrics=["test/lungOpacity_male_AP", "test/lungOpacity_female_AP"],
+                attr_key='male_percent', xlabel="percentage of male subjects in training set",
+                ylabel="AveragePrecision",
                 title="FAE AveragePrecision on RSNA for different proportions of male patients in training",
                 plt_name="fae_rsna_sex_AP")
 
-    # FAE rsna age
-    experiment_dir = os.path.join(THIS_DIR, '../logs/FAE_rsna_age')
+
+def run_FAE_RSNA_AGE():
     # fpr@0.95
     plot_metric(experiment_dir=experiment_dir,
                 metrics=["test/lungOpacity_old_fpr@0.95", "test/lungOpacity_young_fpr@0.95"], attr_key='old_percent',
@@ -304,13 +305,23 @@ if __name__ == '__main__':
                 title="FAE AUROC on RSNA for different proportions of old patients in training",
                 plt_name="fae_rsna_age_AUROC")
     # subgroupAUROC
-    plot_metric(experiment_dir=experiment_dir, metrics=["test/lungOpacity_old_subgroupAUROC", "test/lungOpacity_young_subgroupAUROC"],
+    plot_metric(experiment_dir=experiment_dir,
+                metrics=["test/lungOpacity_old_subgroupAUROC", "test/lungOpacity_young_subgroupAUROC"],
                 attr_key='old_percent', xlabel="percentage of old subjects in training set", ylabel="subgroupAUROC",
                 title="FAE subgroupAUROC on RSNA for different proportions of old patients in training",
                 plt_name="fae_rsna_age_subgroupAUROC")
     # Average precision
     plot_metric(experiment_dir=experiment_dir, metrics=["test/lungOpacity_old_AP", "test/lungOpacity_young_AP"],
-                attr_key='old_percent', xlabel="percentage of old subjects in training set",
-                ylabel="AveragePrecision",
+                attr_key='old_percent', xlabel="percentage of old subjects in training set", ylabel="AveragePrecision",
                 title="FAE AveragePrecision on RSNA for different proportions of old patients in training",
                 plt_name="fae_rsna_age_AP")
+
+
+if __name__ == '__main__':
+    specific_experiment = "../logs/2023.07.11-18:52:44-FAE-rsna-age"
+    experiments = os.listdir("../logs/")
+    if specific_experiment != "":
+        experiment_dir = specific_experiment
+    else:
+        experiment_dir = os.path.join('../logs/', experiments[-1])
+    run_FAE_RSNA_AGE()  # run_FAE_RSNA_sex()

@@ -428,7 +428,7 @@ def test(config, model, loader, log_dir):
         # create dataframe from dict, keys are the columns and values are single row
         metrics_c = {k: v.item() for k, v in metrics_c.items()}
         df = pd.DataFrame.from_dict(metrics_c, orient='index').T
-        for k, v in vars(config).items():
+        for k, v in config.items():
             df[k] = pd.Series([v])
         df.to_csv(csv_path, index=False)
 

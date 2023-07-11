@@ -80,7 +80,7 @@ def construct_log_dir(config, current_time, sweep_config=None):
         jt = "old_percent"
     jt += f"_{str(config.protected_attr_percent).replace('.', '')}"
     if config.job_type_mod:
-        jt += f"_{config.job_type_mod}"
+        jt += f"-{config.job_type_mod}"
     if config.dp:
         jt += "_DP"
     # build log_dir and group_name
@@ -91,7 +91,7 @@ def construct_log_dir(config, current_time, sweep_config=None):
         gn = "sweep_"+log_path
         log_path = f"{log_path}/{jt}"
     else:
-        log_path += f"{config.model_type}-{config.dataset}-{config.protected_attr}-{current_time}"
+        log_path += f"{current_time}-{config.model_type}-{config.dataset}-{config.protected_attr}"
         gn = log_path
         log_path = f"{log_path}/{jt}/seed_{config.seed}"
     # prepend dirs to log_path
