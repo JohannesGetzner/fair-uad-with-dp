@@ -35,7 +35,7 @@ def gather_data_seeds(experiment_dir: str, attr_key: str, metric_names: List[str
     """Gather the data of multiple random seeds
     For every metric, it returns a matrix of shape (num_runs, num_seeds)
     """
-    run_dirs = [os.path.join(experiment_dir, run_dir) for run_dir in os.listdir(experiment_dir)]
+    run_dirs = [os.path.join(experiment_dir, run_dir) for run_dir in os.listdir(experiment_dir) if not run_dir.endswith('.png')]
     run_dirs = [run_dir for run_dir in run_dirs if run_dir.endswith('DP') and dp or not run_dir.endswith('DP') and not dp]
     run_dfs = []
     if len(run_dirs) == 0:

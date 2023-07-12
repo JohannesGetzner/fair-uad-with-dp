@@ -10,7 +10,7 @@ sys.path.append('..')
 import os
 from argparse import ArgumentParser, BooleanOptionalAction
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timedelta
 from dotmap import DotMap
 from time import time
 
@@ -93,6 +93,7 @@ parser = ArgumentParser()
 parser.add_argument('--run_all', action=BooleanOptionalAction, default=False)
 parser.add_argument('--run_name', default="dp_1", type=str)
 parser.add_argument('--sweep', action=BooleanOptionalAction, default=False)
+parser.add_argument('--reverse', action=BooleanOptionalAction, default=False)
 RUN_CONFIG = parser.parse_args()
 
 DEFAULT_CONFIG.device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -216,13 +217,13 @@ def train(train_loader, val_loader, config, log_dir):
                 log_msg = f"Iteration {step} - " + log_msg
                 # Elapsed time
                 elapsed_time = datetime.utcfromtimestamp(time() - t_start)
-                log_msg += f" - time: {elapsed_time.strftime('%H:%M:%S')}s"
+                log_msg += f" - time: {elapsed_time.strftime('%d-%H:%M:%S')}s"
                 # Estimate remaining time
                 time_per_step = (time() - t_start) / step
                 remaining_steps = config.max_steps - step
                 remaining_time = remaining_steps * time_per_step
                 remaining_time = datetime.utcfromtimestamp(remaining_time)
-                log_msg += f" - remaining time: {remaining_time.strftime('%H:%M:%S')}"
+                log_msg += f" - remaining time: {remaining_time.strftime('%d-%H:%M:%S')}s"
                 print(log_msg)
                 # Log to w&b or tensorboard
                 wandb.log({f'train/{k}': v for k, v in train_results.items()}, step=step)
@@ -245,6 +246,15 @@ def train(train_loader, val_loader, config, log_dir):
         i_epoch += 1
         print(f'Finished epoch {i_epoch}, ({step} iterations)')
 
+
+def log_time(remaining_time: float):
+    time_left = int(remaining_time)
+    time_duration = timedelta(seconds=time_left)
+    days = time_duration.days
+    hours = time_duration.seconds // 3600
+    minutes = (time_duration.seconds // 60) % 60
+    seconds = time_duration.seconds % 60
+    return f"{days}d-{hours}h-{minutes}m-{seconds}s"
 
 def train_dp(train_loader, val_loader, config, log_dir):
     # Reproducibility
@@ -308,14 +318,13 @@ def train_dp(train_loader, val_loader, config, log_dir):
                     log_msg = " - ".join([f'{k}: {v:.4f}' for k, v in train_results.items()])
                     log_msg = f"Iteration {step} - " + log_msg
                     # Elapsed time
-                    elapsed_time = datetime.utcfromtimestamp(time() - t_start)
-                    log_msg += f" - time: {elapsed_time.strftime('%H:%M:%S')}s"
+                    elapsed_time = time() - t_start
+                    log_msg += f" - time: {log_time(elapsed_time)}"
                     # Estimate remaining time
                     time_per_step = (time() - t_start) / step
                     remaining_steps = config.max_steps - step
                     remaining_time = remaining_steps * time_per_step
-                    remaining_time = datetime.utcfromtimestamp(remaining_time)
-                    log_msg += f" - remaining time: {remaining_time.strftime('%H:%M:%S')}"
+                    log_msg += f" - remaining time: {log_time(remaining_time)}"
                     print(log_msg)
                     # Log to w&b or tensorboard
                     wandb.log({f'train/{k}': v for k, v in train_results.items()}, step=step)
@@ -536,7 +545,7 @@ def hyper_param_sweep(config):
         wandb.finish()
 
 
-def run(config, run_config):
+def run(config, run_config, reverse):
     # update default values config
     # replace the default config values with the run config
     for arg_name, arg_value in run_config.items():
@@ -550,6 +559,8 @@ def run(config, run_config):
                                                config.protected_attr_percent[1] + config.protected_attr_percent[2],
                                                config.protected_attr_percent[2]
                                                ))
+    if len(protected_attr_values) > 1 and reverse:
+        protected_attr_values = protected_attr_values[::-1]
     # one run per protected attribute value
     for protected_attr_value in protected_attr_values:
         # set the correct protected attribute value
@@ -592,4 +603,4 @@ if __name__ == '__main__':
         run_configs = run_configs if RUN_CONFIG.run_all else {RUN_CONFIG.run_name: run_configs[RUN_CONFIG.run_name]}
         for run_name, r_config in run_configs.items():
             print(f"Running {run_name}")
-            run(new_config.copy(), r_config)
+            run(new_config.copy(), r_config, RUN_CONFIG.reverse)
