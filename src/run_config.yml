@@ -21,6 +21,7 @@ dp_2:
   max_grad_norm: 0.01
   group_name_mod: "bs1024_mgn001"
   max_physical_batch_size: 512
+  initial_seed: 100
 no_dp_age:
   protected_attr: "age"
   protected_attr_percent: [0,1,0.25]
