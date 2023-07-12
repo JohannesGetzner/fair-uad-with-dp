@@ -4,7 +4,18 @@ dp_1:
   protected_attr_percent: [0,1,0.25]
   num_seeds: 1
   wandb_project: "unsupervised-fairness"
-  max_steps: 75000
+  max_steps: 40000
+  dp: True
+  batch_size: 1024
+  max_grad_norm: 0.01
+  group_name_mod: "bs1024_mgn001"
+  max_physical_batch_size: 512
+dp_2:
+  protected_attr: "age"
+  protected_attr_percent: [0,1,0.25]
+  num_seeds: 1
+  wandb_project: "unsupervised-fairness"
+  max_steps: 40000
   dp: True
   batch_size: 1024
   max_grad_norm: 0.01
