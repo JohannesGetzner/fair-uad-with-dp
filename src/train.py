@@ -569,6 +569,7 @@ def run(config, run_config, reverse):
         # load data
         train_loader, val_loader, test_loader = load_data(config)
         # iterate over seeds
+        config.seed = config.initial_seed
         for i in range(config.num_seeds):
             config.seed = config.initial_seed + i
             # get log dir
