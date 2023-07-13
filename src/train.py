@@ -585,7 +585,7 @@ def run(config, run_config, reverse):
             wandb.finish()
             torch.cuda.empty_cache()
             # sleep to allow cuda cache to be cleared
-            time.sleep(3*60)
+            time.sleep(1*60)
 
 
 if __name__ == '__main__':
