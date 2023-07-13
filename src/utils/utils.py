@@ -98,6 +98,10 @@ def construct_log_dir(config, current_time, sweep_config=None):
     log_path = f"logs/{'sweeps/' if sweep_config else ''}{log_path}"
     if config.group_name_mod:
         gn += f"-{config.group_name_mod}"
+    if config.dp:
+        gn += "-DP"
+    else:
+        gn += "-no_DP"
     return log_path, gn, jt
 
 
