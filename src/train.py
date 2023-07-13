@@ -1,5 +1,6 @@
 import functools
 import sys
+import time
 
 import numpy as np
 import yaml
@@ -569,7 +570,6 @@ def run(config, run_config, reverse):
         train_loader, val_loader, test_loader = load_data(config)
         # iterate over seeds
         for i in range(config.num_seeds):
-            torch.cuda.empty_cache()
             config.seed = config.initial_seed + i
             # get log dir
             log_dir, group_name, job_type = construct_log_dir(config, current_time)
@@ -583,6 +583,9 @@ def run(config, run_config, reverse):
                 final_model = train(train_loader, val_loader, config, log_dir)
             test(config, final_model, test_loader, log_dir)
             wandb.finish()
+            torch.cuda.empty_cache()
+            # sleep to allow cuda cache to be cleared
+            time.sleep(3*60)
 
 
 if __name__ == '__main__':
