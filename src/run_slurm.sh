@@ -19,4 +19,4 @@ source activate $ANACONDA_ENV
 
 # Your commands using the Anaconda environment
 echo "Running script with Anaconda environment: $ANACONDA_ENV"
-$ANACONDA_PYTHON train.py --run_name run1
+$ANACONDA_PYTHON train.py --run_name dp_1
