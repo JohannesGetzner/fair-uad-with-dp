@@ -78,7 +78,12 @@ def construct_log_dir(config, current_time, sweep_config=None):
         jt = f"male_percent"
     else:
         jt = "old_percent"
-    jt += f"_{str(config.protected_attr_percent).replace('.', '')}"
+    percent_as_string = str(config.protected_attr_percent).replace('.', '')
+    if len(percent_as_string) > 3:
+        percent_as_string = percent_as_string[:3]
+    if percent_as_string.endswith("0"):
+        percent_as_string = percent_as_string[:-1]
+    jt += f"_{percent_as_string}"
     if config.job_type_mod:
         jt += f"-{config.job_type_mod}"
     if config.dp:
@@ -92,16 +97,15 @@ def construct_log_dir(config, current_time, sweep_config=None):
         log_path = f"{log_path}/{jt}"
     else:
         log_path += f"{current_time}-{config.model_type}-{config.dataset}-{config.protected_attr}"
-        gn = log_path
-        log_path = f"{log_path}/{jt}/seed_{config.seed}"
-    # prepend dirs to log_path
-    log_path = f"logs/{'sweeps/' if sweep_config else ''}{log_path}"
     if config.group_name_mod:
-        gn += f"-{config.group_name_mod}"
+        log_path += f"-{config.group_name_mod}"
     if config.dp:
-        gn += "-DP"
+        log_path += "-DP"
     else:
-        gn += "-no_DP"
+        log_path += "-no_DP"
+    gn = log_path
+    log_path = f"{log_path}/{jt}/seed_{config.seed}"
+    log_path = f"logs/{'sweeps/' if sweep_config else ''}{log_path}"
     return log_path, gn, jt
 
 
