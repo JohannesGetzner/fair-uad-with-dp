@@ -1,6 +1,5 @@
 import functools
 import sys
-import time
 
 import numpy as np
 import yaml
@@ -13,7 +12,7 @@ from argparse import ArgumentParser, BooleanOptionalAction
 from collections import defaultdict
 from datetime import datetime, timedelta
 from dotmap import DotMap
-from time import time
+from time import time, sleep
 
 import pandas as pd
 import torch
@@ -586,7 +585,7 @@ def run(config, run_config, reverse):
             wandb.finish()
             torch.cuda.empty_cache()
             # sleep to allow cuda cache to be cleared
-            time.sleep(1*60)
+            sleep(1*60)
 
 
 if __name__ == '__main__':
