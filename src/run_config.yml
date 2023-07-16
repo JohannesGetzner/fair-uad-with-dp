@@ -34,7 +34,7 @@ no_dp_age:
   max_physical_batch_size: 32
 no_dp_sex:
   protected_attr: "sex"
-  protected_attr_percent: 0
+  protected_attr_percent: [0,1,0.1]
   num_seeds: 10
   wandb_project: "unsupervised-fairness"
   max_steps: 8000
