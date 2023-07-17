@@ -102,7 +102,7 @@ def construct_log_dir(config, current_time, sweep_config=None):
     if config.dp:
         log_path += "-DP"
     else:
-        log_path += "-no_DP"
+        log_path += "-noDP"
     gn = log_path
     log_path = f"{log_path}/{jt}/seed_{config.seed}"
     log_path = f"logs/{'sweeps/' if sweep_config else ''}{log_path}"
