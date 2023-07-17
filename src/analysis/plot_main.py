@@ -23,38 +23,20 @@ def plot_metric(experiment_dir: str, attr_key: str, metrics: List[str], xlabel: 
                 plt_name: str, dp=False):
     """Plots the given metrics as different plots"""
     # Collect data from all runs
-    data, attr_key_values = gather_data_seeds(experiment_dir, attr_key, metrics)
-    if dp:
-        data_dp, attr_key_values_dp = gather_data_seeds(experiment_dir, attr_key, metrics, dp=True)
-        assert (attr_key_values == attr_key_values_dp).all()
-
+    data, attr_key_values = gather_data_seeds(experiment_dir, attr_key, metrics, dp=dp)
+    plotting_args = {
+        "data": data,
+        "attr_key_values": attr_key_values,
+        "metrics": metrics,
+        "xlabel": xlabel,
+        "ylabel": ylabel,
+        "title": title,
+        "experiment_dir": experiment_dir
+    }
     # Plot scatter plot
-    plot_metric_scatter(data=data, attr_key_values=attr_key_values, metrics=metrics, xlabel=xlabel, ylabel=ylabel,
-                       title=title, plt_name=plt_name + '_scatter.png', experiment_dir=experiment_dir)
-
-    # Plot bar plot
-    plot_metric_bar(data=data, attr_key_values=attr_key_values, metrics=metrics, xlabel=xlabel, ylabel=ylabel,
-                    title=title, plt_name=plt_name + '_bar.png', experiment_dir=experiment_dir)
-
-    # Plot box-whisker plot
-    plot_metric_box_whisker(data=data, attr_key_values=attr_key_values, metrics=metrics, xlabel=xlabel, ylabel=ylabel,
-                           title=title, plt_name=plt_name + '_box.png', experiment_dir=experiment_dir)
-
-    # -------
-    # DP
-    # -------
-    if dp:
-        # Plot scatter plot
-        plot_metric_scatter(data=data_dp, attr_key_values=attr_key_values, metrics=metrics, xlabel=xlabel, ylabel=ylabel,
-                            title=title + "_DP", plt_name=plt_name + '_scatter' + "_DP" + '.png', experiment_dir=experiment_dir)
-
-        # Plot bar plot
-        plot_metric_bar(data=data_dp, attr_key_values=attr_key_values, metrics=metrics, xlabel=xlabel, ylabel=ylabel,
-                        title=title + "_DP", plt_name=plt_name + '_bar' + "_DP" + '.png',  experiment_dir=experiment_dir)
-
-        # Plot box-whisker plot
-        plot_metric_box_whisker(data=data_dp, attr_key_values=attr_key_values, metrics=metrics, xlabel=xlabel,
-                                ylabel=ylabel, title=title + "_DP", plt_name=plt_name + '_box' + "_DP" + '.png', experiment_dir=experiment_dir)
+    for f, plot_name in [(plot_metric_scatter, "scatter"), (plot_metric_bar, "bar"), (plot_metric_box_whisker, "box")]:
+        plotting_args["plt_name"] = plt_name + '_' + plot_name + ("_DP" if dp else "") + '.png'
+        f(**plotting_args)
 
 
 def plot_metric_scatter(data: Dict[str, np.ndarray], attr_key_values: np.ndarray, metrics: List[str], xlabel: str,
@@ -241,88 +223,41 @@ def plot_metric_box_whisker(data: Dict[str, np.ndarray], attr_key_values: np.nda
     plt.close()
 
 
-def run_FAE_RSNA_sex():
-    # FAE rsna
-    # fpr@0.95
-    plot_metric(experiment_dir=experiment_dir,
-                metrics=["test/lungOpacity_male_fpr@0.95", "test/lungOpacity_female_fpr@0.95"], attr_key='male_percent',
-                xlabel="percentage of male subjects in training set", ylabel="fpr@0.95",
-                title="FAE fpr@0.95tpr on RSNA for different proportions of male patients in training",
-                plt_name="fae_rsna_sex_fpr@0.95tpr")
-    # tpr@0.05
-    plot_metric(experiment_dir=experiment_dir,
-                metrics=["test/lungOpacity_male_tpr@0.05", "test/lungOpacity_female_tpr@0.05"], attr_key='male_percent',
-                xlabel="percentage of male subjects in training set", ylabel="tpr@0.05fpr",
-                title="FAE tpr@0.05fpr on RSNA for different proportions of male patients in training",
-                plt_name="fae_rsna_sex_tpr@0.05fpr")
-    # anomaly score
-    plot_metric(experiment_dir=experiment_dir,
-                metrics=["test/lungOpacity_male_anomaly_score", "test/lungOpacity_female_anomaly_score"],
-                attr_key='male_percent', xlabel="percentage of male subjects in training set", ylabel="anomaly score",
-                title="FAE anomaly scores on RSNA for different proportions of male patients in training",
-                plt_name="fae_rsna_sex_anomaly_score")
-    # AUROC
-    plot_metric(experiment_dir=experiment_dir, metrics=["test/lungOpacity_male_AUROC", "test/lungOpacity_female_AUROC"],
-                attr_key='male_percent', xlabel="percentage of male subjects in training set", ylabel="AUROC",
-                title="FAE AUROC on RSNA for different proportions of male patients in training",
-                plt_name="fae_rsna_sex_AUROC")
-    # subgroupAUROC
-    plot_metric(experiment_dir=experiment_dir,
-                metrics=["test/lungOpacity_male_subgroupAUROC", "test/lungOpacity_female_subgroupAUROC"],
-                attr_key='male_percent', xlabel="percentage of male subjects in training set", ylabel="subgroupAUROC",
-                title="FAE subgroupAUROC on RSNA for different proportions of male patients in training",
-                plt_name="fae_rsna_sex_subgroupAUROC")
-    # Average precision
-    plot_metric(experiment_dir=experiment_dir, metrics=["test/lungOpacity_male_AP", "test/lungOpacity_female_AP"],
-                attr_key='male_percent', xlabel="percentage of male subjects in training set",
-                ylabel="AveragePrecision",
-                title="FAE AveragePrecision on RSNA for different proportions of male patients in training",
-                plt_name="fae_rsna_sex_AP")
-
-
-def run_FAE_RSNA_AGE():
-    # fpr@0.95
-    plot_metric(experiment_dir=experiment_dir,
-                metrics=["test/lungOpacity_old_fpr@0.95", "test/lungOpacity_young_fpr@0.95"], attr_key='old_percent',
-                xlabel="percentage of old subjects in training set", ylabel="fpr@0.95tpr",
-                title="FAE fpr@0.95tpr on RSNA for different proportions of old patients in training",
-                plt_name="fae_rsna_age_fpr@0.95tpr")
-    # tpr@0.05
-    plot_metric(experiment_dir=experiment_dir,
-                metrics=["test/lungOpacity_old_tpr@0.05", "test/lungOpacity_young_tpr@0.05"], attr_key='old_percent',
-                xlabel="percentage of old subjects in training set", ylabel="tpr@0.05fpr",
-                title="FAE tpr@0.05fpr on RSNA for different proportions of old patients in training",
-                plt_name="fae_rsna_age_tpr@0.05fpr")
-    # anomaly score
-    plot_metric(experiment_dir=experiment_dir,
-                metrics=["test/lungOpacity_old_anomaly_score", "test/lungOpacity_young_anomaly_score"],
-                attr_key='old_percent', xlabel="percentage of old subjects in training set", ylabel="anomaly scores",
-                title="FAE anomaly scores on RSNA for different proportions of old patients in training",
-                plt_name="fae_rsna_age_anomaly_scores")
-    # AUROC
-    plot_metric(experiment_dir=experiment_dir, metrics=["test/lungOpacity_old_AUROC", "test/lungOpacity_young_AUROC"],
-                attr_key='old_percent', xlabel="percentage of old subjects in training set", ylabel="AUROC",
-                title="FAE AUROC on RSNA for different proportions of old patients in training",
-                plt_name="fae_rsna_age_AUROC")
-    # subgroupAUROC
-    plot_metric(experiment_dir=experiment_dir,
-                metrics=["test/lungOpacity_old_subgroupAUROC", "test/lungOpacity_young_subgroupAUROC"],
-                attr_key='old_percent', xlabel="percentage of old subjects in training set", ylabel="subgroupAUROC",
-                title="FAE subgroupAUROC on RSNA for different proportions of old patients in training",
-                plt_name="fae_rsna_age_subgroupAUROC")
-    # Average precision
-    plot_metric(experiment_dir=experiment_dir, metrics=["test/lungOpacity_old_AP", "test/lungOpacity_young_AP"],
-                attr_key='old_percent', xlabel="percentage of old subjects in training set", ylabel="AveragePrecision",
-                title="FAE AveragePrecision on RSNA for different proportions of old patients in training",
-                plt_name="fae_rsna_age_AP")
-
-
 if __name__ == '__main__':
-    specific_experiment = "../logs_persist/2023.07.11-20:38:32-FAE-rsna-age/"
-    experiments = os.listdir("../logs_persist/")
-    if specific_experiment != "":
-        experiment_dir = specific_experiment
-    else:
-        experiment_dir = os.path.join('../logs/', experiments[-1])
-    run_FAE_RSNA_AGE()
-    # run_FAE_RSNA_sex()
+    for experiment_dir in os.listdir("../logs_persist"):
+        if experiment_dir == "2023.07.11-20:38:32-FAE-rsna-age-bs32-noDP":
+            continue
+        print("\nGenerating plots for", experiment_dir, "\n")
+        experiment_dir = os.path.join("../logs_persist", experiment_dir)
+        if "age" in experiment_dir:
+            pv = "age"
+            g = ("old", "young")
+        else:
+            pv = "sex"
+            g = ("male", "female")
+        metrics = [
+            # fpr@0.95
+            (f"test/lungOpacity_{g[0]}_fpr@0.95", f"test/lungOpacity_{g[1]}_fpr@0.95", "fpr@0.95"),
+            # tpr@0.05
+            (f"test/lungOpacity_{g[0]}_tpr@0.05", f"test/lungOpacity_{g[1]}_tpr@0.05", "tpr@0.05fpr"),
+            # anomaly score
+            (f"test/lungOpacity_{g[0]}_anomaly_score", f"test/lungOpacity_{g[1]}_anomaly_score", "anomaly score"),
+            # AUROC
+            (f"test/lungOpacity_{g[0]}_AUROC", f"test/lungOpacity_{g[1]}_AUROC", "AUROC"),
+            # subgroupAUROC
+            (f"test/lungOpacity_{g[0]}_subgroupAUROC", f"test/lungOpacity_{g[1]}_subgroupAUROC", "subgroupAUROC"),
+            # Average precision
+            (f"test/lungOpacity_{g[0]}_AP", f"test/lungOpacity_{g[1]}_AP", "AP")
+        ]
+
+        for metric in metrics:
+            plot_metric(
+                experiment_dir=experiment_dir,
+                metrics=metric[:2],
+                attr_key=f'{g[0]}_percent',
+                xlabel=f"percentage of {g[0]} subjects in training set",
+                ylabel=metric[2],
+                title=f"FAE {metric[2]} on RSNA for different proportions of {g[0]} patients in training",
+                plt_name=f"fae_rsna_{pv}_{metric[2]}",
+                dp="noDP" not in experiment_dir
+            )

@@ -51,6 +51,7 @@ def gather_data_seeds(experiment_dir: str, attr_key: str, metric_names: List[str
         df = pd.concat(seed_dfs)
         run_dfs.append(df)
         if "_map" in df.columns:
+            print("PLEASE EVALUATE")
             # accidentally logged the map as a string
             # get value from _map column
             config_str = df["_map"].values[0]
@@ -68,6 +69,10 @@ def gather_data_seeds(experiment_dir: str, attr_key: str, metric_names: List[str
     for df in run_dfs:
         for metric in metric_names:
             results[metric].append(df[metric].values)
+    # check that all arrays in results have the same length
+    max_length = max(len(arr) for arr in results[metric])
+    for metric in metric_names:
+        results[metric] = [np.concatenate((arr, [arr[-1]] * (max_length - len(arr)))) for arr in results[metric]]
     results = {metric: np.stack(vals, axis=0) for metric, vals in results.items()}
     return results, attr_key_values
 
