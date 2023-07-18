@@ -237,7 +237,7 @@ if __name__ == '__main__':
             g = ("male", "female")
         metrics = [
             # fpr@0.95
-            (f"test/lungOpacity_{g[0]}_fpr@0.95", f"test/lungOpacity_{g[1]}_fpr@0.95", "fpr@0.95"),
+            (f"test/lungOpacity_{g[0]}_fpr@0.95", f"test/lungOpacity_{g[1]}_fpr@0.95", "fpr@0.95tpr"),
             # tpr@0.05
             (f"test/lungOpacity_{g[0]}_tpr@0.05", f"test/lungOpacity_{g[1]}_tpr@0.05", "tpr@0.05fpr"),
             # anomaly score
