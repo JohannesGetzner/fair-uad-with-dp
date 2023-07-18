@@ -20,4 +20,5 @@ source activate $ANACONDA_ENV
 
 # Your commands using the Anaconda environment
 echo "Running script with Anaconda environment: $ANACONDA_ENV"
-$ANACONDA_PYTHON train.py --run_name dp_1
+$ANACONDA_PYTHON train.py --run_name test_cluster --protected_attr_percent 0.0
+$ANACONDA_PYTHON train.py --run_name test_cluster --protected_attr_percent 0.25

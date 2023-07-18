@@ -90,10 +90,10 @@ DEFAULT_CONFIG = {
 DEFAULT_CONFIG = DotMap(DEFAULT_CONFIG)
 
 parser = ArgumentParser()
-parser.add_argument('--run_all', action=BooleanOptionalAction, default=False)
 parser.add_argument('--run_name', default="dp_1", type=str)
 parser.add_argument('--sweep', action=BooleanOptionalAction, default=False)
 parser.add_argument('--reverse', action=BooleanOptionalAction, default=False)
+parser.add_argument('--protected_attr_percent', default=0.5, type=float)
 RUN_CONFIG = parser.parse_args()
 
 DEFAULT_CONFIG.device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -255,6 +255,7 @@ def log_time(remaining_time: float):
     minutes = (time_duration.seconds // 60) % 60
     seconds = time_duration.seconds % 60
     return f"{days}d-{hours}h-{minutes}m-{seconds}s"
+
 
 def train_dp(train_loader, val_loader, config, log_dir):
     # Reproducibility
@@ -545,47 +546,31 @@ def hyper_param_sweep(config):
         wandb.finish()
 
 
-def run(config, run_config, reverse):
+def run(config, run_config):
     # update default values config
     # replace the default config values with the run config
     for arg_name, arg_value in run_config.items():
         config[arg_name] = arg_value
-    # get protected attribute values (can be a list or a single value)
-    protected_attr_values = []
-    if isinstance(config.protected_attr_percent, float):
-        protected_attr_values = [config.protected_attr_percent]
-    elif isinstance(config.protected_attr_percent, list):
-        protected_attr_values = list(np.arange(config.protected_attr_percent[0],
-                                               config.protected_attr_percent[1] + config.protected_attr_percent[2],
-                                               config.protected_attr_percent[2]
-                                               ))
-    if len(protected_attr_values) > 1 and reverse:
-        protected_attr_values = protected_attr_values[::-1]
-    # one run per protected attribute value
-    for protected_attr_value in protected_attr_values:
-        # set the correct protected attribute value
-        config.protected_attr_percent = protected_attr_value
-        # load data
-        train_loader, val_loader, test_loader = load_data(config)
-        # iterate over seeds
-        config.seed = config.initial_seed
-        for i in range(config.num_seeds):
-            config.seed = config.initial_seed + i
-            # get log dir
-            log_dir, group_name, job_type = construct_log_dir(config, current_time)
-            init_wandb(config, log_dir, group_name, job_type)
-            # create log dir
-            if not config.debug:
-                os.makedirs(log_dir, exist_ok=True)
-            if config.dp:
-                final_model = train_dp(train_loader, val_loader, config, log_dir)
-            else:
-                final_model = train(train_loader, val_loader, config, log_dir)
-            test(config, final_model, test_loader, log_dir)
-            wandb.finish()
-            torch.cuda.empty_cache()
-            # sleep to allow cuda cache to be cleared
-            sleep(1*60)
+    # get protected attribute percent value
+    config.protected_attr_percent = RUN_CONFIG.protected_attr_percent
+    # load data
+    train_loader, val_loader, test_loader = load_data(config)
+    # iterate over seeds
+    config.seed = config.initial_seed
+    for i in range(config.num_seeds):
+        config.seed = config.initial_seed + i
+        # get log dir
+        log_dir, group_name, job_type = construct_log_dir(config, current_time)
+        init_wandb(config, log_dir, group_name, job_type)
+        # create log dir
+        if not config.debug:
+            os.makedirs(log_dir, exist_ok=True)
+        if config.dp:
+            final_model = train_dp(train_loader, val_loader, config, log_dir)
+        else:
+            final_model = train(train_loader, val_loader, config, log_dir)
+        test(config, final_model, test_loader, log_dir)
+        wandb.finish()
 
 
 if __name__ == '__main__':
@@ -600,10 +585,9 @@ if __name__ == '__main__':
         hyper_param_sweep(new_config.copy())
     else:
         # get run configs
-        with open('run_config.yml', 'r') as f:
+        with open('runs_config.yml', 'r') as f:
             run_configs = yaml.safe_load(f)
         # choose runs to execute or run all
-        run_configs = run_configs if RUN_CONFIG.run_all else {RUN_CONFIG.run_name: run_configs[RUN_CONFIG.run_name]}
-        for run_name, r_config in run_configs.items():
-            print(f"Running {run_name}")
-            run(new_config.copy(), r_config, RUN_CONFIG.reverse)
+        run_config = run_configs[RUN_CONFIG.run_name]
+        print(f"Running {RUN_CONFIG.run_name}")
+        run(new_config.copy(), run_config)
