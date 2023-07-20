@@ -1,31 +1,31 @@
 ---
 dp_1:
-  protected_attr: "age"
-  num_seeds: 1
+  protected_attr: "sex"
+  num_seeds: 2
   wandb_project: "unsupervised-fairness"
-  epochs: 25000
+  epochs: 15000
   dp: True
-  batch_size: 1024
+  batch_size: 512
   max_grad_norm: 0.01
-  group_name_mod: "bs1024_mgn001"
+  group_name_mod: "bs512_mgn001"
   max_physical_batch_size: 512
-  initial_seed: 101
+  initial_seed: 1
 dp_2:
-  protected_attr: "age"
-  num_seeds: 1
+  protected_attr: "sex"
+  num_seeds: 2
   wandb_project: "unsupervised-fairness"
-  epochs: 25000
+  epochs: 15000
   dp: True
-  batch_size: 1024
+  batch_size: 512
   max_grad_norm: 0.01
-  group_name_mod: "bs1024_mgn001"
+  group_name_mod: "bs512_mgn001"
   max_physical_batch_size: 512
-  initial_seed: 110
+  initial_seed: 100
 test_local:
-  protected_attr: "age"
-  num_seeds: 1
+  protected_attr: "sex"
+  num_seeds: 2
   wandb_project: "test"
-  epochs: 300
+  epochs: 10
   dp: True
   batch_size: 32
   group_name_mod: "b32"

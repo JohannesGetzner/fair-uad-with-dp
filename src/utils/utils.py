@@ -116,7 +116,6 @@ class TensorboardLogger(SummaryWriter):
                     raise ValueError(f'Unsupported data type: {type(v)}')
 
 
-
 def log_time(remaining_time: float):
     time_left = int(remaining_time)
     time_duration = timedelta(seconds=time_left)

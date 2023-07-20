@@ -220,8 +220,8 @@ def train(train_loader, val_loader, config, log_dir):
                 elapsed_time = datetime.utcfromtimestamp(time() - t_start)
                 log_msg += f" - time: {elapsed_time.strftime('%d-%H:%M:%S')}s"
                 # Estimate remaining time
-                time_per_epoch = (time() - t_start) / i_epoch
-                remaining_time = (config.epochs - i_step) * time_per_epoch
+                time_per_epoch = ((time() - t_start) / i_epoch) if i_epoch > 0 else time() - t_start
+                remaining_time = (config.epochs - i_epoch) * time_per_epoch
                 log_msg += f" - remaining time: {log_time(remaining_time)}"
                 print(log_msg)
                 # Log to w&b or tensorboard
@@ -305,8 +305,8 @@ def train_dp(train_loader, val_loader, config, log_dir):
                     elapsed_time = time() - t_start
                     log_msg += f" - time: {log_time(elapsed_time)}"
                     # Estimate remaining time
-                    time_per_epoch = (time() - t_start) / i_epoch
-                    remaining_time = (config.epochs - i_step) * time_per_epoch
+                    time_per_epoch = ((time() - t_start) / i_epoch) if i_epoch > 0 else time() - t_start
+                    remaining_time = (config.epochs - i_epoch) * time_per_epoch
                     log_msg += f" - remaining time: {log_time(remaining_time)}"
                     print(log_msg)
                     # Log to w&b or tensorboard
@@ -331,7 +331,7 @@ def train_dp(train_loader, val_loader, config, log_dir):
                     return model
 
                 if i_epoch >= config.epochs:
-                    print(f'Reached {config.max_steps} iterations.', 'Finished training.')
+                    print(f'Reached {config.epochs} epochs.', 'Finished training.')
                     # Final validation
                     print("Final validation...")
                     validate(config, model, val_loader, i_step, log_dir, log_imgs)
