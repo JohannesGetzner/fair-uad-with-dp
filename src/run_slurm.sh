@@ -4,7 +4,6 @@
 #SBATCH --time=07-00:00:00
 #SBATCH --mem=32G
 #SBATCH --gres=gpu:1
-#SBATCH --output=~/thesis/src/logs/slurm-output-%j.log
 
 # Load the Anaconda module
 module load python/anaconda3
