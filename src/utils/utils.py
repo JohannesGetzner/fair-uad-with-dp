@@ -1,6 +1,7 @@
 import functools
 import os
 import random
+from datetime import datetime, timedelta
 from argparse import Namespace
 from numbers import Number
 from typing import Any, Dict
@@ -113,3 +114,14 @@ class TensorboardLogger(SummaryWriter):
 
                 else:
                     raise ValueError(f'Unsupported data type: {type(v)}')
+
+
+
+def log_time(remaining_time: float):
+    time_left = int(remaining_time)
+    time_duration = timedelta(seconds=time_left)
+    days = time_duration.days
+    hours = time_duration.seconds // 3600
+    minutes = (time_duration.seconds // 60) % 60
+    seconds = time_duration.seconds % 60
+    return f"{days}d-{hours}h-{minutes}m-{seconds}s"

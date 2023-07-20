@@ -3,7 +3,7 @@ dp_1:
   protected_attr: "age"
   num_seeds: 1
   wandb_project: "unsupervised-fairness"
-  max_steps: 50000
+  epochs: 25000
   dp: True
   batch_size: 1024
   max_grad_norm: 0.01
@@ -14,7 +14,7 @@ dp_2:
   protected_attr: "age"
   num_seeds: 1
   wandb_project: "unsupervised-fairness"
-  max_steps: 50000
+  epochs: 25000
   dp: True
   batch_size: 1024
   max_grad_norm: 0.01
@@ -25,7 +25,7 @@ test_local:
   protected_attr: "age"
   num_seeds: 1
   wandb_project: "test"
-  max_steps: 300
+  epochs: 300
   dp: True
   batch_size: 32
   group_name_mod: "b32"
@@ -34,7 +34,7 @@ test_cluster:
   protected_attr: "sex"
   num_seeds: 2
   wandb_project: "age"
-  max_steps: 1500
+  epochs: 1500
   dp: True
   batch_size: 1024
   group_name_mod: "bs1024_mgn001"

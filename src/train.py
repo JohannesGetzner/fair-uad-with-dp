@@ -10,9 +10,10 @@ sys.path.append('..')
 import os
 from argparse import ArgumentParser, BooleanOptionalAction
 from collections import defaultdict
-from datetime import datetime, timedelta
+
 from dotmap import DotMap
 from time import time, sleep
+from datetime import datetime, timedelta
 
 import pandas as pd
 import torch
@@ -23,7 +24,7 @@ from src.data.datasets import get_dataloaders
 from src.models.DeepSVDD.deepsvdd import DeepSVDD
 from src.models.FAE.fae import FeatureReconstructor
 from src.utils.metrics import AvgDictMeter, build_metrics
-from src.utils.utils import seed_everything, save_checkpoint, init_wandb, construct_log_dir
+from src.utils.utils import seed_everything, save_checkpoint, init_wandb, construct_log_dir, log_time
 from opacus import PrivacyEngine
 from opacus.validators.utils import register_module_fixer
 from torch import nn
@@ -65,7 +66,8 @@ DEFAULT_CONFIG = {
     # Hyperparameters
     "lr": 2e-4,
     "weight_decay": 0.0,
-    "max_steps": 8000,
+    "epochs": 100,
+    # "max_steps": 8000,
     "batch_size": 32,
     # Model settings
     "model_type": "FAE",
@@ -196,7 +198,7 @@ def train(train_loader, val_loader, config, log_dir):
     _, model, optimizer = init_model(config)
     # Training
     print('Starting training...')
-    step = 0
+    i_step = 0
     i_epoch = 0
     train_losses = AvgDictMeter()
     t_start = time()
@@ -204,56 +206,44 @@ def train(train_loader, val_loader, config, log_dir):
     while True:
         model.train()
         for x, y, meta in train_loader:
-            step += 1
+            i_step += 1
             # forward
             loss_dict = train_step(model, optimizer, x, y, config.device)
             # add loss
             train_losses.add(loss_dict)
-            if step % config.log_frequency == 0:
+            if i_step % config.log_frequency == 0:
                 train_results = train_losses.compute()
                 # Print training loss
                 log_msg = " - ".join([f'{k}: {v:.4f}' for k, v in train_results.items()])
-                log_msg = f"Iteration {step} - " + log_msg
+                log_msg = f"Iteration {i_step} - " + log_msg
                 # Elapsed time
                 elapsed_time = datetime.utcfromtimestamp(time() - t_start)
                 log_msg += f" - time: {elapsed_time.strftime('%d-%H:%M:%S')}s"
                 # Estimate remaining time
-                time_per_step = (time() - t_start) / step
-                remaining_steps = config.max_steps - step
-                remaining_time = remaining_steps * time_per_step
-                remaining_time = datetime.utcfromtimestamp(remaining_time)
-                log_msg += f" - remaining time: {remaining_time.strftime('%d-%H:%M:%S')}s"
+                time_per_epoch = (time() - t_start) / i_epoch
+                remaining_time = (config.epochs - i_step) * time_per_epoch
+                log_msg += f" - remaining time: {log_time(remaining_time)}"
                 print(log_msg)
                 # Log to w&b or tensorboard
-                wandb.log({f'train/{k}': v for k, v in train_results.items()}, step=step)
+                wandb.log({f'train/{k}': v for k, v in train_results.items()}, step=i_step)
                 # Reset
                 train_losses.reset()
 
             # validation
-            if step % config.val_frequency == 0:
-                log_imgs = step % config.log_img_freq == 0
-                val_results = validate(config, model, val_loader, step, log_dir, log_imgs)
+            if i_step % config.val_frequency == 0:
+                log_imgs = i_step % config.log_img_freq == 0
+                val_results = validate(config, model, val_loader, i_step, log_dir, log_imgs)
                 # Log to w&b
-                wandb.log(val_results, step=step)
+                wandb.log(val_results, step=i_step)
 
-            if step >= config.max_steps:
-                print(f'Reached {config.max_steps} iterations.', 'Finished training.')
+            if i_epoch >= config.epochs:
+                print(f'Reached {config.epochs} epochs.', 'Finished training.')
                 # Final validation
                 print("Final validation...")
-                validate(config, model, val_loader, step, log_dir, log_imgs)
+                validate(config, model, val_loader, i_step, log_dir, log_imgs)
                 return model
         i_epoch += 1
-        print(f'Finished epoch {i_epoch}, ({step} iterations)')
-
-
-def log_time(remaining_time: float):
-    time_left = int(remaining_time)
-    time_duration = timedelta(seconds=time_left)
-    days = time_duration.days
-    hours = time_duration.seconds // 3600
-    minutes = (time_duration.seconds // 60) % 60
-    seconds = time_duration.seconds % 60
-    return f"{days}d-{hours}h-{minutes}m-{seconds}s"
+        print(f'Finished epoch {i_epoch}/{config.epochs}, ({i_step} iterations)')
 
 
 def train_dp(train_loader, val_loader, config, log_dir):
@@ -267,12 +257,6 @@ def train_dp(train_loader, val_loader, config, log_dir):
     # Init DP
     privacy_engine = PrivacyEngine(accountant="rdp")
     delta = config.delta if config.delta else 1 / (len(train_loader) * train_loader.batch_size)
-    epochs = math.ceil(config.max_steps / len(train_loader))
-    # to use the complete privacy budget, we need to train for at least as many steps as epochs
-    config.max_steps = epochs * len(train_loader)
-    # also need to adjust the max_steps to account for the fact that we are using a larger batch size than the GPU
-    # can handle
-    config.max_steps = (config.batch_size / config.max_physical_batch_size) * config.max_steps
     model, optimizer, data_loader = privacy_engine.make_private_with_epsilon(
         module=model,
         optimizer=optimizer,
@@ -280,7 +264,7 @@ def train_dp(train_loader, val_loader, config, log_dir):
         target_epsilon=config.epsilon,
         target_delta=delta,
         max_grad_norm=config.max_grad_norm,
-        epochs=epochs
+        epochs=config.epochs
     )
     # validate model
     errors = ModuleValidator.validate(model, strict=False)
@@ -288,7 +272,7 @@ def train_dp(train_loader, val_loader, config, log_dir):
         print(f'WARNING: model validation failed with errors: {errors}')
     # Training
     print('Starting training...')
-    step = 0
+    i_step = 0
     i_epoch = 0
     train_losses = AvgDictMeter()
     t_start = time()
@@ -302,7 +286,7 @@ def train_dp(train_loader, val_loader, config, log_dir):
             count_samples_per_class = {0: 0, 1: 0}
             model.train()
             for x, y, meta in new_train_loader:
-                step += 1
+                i_step += 1
                 # forward
                 loss_dict, accumulated_per_sample_norms = train_step_dp(model, optimizer, x, y, config.device)
                 # accumulate mean gradient norms per class
@@ -312,46 +296,45 @@ def train_dp(train_loader, val_loader, config, log_dir):
                 # add loss
                 train_losses.add(loss_dict)
 
-                if step % config.log_frequency == 0:
+                if i_step % config.log_frequency == 0:
                     train_results = train_losses.compute()
                     # Print training loss
                     log_msg = " - ".join([f'{k}: {v:.4f}' for k, v in train_results.items()])
-                    log_msg = f"Iteration {step} - " + log_msg
+                    log_msg = f"Iteration {i_step} - " + log_msg
                     # Elapsed time
                     elapsed_time = time() - t_start
                     log_msg += f" - time: {log_time(elapsed_time)}"
                     # Estimate remaining time
-                    time_per_step = (time() - t_start) / step
-                    remaining_steps = config.max_steps - step
-                    remaining_time = remaining_steps * time_per_step
+                    time_per_epoch = (time() - t_start) / i_epoch
+                    remaining_time = (config.epochs - i_step) * time_per_epoch
                     log_msg += f" - remaining time: {log_time(remaining_time)}"
                     print(log_msg)
                     # Log to w&b or tensorboard
-                    wandb.log({f'train/{k}': v for k, v in train_results.items()}, step=step)
+                    wandb.log({f'train/{k}': v for k, v in train_results.items()}, step=i_step)
                     # Reset
                     train_losses.reset()
 
                 eps = privacy_engine.get_epsilon(delta)
-                if step % config.val_frequency == 0:
-                    log_imgs = step % config.log_img_freq == 0
-                    val_results = validate(config, model, val_loader, step, log_dir, log_imgs)
+                if i_step % config.val_frequency == 0:
+                    log_imgs = i_step % config.log_img_freq == 0
+                    val_results = validate(config, model, val_loader, i_step, log_dir, log_imgs)
                     print(f"ɛ: {eps:.2f} (target: 8)")
                     val_results['epsilon'] = eps
                     # Log to w&b
-                    wandb.log(val_results, step=step)
+                    wandb.log(val_results, step=i_step)
                 # check if maximum ɛ is reached
                 if eps >= config.epsilon:
                     print(f'Reached maximum ɛ {eps}/{config.epsilon}.', 'Finished training.')
                     # Final validation
                     print("Final validation...")
-                    validate(config, model, val_loader, step, log_dir, log_imgs)
+                    validate(config, model, val_loader, i_step, log_dir, log_imgs)
                     return model
 
-                if step >= config.max_steps:
+                if i_epoch >= config.epochs:
                     print(f'Reached {config.max_steps} iterations.', 'Finished training.')
                     # Final validation
                     print("Final validation...")
-                    validate(config, model, val_loader, step, log_dir, log_imgs)
+                    validate(config, model, val_loader, i_step, log_dir, log_imgs)
                     return model
             i_epoch += 1
             mapping = {
@@ -359,8 +342,8 @@ def train_dp(train_loader, val_loader, config, log_dir):
                 1: "old" if config.protected_attr == 'age' else "female"
             }
             # log mean gradient norms per class to wandb
-            wandb.log({"train/mean_grads": {mapping[k]: v/count_samples_per_class[k] if count_samples_per_class[k] != 0 else 0 for k, v in mean_gradient_per_class.items()}}, step=step)
-            print(f'Finished epoch {i_epoch}, ({step} iterations)')
+            wandb.log({"train/mean_grads": {mapping[k]: v/count_samples_per_class[k] if count_samples_per_class[k] != 0 else 0 for k, v in mean_gradient_per_class.items()}}, step=i_step)
+            print(f'Finished epoch {i_epoch}/{config.epochs}, ({i_step} iterations)')
 
 
 
