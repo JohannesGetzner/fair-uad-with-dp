@@ -91,7 +91,6 @@ DEFAULT_CONFIG = DotMap(DEFAULT_CONFIG)
 
 parser = ArgumentParser()
 parser.add_argument('--run_name', default="dp_1", type=str)
-parser.add_argument('--sweep', action=BooleanOptionalAction, default=False)
 parser.add_argument('--reverse', action=BooleanOptionalAction, default=False)
 parser.add_argument('--protected_attr_percent', default=0.5, type=float)
 RUN_CONFIG = parser.parse_args()
@@ -517,35 +516,6 @@ def test(config, model, loader, log_dir):
 
 """"""""""""""""""""""""""""""""" Main """""""""""""""""""""""""""""""""
 
-
-def hyper_param_sweep(config):
-    print("Sweeping...")
-    with open('sweep_config.yml', 'r') as f:
-        sweep_config = yaml.safe_load(f)
-        sweep_configuration = sweep_config["sweep_config"]
-        # replace the default config values with the sweep config values
-        for arg_n, arg_v in sweep_config["exp_config"].items():
-            config[arg_n] = arg_v
-        if config.protected_attr == "age":
-            config["old_percent"] = config.protected_attr_percent
-        else:
-            config["male_percent"] = config.protected_attr_percent
-        # get log dir
-        log_dir, group_name, job_type = construct_log_dir(config, current_time, sweep_configuration)
-        sweep_configuration["name"] = group_name
-        # load data
-        train_loader, val_loader, test_loader = load_data(config)
-
-        execute_functions = lambda func1, func2: (func1(), func2())
-        func1 = lambda: init_wandb(config, log_dir, group_name, job_type)
-        func2 = lambda: train(train_loader, val_loader, config, log_dir)
-        sweep_function = functools.partial(execute_functions, func1, func2)
-
-        sweep_id = wandb.sweep(sweep_configuration, project=config.wandb_project)
-        wandb.agent(sweep_id, function=sweep_function, count=config.num_runs)
-        wandb.finish()
-
-
 def run(config, run_config):
     # update default values config
     # replace the default config values with the run config
@@ -580,14 +550,10 @@ if __name__ == '__main__':
     new_config = DEFAULT_CONFIG.copy()
     # set initial seed
     new_config.seed = new_config.initial_seed
-    # check if we are doing a hyper-param sweep or not
-    if RUN_CONFIG.sweep:
-        hyper_param_sweep(new_config.copy())
-    else:
-        # get run configs
-        with open('runs_config.yml', 'r') as f:
-            run_configs = yaml.safe_load(f)
-        # choose runs to execute or run all
-        run_config = run_configs[RUN_CONFIG.run_name]
-        print(f"Running {RUN_CONFIG.run_name}")
-        run(new_config.copy(), run_config)
+    # get run config
+    with open('runs_config.yml', 'r') as f:
+        run_configs = yaml.safe_load(f)
+    # choose runs to execute or run all
+    run_config = run_configs[RUN_CONFIG.run_name]
+    print(f"Running {RUN_CONFIG.run_name}")
+    run(new_config.copy(), run_config)

@@ -33,45 +33,21 @@ def default(val, d):
 def save_checkpoint(path: str, model: nn.Module, step: int, config: Dict):
     if not os.path.exists(os.path.dirname(path)):
         os.makedirs(os.path.dirname(path))
-    checkpoint = {
-        'model': model.state_dict(),
-        'config': config,
-        'step': step
-    }
+    checkpoint = {'model': model.state_dict(), 'config': config, 'step': step}
     torch.save(checkpoint, path)
 
 
 def init_wandb(config, log_dir: str, group_name: str, job_type: str):
-    # sweep_tag = "sweep" if config.sweep_param else "no_sweep"
     dp_tag = "DP" if config.dp else "no_DP"
     wandb_tags = [config.model_type, config.dataset, config.protected_attr, dp_tag]
-    if False:
-    #if config.sweep_param:
-        run = wandb.init(
-            # project=config.wandb_project,
-            config=config,
-            # dir=log_dir,
-            tags=wandb_tags,
-            job_type=job_type,
-            group=group_name,
-            mode="disabled" if (config.debug or config.disable_wandb) else "online"
-        )
-    else:
-        os.makedirs(os.path.join(log_dir, "wandb"), exist_ok=True)
-        run = wandb.init(
-            project=config.wandb_project,
-            config=config,
-            group=group_name,
-            dir=log_dir,
-            tags=wandb_tags,
-            job_type=job_type,
-            name="seed_" + str(config.seed),
-            mode="disabled" if (config.debug or config.disable_wandb) else "online"
-        )
+    os.makedirs(os.path.join(log_dir, "wandb"), exist_ok=True)
+    run = wandb.init(project=config.wandb_project, config=config, group=group_name, dir=log_dir, tags=wandb_tags,
+        job_type=job_type, name="seed_" + str(config.seed),
+        mode="disabled" if (config.debug or config.disable_wandb) else "online")
     return run
 
 
-def construct_log_dir(config, current_time, sweep_config=None):
+def construct_log_dir(config, current_time):
     log_path = ""
     # job_type is always the same
     if config.protected_attr == "sex":
@@ -89,14 +65,7 @@ def construct_log_dir(config, current_time, sweep_config=None):
     if config.dp:
         jt += "_DP"
     # build log_dir and group_name
-    if sweep_config:
-        min_val = sweep_config["parameters"][config.sweep_param]["min"]
-        max_val = sweep_config["parameters"][config.sweep_param]["max"]
-        log_path += f"{config.model_type}-{config.dataset}-{config.sweep_param}-{str(min_val).replace('.','')}-{str(max_val).replace('.','')}-{current_time}"
-        gn = "sweep_"+log_path
-        log_path = f"{log_path}/{jt}"
-    else:
-        log_path += f"{current_time}-{config.model_type}-{config.dataset}-{config.protected_attr}"
+    log_path += f"{current_time}-{config.model_type}-{config.dataset}-{config.protected_attr}"
     if config.group_name_mod:
         log_path += f"-{config.group_name_mod}"
     if config.dp:
@@ -105,42 +74,24 @@ def construct_log_dir(config, current_time, sweep_config=None):
         log_path += "-noDP"
     gn = log_path
     log_path = f"{log_path}/{jt}/seed_{config.seed}"
-    log_path = f"logs/{'sweeps/' if sweep_config else ''}{log_path}"
+    log_path = f"logs/{log_path}"
     return log_path, gn, jt
 
 
-
 class TensorboardLogger(SummaryWriter):
-    def __init__(
-        self,
-        log_dir: str = None,
-        config: Namespace = None,
-        enabled: bool = True,
-        comment: str = '',
-        purge_step: int = None,
-        max_queue: int = 10,
-        flush_secs: int = 120,
-        filename_suffix: str = ''
-    ):
+    def __init__(self, log_dir: str = None, config: Namespace = None, enabled: bool = True, comment: str = '',
+            purge_step: int = None, max_queue: int = 10, flush_secs: int = 120, filename_suffix: str = ''):
         self.enabled = enabled
         if self.enabled:
-            super().__init__(
-                log_dir=log_dir,
-                comment=comment,
-                purge_step=purge_step,
-                max_queue=max_queue,
-                flush_secs=flush_secs,
-                filename_suffix=filename_suffix
-            )
+            super().__init__(log_dir=log_dir, comment=comment, purge_step=purge_step, max_queue=max_queue,
+                flush_secs=flush_secs, filename_suffix=filename_suffix)
         else:
             return
 
         # Add config
         if config is not None:
             self.add_hparams(
-                {k: v for k, v in vars(config).items() if isinstance(v, (int, float, str, bool, torch.Tensor))},
-                {}
-            )
+                {k: v for k, v in vars(config).items() if isinstance(v, (int, float, str, bool, torch.Tensor))}, {})
 
     def log(self, data: Dict[str, Any], step: int) -> None:
         """Log each entry in data as its corresponding data type"""
@@ -162,5 +113,3 @@ class TensorboardLogger(SummaryWriter):
 
                 else:
                     raise ValueError(f'Unsupported data type: {type(v)}')
-
-
