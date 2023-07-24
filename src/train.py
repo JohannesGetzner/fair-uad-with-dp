@@ -236,14 +236,14 @@ def train(train_loader, val_loader, config, log_dir):
                 # Log to w&b
                 wandb.log(val_results, step=i_step)
 
-            if i_epoch >= config.epochs:
-                print(f'Reached {config.epochs} epochs.', 'Finished training.')
-                # Final validation
-                print("Final validation...")
-                validate(config, model, val_loader, i_step, log_dir, log_imgs)
-                return model
         i_epoch += 1
         print(f'Finished epoch {i_epoch}/{config.epochs}, ({i_step} iterations)')
+        if i_epoch >= config.epochs:
+            print(f'Reached {config.epochs} epochs.', 'Finished training.')
+            # Final validation
+            print("Final validation...")
+            validate(config, model, val_loader, i_step, log_dir, log_imgs)
+            return model
 
 
 def train_dp(train_loader, val_loader, config, log_dir):
@@ -329,23 +329,22 @@ def train_dp(train_loader, val_loader, config, log_dir):
                     print("Final validation...")
                     validate(config, model, val_loader, i_step, log_dir, log_imgs)
                     return model
-
-                if i_epoch >= config.epochs:
-                    print(f'Reached {config.epochs} epochs.', 'Finished training.')
-                    # Final validation
-                    print("Final validation...")
-                    validate(config, model, val_loader, i_step, log_dir, log_imgs)
-                    return model
             i_epoch += 1
-            mapping = {
-                0: "young" if config.protected_attr == 'age' else "male",
-                1: "old" if config.protected_attr == 'age' else "female"
-            }
-            # log mean gradient norms per class to wandb
-            wandb.log({"train/mean_grads": {mapping[k]: v/count_samples_per_class[k] if count_samples_per_class[k] != 0 else 0 for k, v in mean_gradient_per_class.items()}}, step=i_step)
             print(f'Finished epoch {i_epoch}/{config.epochs}, ({i_step} iterations)')
 
+            # log mean gradient norms per class to wandb
+            mapping = {0: "young" if config.protected_attr == 'age' else "male",
+                1: "old" if config.protected_attr == 'age' else "female"}
+            wandb.log({"train/mean_grads": {
+                mapping[k]: v / count_samples_per_class[k] if count_samples_per_class[k] != 0 else 0 for k, v in
+                mean_gradient_per_class.items()}}, step=i_step)
 
+            if i_epoch >= config.epochs:
+                print(f'Reached {config.epochs} epochs.', 'Finished training.')
+                # Final validation
+                print("Final validation...")
+                validate(config, model, val_loader, i_step, log_dir, log_imgs)
+                return model
 
 
 """"""""""""""""""""""""""""""""" Validation """""""""""""""""""""""""""""""""
