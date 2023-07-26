@@ -95,6 +95,8 @@ parser = ArgumentParser()
 parser.add_argument('--run_name', default="dp_1", type=str)
 parser.add_argument('--reverse', action=BooleanOptionalAction, default=False)
 parser.add_argument('--protected_attr_percent', default=0.5, type=float)
+print(str(datetime.strftime(datetime.now(), format="%Y.%m.%d-%H:%M:%S")))
+parser.add_argument('--d', type=str, default=str(datetime.strftime(datetime.now(), format="%Y.%m.%d-%H:%M:%S")))
 RUN_CONFIG = parser.parse_args()
 
 DEFAULT_CONFIG.device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -527,7 +529,7 @@ def run(config, run_config):
 
 if __name__ == '__main__':
     # get time
-    current_time = datetime.strftime(datetime.now(), format="%Y.%m.%d-%H:%M:%S")
+    current_time = RUN_CONFIG.d
     # copy default config
     new_config = DEFAULT_CONFIG.copy()
     # set initial seed
