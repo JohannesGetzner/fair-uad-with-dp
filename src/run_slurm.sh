@@ -22,5 +22,5 @@ echo "Running script with Anaconda environment: $ANACONDA_ENV"
 $ANACONDA_PYTHON train.py --run_name dp_1 --protected_attr_percent 0.0
 $ANACONDA_PYTHON train.py --run_name dp_1 --protected_attr_percent 0.25
 $ANACONDA_PYTHON train.py --run_name dp_1 --protected_attr_percent 0.50
-$ANACONDA_PYTHON train.py --run_name dp_1 --protected_attr_percent 0.75
-$ANACONDA_PYTHON train.py --run_name dp_1 --protected_attr_percent 1.0
+#$ANACONDA_PYTHON train.py --run_name dp_1 --protected_attr_percent 0.75
+#$ANACONDA_PYTHON train.py --run_name dp_1 --protected_attr_percent 1.0
