@@ -419,7 +419,6 @@ class SubgroupAUROC(Metric):
 
         # Compute the area under the ROC curve (equivalent to sklearn.metrics.auc)
         auroc = (((tpr[1:] - tpr[:-1]) / 2 + tpr[:-1]) * (fpr[1:] - fpr[:-1])).sum()
-
         return auroc
 
     def compute(self, **kwargs):
@@ -434,19 +433,19 @@ class SubgroupAUROC(Metric):
 
 
 
-if __name__ == '__main__':
-    subgroup_names = ['subgroup1', 'subgroup2']
-    metrics = MyMetricCollection({
-        'avg_anomaly_score': AvgAnomalyScore(subgroup_names),
-        'AUROC': AUROC(subgroup_names),
-        'AveragePrecision': AveragePrecision(subgroup_names),
-        'tpr@5fpr': TPR_at_FPR(subgroup_names, xfpr=0.05),
-        'fpr@95tpr': FPR_at_TPR(subgroup_names, xtpr=0.95),
-        'subgroupAUROC': SubgroupAUROC(subgroup_names),
-    })
-
-    scores = torch.tensor([0.8, 0.6, 0.2, 0.9, 0.5, 0.7, 0.3])
-    labels = torch.tensor([1, 0, 0, 1, 1, 0, 1])
-    subgroups = torch.tensor([0, 1, 0, 0, 1, 1, 0])
-    metrics.update(subgroups, scores, labels)
-    print(metrics.compute(do_bootstrap=False))
+# if __name__ == '__main__':
+#     subgroup_names = ['subgroup1', 'subgroup2']
+#     metrics = MyMetricCollection({
+#         'avg_anomaly_score': AvgAnomalyScore(subgroup_names),
+#         'AUROC': AUROC(subgroup_names),
+#         'AveragePrecision': AveragePrecision(subgroup_names),
+#         'tpr@5fpr': TPR_at_FPR(subgroup_names, xfpr=0.05),
+#         'fpr@95tpr': FPR_at_TPR(subgroup_names, xtpr=0.95),
+#         'subgroupAUROC': SubgroupAUROC(subgroup_names),
+#     })
+#
+#     scores = torch.tensor([0.8, 0.6, 0.2, 0.9, 0.5, 0.7, 0.3])
+#     labels = torch.tensor([1, 0, 0, 1, 1, 0, 1])
+#     subgroups = torch.tensor([0, 1, 0, 0, 1, 1, 0])
+#     metrics.update(subgroups, scores, labels)
+#     print(metrics.compute(do_bootstrap=False))
