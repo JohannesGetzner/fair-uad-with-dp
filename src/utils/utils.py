@@ -4,7 +4,7 @@ import random
 from datetime import datetime, timedelta
 from argparse import Namespace
 from numbers import Number
-from typing import Any, Dict
+from typing import Any, Dict, Tuple
 
 import numpy as np
 import torch
@@ -124,3 +124,21 @@ def log_time(remaining_time: float):
     minutes = (time_duration.seconds // 60) % 60
     seconds = time_duration.seconds % 60
     return f"{days}d-{hours}h-{minutes}m-{seconds}s"
+
+
+def get_subgroup_loss_weights(fraction: Tuple[float, float], mode="auroc"):
+    # first in tuple is always "male_percent" or "old_percent"
+    old = [0.77570003, 0.78220001, 0.79969999, 0.80450004, 0.8143]
+    young = [0.65380001, 0.64079997, 0.62100002, 0.60250002, 0.5941]
+    if mode == "auroc":
+        auroc_at_frac = {
+            (0.25, 0.75): (0.78220001, 0.64079997),
+            (0.5, 0.5): (0.79969999, 0.62100002),
+            (0.75, 0.25): (0.8045000, 0.60250002),
+        }
+        return 1 / auroc_at_frac[fraction][0], 1 / auroc_at_frac[fraction][1]
+    elif mode == "fraction":
+        if fraction == (0.5, 0.5):
+            return 1, 2
+        else:
+            return 1 / fraction[0], 1 / fraction[1]

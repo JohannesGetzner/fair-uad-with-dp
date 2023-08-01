@@ -24,7 +24,7 @@ from src.data.datasets import get_dataloaders
 from src.models.DeepSVDD.deepsvdd import DeepSVDD
 from src.models.FAE.fae import FeatureReconstructor
 from src.utils.metrics import AvgDictMeter, build_metrics
-from src.utils.utils import seed_everything, save_checkpoint, init_wandb, construct_log_dir, log_time
+from src.utils.utils import seed_everything, save_checkpoint, init_wandb, construct_log_dir, log_time, get_subgroup_loss_weights
 from opacus import PrivacyEngine
 from opacus.validators.utils import register_module_fixer
 from torch import nn
@@ -170,6 +170,7 @@ def train_step(model, optimizer, x, y, device):
     optimizer.zero_grad()
     x = x.to(device)
     y = y.to(device)
+    # I need to know the group assignment here
     loss_dict = model.loss(x, y=y)
     loss = loss_dict['loss']
     loss.backward()
@@ -177,13 +178,14 @@ def train_step(model, optimizer, x, y, device):
     return loss_dict
 
 
-def train_step_dp(model, optimizer, x, y, device):
+def train_step_dp(model, optimizer, x, y, loss_weights, device):
     model.train()
     optimizer.zero_grad()
     x = x.to(device)
     y = y.to(device)
+    loss_weights = loss_weights.to(device)
     # TODO: find a better way to compute the loss when wrapped with DP (don't access protected attribute)
-    loss_dict = model._module.loss(x, y=y)
+    loss_dict = model._module.weighted_loss(x, loss_weights)
     loss = loss_dict['loss']
     loss.backward()
     mean_per_sample_grad_norm = compute_mean_per_sample_gradient_norm(model, x.shape[0])
@@ -278,6 +280,7 @@ def train_dp(train_loader, val_loader, config, log_dir):
     i_epoch = 0
     train_losses = AvgDictMeter()
     t_start = time()
+    loss_weights = get_subgroup_loss_weights((config.protected_attr_percent, 1-config.protected_attr_percent))
     while True:
         with BatchMemoryManager(
                 data_loader=train_loader,
@@ -289,8 +292,11 @@ def train_dp(train_loader, val_loader, config, log_dir):
             model.train()
             for x, y, meta in new_train_loader:
                 i_step += 1
+                # compute weights loss weights
+                per_sample_loss_weights = torch.where(meta == 0, loss_weights[1], loss_weights[0])
                 # forward
-                loss_dict, accumulated_per_sample_norms = train_step_dp(model, optimizer, x, y, config.device)
+                loss_dict, accumulated_per_sample_norms = train_step_dp(
+                    model, optimizer, x, y, per_sample_loss_weights, config.device)
                 # accumulate mean gradient norms per class
                 for g_norm, pv_label in zip(torch.squeeze(accumulated_per_sample_norms).tolist(), meta.tolist()):
                     mean_gradient_per_class[pv_label] += g_norm
@@ -335,7 +341,8 @@ def train_dp(train_loader, val_loader, config, log_dir):
             print(f'Finished epoch {i_epoch}/{config.epochs}, ({i_step} iterations)')
 
             # log mean gradient norms per class to wandb
-            mapping = {0: "young" if config.protected_attr == 'age' else "male",
+            mapping = {
+                0: "young" if config.protected_attr == 'age' else "male",
                 1: "old" if config.protected_attr == 'age' else "female"}
             wandb.log({"train/mean_grads": {
                 mapping[k]: v / count_samples_per_class[k] if count_samples_per_class[k] != 0 else 0 for k, v in

@@ -291,6 +291,13 @@ class FeatureReconstructor(nn.Module):
         loss = self.loss_fn(rec, feats).mean()
         return {'loss': loss, 'rec_loss': loss}
 
+    def weighted_loss(self, x: Tensor, per_sample_loss_weights, **kwargs):
+        feats, rec = self(x)
+        loss = self.loss_fn(rec, feats)
+        weighted_loss = (loss * per_sample_loss_weights)
+        mean_weighted_loss = weighted_loss.mean()
+        return {'loss': mean_weighted_loss, 'rec_loss': mean_weighted_loss}
+
     def predict_anomaly(self, x: Tensor, **kwargs):
         """Returns per image anomaly maps and anomaly scores"""
         # Extract features
