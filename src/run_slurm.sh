@@ -1,10 +1,11 @@
 #!/bin/bash
-date=$(date '+%Y-%m-%d %H:%M:%S')
 #SBATCH --partition=master
 #SBATCH --ntasks=1
 #SBATCH --time=07-00:00:00
 #SBATCH --mem=32G
 #SBATCH --gres=gpu:1
+
+date=$(date '+%Y-%m-%d %H:%M:%S')
 
 # Load the Anaconda module
 module load python/anaconda3
