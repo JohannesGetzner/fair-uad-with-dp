@@ -34,9 +34,49 @@ def plot_metric(experiment_dir: str, attr_key: str, metrics: List[str], xlabel: 
         "experiment_dir": experiment_dir
     }
     # Plot scatter plot
-    for f, plot_name in [(plot_metric_scatter, "scatter"), (plot_metric_bar, "bar"), (plot_metric_box_whisker, "box")]:
+    # for f, plot_name in [(plot_metric_scatter, "scatter"), (plot_metric_bar, "bar"), (plot_metric_box_whisker, "box")]:
+    for f, plot_name in [(plot_metric_bar, "bar")]:
         plotting_args["plt_name"] = plt_name + '_' + plot_name + ("_DP" if dp else "") + '.png'
         f(**plotting_args)
+
+
+def plot_metric_compare(exp_dir: str, exp_dir_dp: str, attr_key:str, metrics: List[str]):
+    data, attr_key_values = gather_data_seeds(exp_dir, attr_key, metrics)
+    data_dp, attr_key_values_dp = gather_data_seeds(exp_dir_dp, attr_key, metrics, dp=True)
+    import pandas as pd
+    df = pd.DataFrame(columns=["percent", "metric", "protected_attr"])
+    for metric_name, metric_values in data.items():
+        tmp = pd.DataFrame(metric_values)
+        num_cols = tmp.shape[1]
+        for idx, row in tmp.iterrows():
+            for i in range(num_cols):
+                bar_label = "old" if "old" in metric_name else "young"
+                new_row = {
+                    "percent": attr_key_values[idx],
+                    "protected_attr": bar_label,
+                    "metric": row[i]
+                }
+                df = pd.concat([df, pd.DataFrame(new_row, index=[0])])
+    for metric_name, metric_values in data_dp.items():
+        tmp = pd.DataFrame(metric_values)
+        num_cols = tmp.shape[1]
+        for idx, row in tmp.iterrows():
+            for i in range(num_cols):
+                bar_label = "old_dp" if "old" in metric_name else "young_dp"
+                new_row = {
+                    "percent": attr_key_values_dp[idx],
+                    "protected_attr": bar_label,
+                    "metric": row[i]}
+                df = pd.concat([df, pd.DataFrame(new_row, index=[0])])
+    import seaborn as sns
+    colors = ["#3274A1", "#3FB3ED", "#E1812C", "#F48F2D"]
+    order = ["old", "old_dp", "young", "young_dp"]
+    df.sort_values(by="protected_attr", key=lambda column: column.map(lambda e: order.index(e)), inplace=True)
+    g = sns.barplot(x="percent", y="metric", hue="protected_attr", data=df, palette=colors)
+    g.set(xlabel="Fraction of 'old' samples in training data", ylabel="Metric")
+    plt.title(f"{metrics[0]} vs. {metrics[1]}")
+    plt.show()
+    return g
 
 
 def plot_metric_scatter(data: Dict[str, np.ndarray], attr_key_values: np.ndarray, metrics: List[str], xlabel: str,
@@ -225,8 +265,6 @@ def plot_metric_box_whisker(data: Dict[str, np.ndarray], attr_key_values: np.nda
 
 if __name__ == '__main__':
     for experiment_dir in os.listdir("../logs_persist"):
-        if experiment_dir == "2023.07.11-20:38:32-FAE-rsna-age-bs32-noDP":
-            continue
         print("\nGenerating plots for", experiment_dir, "\n")
         experiment_dir = os.path.join("../logs_persist", experiment_dir)
         if "age" in experiment_dir:
@@ -250,14 +288,25 @@ if __name__ == '__main__':
             (f"test/lungOpacity_{g[0]}_AP", f"test/lungOpacity_{g[1]}_AP", "AP")
         ]
 
+        test_dir_1 = os.path.join("../logs_persist", "2023.07.11-20:38:32-FAE-rsna-age-bs32-noDP")
+        test_dir_2 = os.path.join("../logs_persist", "2023.07.13-09:20:21-FAE-rsna-age-bs1024_mgn001-DP")
+
+        # plot_metric_compare(
+        #     test_dir_1,
+        #     test_dir_2,
+        #     f"old_percent",
+        #     (f"test/lungOpacity_old_subgroupAUROC", f"test/lungOpacity_young_subgroupAUROC")
+        # )
+
         for metric in metrics:
+            title = f"FAE {metric[2]} on RSNA for different proportions of {g[0]} patients in training" + "_DP" if "noDP" not in experiment_dir else ""
             plot_metric(
                 experiment_dir=experiment_dir,
                 metrics=metric[:2],
                 attr_key=f'{g[0]}_percent',
                 xlabel=f"percentage of {g[0]} subjects in training set",
                 ylabel=metric[2],
-                title=f"FAE {metric[2]} on RSNA for different proportions of {g[0]} patients in training",
+                title=title,
                 plt_name=f"fae_rsna_{pv}_{metric[2]}",
                 dp="noDP" not in experiment_dir
             )
