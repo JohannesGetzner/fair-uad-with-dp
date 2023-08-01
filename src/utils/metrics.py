@@ -402,9 +402,11 @@ class SubgroupAUROC(Metric):
         sorted_subgroups = subgroups[sorted_indices]
 
         # Compute the false positive rate for the subgroup
-        # Points on the curve where the tpr for the subgroup doesn't change
-        # are kept constant
+        # Points on the curve where the tpr for the subgroup doesn't change are kept constant
+        # -> i think this the cumulative sum
+        # count the negatives
         negatives = (sorted_targets[sorted_subgroups == subgroup] == 0).sum()
+        # select where by subgroup and sum over the true negatives to get the false positives
         false_positives = torch.where(sorted_subgroups == subgroup, sorted_targets == 0, 0).cumsum(dim=0)
         fpr = false_positives / (negatives + 1e-7)
 

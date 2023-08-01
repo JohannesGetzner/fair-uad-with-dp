@@ -298,16 +298,22 @@ class FeatureReconstructor(nn.Module):
 
         # Compute anomaly map
         anomaly_map = self.loss_fn(rec, feats).mean(1, keepdim=True)
+        # up-sample to same size as x
         anomaly_map = F.interpolate(anomaly_map, x.shape[-2:], mode='bilinear',
                                     align_corners=True)
 
         # Anomaly score only where object in the image, i.e. at x > 0
         anomaly_score = []
+        # iterate over all samples in batch
         for i in range(x.shape[0]):
+            # roi are those regions where x has "content"
             roi = anomaly_map[i][x[i] > 0]
+            # only take the top 10% of the values to compute the mean
             roi = roi[roi > torch.quantile(roi, 0.9)]
             anomaly_score.append(roi.mean())
         anomaly_score = torch.stack(anomaly_score)
+        # the training loss, the anomaly map and the anomaly score are all derived from the loss function
+        # if the loss is high -> so is the anomaly map and the anomaly score
         return anomaly_map, anomaly_score
 
     def save(self, path: str):
