@@ -293,7 +293,7 @@ def train_dp(train_loader, val_loader, config, log_dir):
             for x, y, meta in new_train_loader:
                 i_step += 1
                 # compute weights loss weights
-                per_sample_loss_weights = torch.where(meta == 0, loss_weights[1], loss_weights[0])
+                per_sample_loss_weights = torch.where(meta == 0, loss_weights[0], loss_weights[1])
                 # forward
                 loss_dict, accumulated_per_sample_norms = train_step_dp(
                     model, optimizer, x, y, per_sample_loss_weights, config.device)
@@ -363,7 +363,6 @@ def val_step(model, x, y, meta, device, dp=False):
     model.eval()
     x = x.to(device)
     y = y.to(device)
-    meta = meta.to(device)
     with torch.no_grad():
         # TODO: find a better way to compute the loss when wrapped with DP
         if dp:
