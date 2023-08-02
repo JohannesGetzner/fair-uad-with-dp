@@ -296,7 +296,10 @@ class FeatureReconstructor(nn.Module):
         loss = self.loss_fn(rec, feats)
         expanded_loss_weights = per_sample_loss_weights.view(-1, 1, 1, 1)
         weighted_loss = (loss * expanded_loss_weights)
-        mean_weighted_loss = weighted_loss.mean()
+        min_loss = torch.min(weighted_loss)
+        max_loss = torch.max(weighted_loss)
+        scaled_weighted_loss = 2 * (weighted_loss - min_loss) / (max_loss - min_loss)
+        mean_weighted_loss = scaled_weighted_loss.mean()
         return {'loss': mean_weighted_loss, 'rec_loss': mean_weighted_loss}
 
     def predict_anomaly(self, x: Tensor, **kwargs):
