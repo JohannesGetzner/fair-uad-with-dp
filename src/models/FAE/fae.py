@@ -294,7 +294,8 @@ class FeatureReconstructor(nn.Module):
     def weighted_loss(self, x: Tensor, per_sample_loss_weights, **kwargs):
         feats, rec = self(x)
         loss = self.loss_fn(rec, feats)
-        weighted_loss = (loss * per_sample_loss_weights)
+        expanded_loss_weights = per_sample_loss_weights.view(-1, 1, 1, 1)
+        weighted_loss = (loss * expanded_loss_weights)
         mean_weighted_loss = weighted_loss.mean()
         return {'loss': mean_weighted_loss, 'rec_loss': mean_weighted_loss}
 
