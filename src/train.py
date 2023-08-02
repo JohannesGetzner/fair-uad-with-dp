@@ -342,8 +342,8 @@ def train_dp(train_loader, val_loader, config, log_dir):
 
             # log mean gradient norms per class to wandb
             mapping = {
-                0: "young" if config.protected_attr == 'age' else "male",
-                1: "old" if config.protected_attr == 'age' else "female"}
+                1: "young" if config.protected_attr == 'age' else "female",
+                0: "old" if config.protected_attr == 'age' else "male"}
             wandb.log({"train/mean_grads": {
                 mapping[k]: v / count_samples_per_class[k] if count_samples_per_class[k] != 0 else 0 for k, v in
                 mean_gradient_per_class.items()}}, step=i_step)
