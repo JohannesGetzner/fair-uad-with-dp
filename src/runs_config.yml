@@ -10,6 +10,7 @@ dp_1:
   group_name_mod: "bs1024_mgn001_auroc_weighted"
   max_physical_batch_size: 512
   initial_seed: 1
+  weigh_loss: True
 dp_2:
   protected_attr: "age"
   num_seeds: 1
@@ -21,6 +22,7 @@ dp_2:
   group_name_mod: "bs1024_mgn001_auroc_weighted"
   max_physical_batch_size: 512
   initial_seed: 100
+  weigh_loss: True
 non_dp:
   protected_attr: "age"
   num_seeds: 10
@@ -30,6 +32,7 @@ non_dp:
   batch_size: 32
   group_name_mod: "bs32_auroc_weighted"
   initial_seed: 1
+  weigh_loss: True
 test_local:
   protected_attr: "age"
   num_seeds: 2
