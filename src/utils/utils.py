@@ -126,15 +126,22 @@ def log_time(remaining_time: float):
     return f"{days}d-{hours}h-{minutes}m-{seconds}s"
 
 
-def get_subgroup_loss_weights(fraction: Tuple[float, float], mode="auroc"):
+def get_subgroup_loss_weights(fraction: Tuple[float, float], mode="auroc", dp=False):
     # first in tuple is always "male_percent" or "old_percent"
-    old = [0.77570003, 0.78220001, 0.79969999, 0.80450004, 0.8143]
-    young = [0.65380001, 0.64079997, 0.62100002, 0.60250002, 0.5941]
+    auroc_scores_dp = {
+        "old": [0.77570003, 0.78220001, 0.79969999, 0.80450004, 0.8143],
+        "young": [0.65380001, 0.64079997, 0.62100002, 0.60250002, 0.5941],
+    }
+    auroc_scores_non_dp = {
+        "old": [0.80762002, 0.83074002, 0.83918, 0.85316001, 0.8567],
+        "young": [0.77636, 0.76678, 0.74872, 0.73270002, 0.68015997],
+    }
+    scores = auroc_scores_dp if dp else auroc_scores_non_dp
     if mode == "auroc":
         auroc_at_frac = {
-            (0.25, 0.75): (0.78220001, 0.64079997),
-            (0.5, 0.5): (0.79969999, 0.62100002),
-            (0.75, 0.25): (0.8045000, 0.60250002),
+            (0.25, 0.75): (scores["old"][1], scores["young"][3]),
+            (0.5, 0.5): (scores["old"][2], scores["young"][2]),
+            (0.75, 0.25): (scores["old"][3], scores["young"][1]),
         }
         return 1 / auroc_at_frac[fraction][0], 1 / auroc_at_frac[fraction][1]
     elif mode == "fraction":

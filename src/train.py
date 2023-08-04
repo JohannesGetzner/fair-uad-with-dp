@@ -88,12 +88,12 @@ DEFAULT_CONFIG = {
     "group_name_mod": None,
     "job_type_mod": None,
     "max_physical_batch_size": 512,
+    "weigh_loss": False,
 }
 DEFAULT_CONFIG = DotMap(DEFAULT_CONFIG)
 
 parser = ArgumentParser()
 parser.add_argument('--run_name', default="dp_1", type=str)
-parser.add_argument('--reverse', action=BooleanOptionalAction, default=False)
 parser.add_argument('--protected_attr_percent', default=0.5, type=float)
 print(str(datetime.strftime(datetime.now(), format="%Y.%m.%d-%H:%M:%S")))
 parser.add_argument('--d', type=str, default=str(datetime.strftime(datetime.now(), format="%Y.%m.%d-%H:%M:%S")))
@@ -165,27 +165,26 @@ def compute_mean_per_sample_gradient_norm(model, num_samples):
     return mean_per_sample_grad_norm / c
 
 
-def train_step(model, optimizer, x, y, device):
+def train_step(model, optimizer, x, y, device, loss_weights):
     model.train()
     optimizer.zero_grad()
     x = x.to(device)
     y = y.to(device)
-    # I need to know the group assignment here
-    loss_dict = model.loss(x, y=y)
+    loss_weights = loss_weights.to(device)
+    loss_dict = model.loss(x, per_sample_loss_weights=loss_weights)
     loss = loss_dict['loss']
     loss.backward()
     optimizer.step()
     return loss_dict
 
 
-def train_step_dp(model, optimizer, x, y, loss_weights, device):
+def train_step_dp(model, optimizer, x, y, device, loss_weights):
     model.train()
     optimizer.zero_grad()
     x = x.to(device)
     y = y.to(device)
     loss_weights = loss_weights.to(device)
-    # TODO: find a better way to compute the loss when wrapped with DP (don't access protected attribute)
-    loss_dict = model._module.weighted_loss(x, loss_weights)
+    loss_dict = model._module.loss(x, per_sample_loss_weights=loss_weights)
     loss = loss_dict['loss']
     loss.backward()
     mean_per_sample_grad_norm = compute_mean_per_sample_gradient_norm(model, x.shape[0])
@@ -206,13 +205,14 @@ def train(train_loader, val_loader, config, log_dir):
     i_epoch = 0
     train_losses = AvgDictMeter()
     t_start = time()
-
+    loss_weights = get_subgroup_loss_weights((config.protected_attr_percent, 1 - config.protected_attr_percent), dp=False)
     while True:
         model.train()
         for x, y, meta in train_loader:
             i_step += 1
             # forward
-            loss_dict = train_step(model, optimizer, x, y, config.device)
+            per_sample_loss_weights = torch.where(meta == 0, loss_weights[0], loss_weights[1])
+            loss_dict = train_step(model, optimizer, x, y, config.device, per_sample_loss_weights)
             # add loss
             train_losses.add(loss_dict)
             if i_step % config.log_frequency == 0:
@@ -280,7 +280,7 @@ def train_dp(train_loader, val_loader, config, log_dir):
     i_epoch = 0
     train_losses = AvgDictMeter()
     t_start = time()
-    loss_weights = get_subgroup_loss_weights((config.protected_attr_percent, 1-config.protected_attr_percent))
+    loss_weights = get_subgroup_loss_weights((config.protected_attr_percent, 1-config.protected_attr_percent), dp=True)
     while True:
         with BatchMemoryManager(
                 data_loader=train_loader,
@@ -295,8 +295,7 @@ def train_dp(train_loader, val_loader, config, log_dir):
                 # compute weights loss weights
                 per_sample_loss_weights = torch.where(meta == 0, loss_weights[0], loss_weights[1])
                 # forward
-                loss_dict, accumulated_per_sample_norms = train_step_dp(
-                    model, optimizer, x, y, per_sample_loss_weights, config.device)
+                loss_dict, accumulated_per_sample_norms = train_step_dp(model, optimizer, x, y, config.device, per_sample_loss_weights)
                 # accumulate mean gradient norms per class
                 for g_norm, pv_label in zip(torch.squeeze(accumulated_per_sample_norms).tolist(), meta.tolist()):
                     mean_gradient_per_class[pv_label] += g_norm

@@ -22,13 +22,13 @@ dp_2:
   max_physical_batch_size: 512
   initial_seed: 100
 non_dp:
-  protected_attr: "sex"
+  protected_attr: "age"
   num_seeds: 5
   epochs: 67
   wandb_project: "unsupervised-fairness"
   dp: False
   batch_size: 32
-  group_name_mod: "bs32"
+  group_name_mod: "bs32_auroc_weighted"
   initial_seed: 1
 test_local:
   protected_attr: "age"
@@ -39,6 +39,7 @@ test_local:
   batch_size: 32
   group_name_mod: "b32"
   max_physical_batch_size: 32
+  weigh_loss: True
 test_cluster:
   protected_attr: "sex"
   num_seeds: 2
