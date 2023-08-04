@@ -139,11 +139,9 @@ def get_subgroup_loss_weights(fraction: Tuple[float, float], mode="auroc", dp=Fa
     scores = auroc_scores_dp if dp else auroc_scores_non_dp
     if mode == "auroc":
         auroc_at_frac = {
-            (0.00, 1.00): (1, scores["young"][4]),
             (0.25, 0.75): (scores["old"][1], scores["young"][3]),
             (0.50, 0.50): (scores["old"][2], scores["young"][2]),
             (0.75, 0.25): (scores["old"][3], scores["young"][1]),
-            (1.00, 0.00): (scores["old"][4], 1),
         }
         print(f"weight modifiers at fraction", fraction, "are", auroc_at_frac[fraction])
         return 1 / auroc_at_frac[fraction][0], 1 / auroc_at_frac[fraction][1]
