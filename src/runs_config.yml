@@ -35,7 +35,7 @@ test_local:
   num_seeds: 2
   wandb_project: "test"
   epochs: 10
-  dp: True
+  dp: False
   batch_size: 32
   group_name_mod: "b32"
   max_physical_batch_size: 32
