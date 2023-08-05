@@ -10,7 +10,7 @@ dp_1:
   group_name_mod: "bs1024_mgn001_auroc_weighted"
   max_physical_batch_size: 512
   initial_seed: 1
-  weigh_loss: True
+  weigh_loss: "auroc"
 dp_2:
   protected_attr: "age"
   num_seeds: 1
@@ -22,7 +22,7 @@ dp_2:
   group_name_mod: "bs1024_mgn001_auroc_weighted"
   max_physical_batch_size: 512
   initial_seed: 100
-  weigh_loss: True
+  weigh_loss: "auroc"
 non_dp:
   protected_attr: "age"
   num_seeds: 10
@@ -31,9 +31,9 @@ non_dp:
   wandb_project: "unsupervised-fairness"
   dp: False
   batch_size: 32
-  group_name_mod: "bs32_auroc_weighted"
+  group_name_mod: "bs32_fraction_weighted"
   initial_seed: 1
-  weigh_loss: True
+  weigh_loss: "fraction"
 test_local:
   protected_attr: "age"
   num_seeds: 2
