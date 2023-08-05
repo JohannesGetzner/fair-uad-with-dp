@@ -43,7 +43,7 @@ test_local:
   batch_size: 32
   group_name_mod: "b32"
   max_physical_batch_size: 32
-  weigh_loss: True
+  weigh_loss: "fraction"
 test_cluster:
   protected_attr: "sex"
   num_seeds: 2
