@@ -26,7 +26,8 @@ dp_2:
 non_dp:
   protected_attr: "age"
   num_seeds: 10
-  epochs: 67
+  epochs: 187
+  #epochs: 67
   wandb_project: "unsupervised-fairness"
   dp: False
   batch_size: 32
