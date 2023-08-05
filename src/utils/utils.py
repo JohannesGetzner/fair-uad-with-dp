@@ -43,8 +43,8 @@ def init_wandb(config, log_dir: str, group_name: str, job_type: str):
     wandb_tags = [config.model_type, config.dataset, config.protected_attr, dp_tag]
     os.makedirs(os.path.join(log_dir, "wandb"), exist_ok=True)
     run = wandb.init(project=config.wandb_project, config=config, group=group_name, dir=log_dir, tags=wandb_tags,
-        job_type=job_type, name="seed_" + str(config.seed),
-        mode="disabled" if (config.debug or config.disable_wandb) else "online")
+                     job_type=job_type, name="seed_" + str(config.seed),
+                     mode="disabled" if (config.debug or config.disable_wandb) else "online")
     return run
 
 
@@ -81,11 +81,11 @@ def construct_log_dir(config, current_time):
 
 class TensorboardLogger(SummaryWriter):
     def __init__(self, log_dir: str = None, config: Namespace = None, enabled: bool = True, comment: str = '',
-            purge_step: int = None, max_queue: int = 10, flush_secs: int = 120, filename_suffix: str = ''):
+                 purge_step: int = None, max_queue: int = 10, flush_secs: int = 120, filename_suffix: str = ''):
         self.enabled = enabled
         if self.enabled:
             super().__init__(log_dir=log_dir, comment=comment, purge_step=purge_step, max_queue=max_queue,
-                flush_secs=flush_secs, filename_suffix=filename_suffix)
+                             flush_secs=flush_secs, filename_suffix=filename_suffix)
         else:
             return
 
@@ -128,25 +128,35 @@ def log_time(remaining_time: float):
 
 def get_subgroup_loss_weights(fraction: Tuple[float, float], mode="auroc", dp=False):
     # first in tuple is always "male_percent" or "old_percent"
-    auroc_scores_dp = {
-        "old": [0.77570003, 0.78220001, 0.79969999, 0.80450004, 0.8143],
-        "young": [0.65380001, 0.64079997, 0.62100002, 0.60250002, 0.5941],
-    }
-    auroc_scores_non_dp = {
-        "old": [0.80762002, 0.83074002, 0.83918, 0.85316001, 0.8567],
-        "young": [0.77636, 0.76678, 0.74872, 0.73270002, 0.68015997],
-    }
+    auroc_scores_dp = {"old": [0.77570003, 0.78220001, 0.79969999, 0.80450004, 0.8143],
+        "young": [0.65380001, 0.64079997, 0.62100002, 0.60250002, 0.5941], }
+    auroc_scores_non_dp = {"old": [0.80762002, 0.83074002, 0.83918, 0.85316001, 0.8567],
+        "young": [0.77636, 0.76678, 0.74872, 0.73270002, 0.68015997], }
     scores = auroc_scores_dp if dp else auroc_scores_non_dp
     if mode == "auroc":
-        auroc_at_frac = {
-            (0.25, 0.75): (scores["old"][1], scores["young"][3]),
+        auroc_at_frac = {(0.25, 0.75): (scores["old"][1], scores["young"][3]),
             (0.50, 0.50): (scores["old"][2], scores["young"][2]),
-            (0.75, 0.25): (scores["old"][3], scores["young"][1]),
-        }
-        print(f"weight modifiers at fraction", fraction, "are", auroc_at_frac[fraction])
+            (0.75, 0.25): (scores["old"][3], scores["young"][1]), }
+        print(f"weight modifiers at fraction", fraction, "are",
+              (1 / auroc_at_frac[fraction][0], 1 / auroc_at_frac[fraction][1]))
         return 1 / auroc_at_frac[fraction][0], 1 / auroc_at_frac[fraction][1]
     elif mode == "fraction":
+
         if fraction == (0.5, 0.5):
+            print(f"weight modifiers at fraction", fraction, "are", (1, 2))
             return 1, 2
         else:
+            print(f"weight modifiers at fraction", fraction, "are", (1 / fraction[0], 1 / fraction[1]))
             return 1 / fraction[0], 1 / fraction[1]
+    elif mode == "fraction_od":
+        # od = only_disadvantaged
+        if fraction == (0.5, 0.5):
+            print(f"weight modifiers at fraction", fraction, "are", (1, 2))
+            return 1, 2
+        else:
+            print(f"weight modifiers at fraction", fraction, "are", (1, 1 / fraction[1]))
+            return 1, 1 / fraction[1]
+    elif mode == "fraction_reverse":
+        # pull the weights in the opposite direction
+        print(f"weight modifiers at fraction", fraction, "are", (fraction[0], 1/fraction[1]))
+        return fraction[0], 1 / fraction[1]
