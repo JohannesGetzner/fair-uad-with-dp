@@ -88,7 +88,7 @@ DEFAULT_CONFIG = {
     "group_name_mod": None,
     "job_type_mod": None,
     "max_physical_batch_size": 512,
-    "weigh_loss": False,
+    "weigh_loss": None,
 }
 DEFAULT_CONFIG = DotMap(DEFAULT_CONFIG)
 
@@ -205,7 +205,11 @@ def train(train_loader, val_loader, config, log_dir):
     i_epoch = 0
     train_losses = AvgDictMeter()
     t_start = time()
-    loss_weights = get_subgroup_loss_weights((config.protected_attr_percent, 1 - config.protected_attr_percent), dp=False)
+    loss_weights = get_subgroup_loss_weights(
+        (config.protected_attr_percent, 1 - config.protected_attr_percent),
+        mode=config.weigh_loss,
+        dp=False
+    )
     while True:
         model.train()
         for x, y, meta in train_loader:
@@ -280,7 +284,11 @@ def train_dp(train_loader, val_loader, config, log_dir):
     i_epoch = 0
     train_losses = AvgDictMeter()
     t_start = time()
-    loss_weights = get_subgroup_loss_weights((config.protected_attr_percent, 1-config.protected_attr_percent), dp=True)
+    loss_weights = get_subgroup_loss_weights(
+        (config.protected_attr_percent, 1-config.protected_attr_percent),
+        mode = config.weigh_loss,
+        dp=True
+    )
     while True:
         with BatchMemoryManager(
                 data_loader=train_loader,
