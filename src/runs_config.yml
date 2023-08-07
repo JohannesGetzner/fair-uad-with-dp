@@ -3,26 +3,14 @@ dp_1:
   protected_attr: "age"
   num_seeds: 1
   wandb_project: "unsupervised-fairness"
-  epochs: 25000
+  epochs: 8500
   dp: True
   batch_size: 1024
   max_grad_norm: 0.01
   group_name_mod: "bs1024_mgn001_auroc_weighted"
   max_physical_batch_size: 512
   initial_seed: 1
-  weigh_loss: "auroc"
-dp_2:
-  protected_attr: "age"
-  num_seeds: 1
-  wandb_project: "unsupervised-fairness"
-  epochs: 25000
-  dp: True
-  batch_size: 1024
-  max_grad_norm: 0.01
-  group_name_mod: "bs1024_mgn001_auroc_weighted"
-  max_physical_batch_size: 512
-  initial_seed: 100
-  weigh_loss: "auroc"
+  weigh_loss: "old_down_weighted"
 non_dp:
   protected_attr: "age"
   num_seeds: 10
@@ -36,20 +24,11 @@ non_dp:
   weigh_loss: "fraction_od"
 test_local:
   protected_attr: "age"
-  num_seeds: 2
+  num_seeds: 1
   wandb_project: "test"
-  epochs: 10
-  dp: False
+  epochs: 1
+  dp: True
   batch_size: 32
   group_name_mod: "b32"
   max_physical_batch_size: 32
-  weigh_loss: "fraction_od"
-test_cluster:
-  protected_attr: "sex"
-  num_seeds: 2
-  wandb_project: "age"
-  epochs: 1500
-  dp: True
-  batch_size: 1024
-  group_name_mod: "bs1024_mgn001"
-  max_physical_batch_size: 512
+  weigh_loss: "old_down_weighted"

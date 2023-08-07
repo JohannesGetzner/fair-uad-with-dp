@@ -4,6 +4,7 @@ import sys
 sys.path.append('..')
 import math
 import os
+import json
 from typing import Dict, List
 
 import matplotlib as mpl
@@ -166,6 +167,7 @@ def plot_metric_bar(data: Dict[str, np.ndarray], attr_key_values: np.ndarray, me
     maxi = -math.inf
 
     # Plot bar plots
+    scores = {}
     for i, metric in enumerate(metrics):
         mean = data[metric].mean(axis=1)
         std = data[metric].std(axis=1)
@@ -175,10 +177,15 @@ def plot_metric_bar(data: Dict[str, np.ndarray], attr_key_values: np.ndarray, me
         min_val = np.min(lower)
         max_val = np.max(upper)
         bars.append(plt.bar(ind + i * width, mean, width=width, yerr=yerr, ecolor='darkgray'))
+        scores[metric] = mean.tolist()
+        scores[f"{metric}_err"] = yerr.tolist()
         if mini > min_val:
             mini = min_val
         if maxi < max_val:
             maxi = max_val
+    # save scores as json
+    with open(os.path.join(experiment_dir, 'scores.json'), 'w') as f:
+        json.dump(scores, f)
 
     # Plot regression lines
     left, right = plt.xlim()
@@ -288,8 +295,8 @@ if __name__ == '__main__':
             #(f"test/lungOpacity_{g[0]}_AP", f"test/lungOpacity_{g[1]}_AP", "AP")
         ]
 
-        test_dir_1 = os.path.join("../logs_persist", "2023.07.11-20:38:32-FAE-rsna-age-bs32-noDP")
-        test_dir_2 = os.path.join("../logs_persist", "2023.07.13-09:20:21-FAE-rsna-age-bs1024_mgn001-DP")
+        #test_dir_1 = os.path.join("../logs_persist", "2023.07.11-20:38:32-FAE-rsna-age-bs32-noDP")
+        #test_dir_2 = os.path.join("../logs_persist", "2023.07.13-09:20:21-FAE-rsna-age-bs1024_mgn001-DP")
 
         # plot_metric_compare(
         #     test_dir_1,
