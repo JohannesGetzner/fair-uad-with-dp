@@ -62,7 +62,7 @@ def construct_log_dir(config, current_time):
         percent_as_string = percent_as_string[:-1]
     jt += f"_{percent_as_string}"
     if config.job_type_mod:
-        jt += f"-{config.job_type_mod}"
+        jt += f"_{config.job_type_mod}"
     if config.dp:
         jt += "_DP"
     # build log_dir and group_name
