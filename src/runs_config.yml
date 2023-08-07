@@ -7,7 +7,7 @@ dp_1:
   dp: True
   batch_size: 1024
   max_grad_norm: 0.01
-  group_name_mod: "bs1024_mgn001_auroc_weighted"
+  group_name_mod: "bs1024_mgn001_old_down_weighted"
   max_physical_batch_size: 512
   initial_seed: 1
   weigh_loss: "old_down_weighted"
