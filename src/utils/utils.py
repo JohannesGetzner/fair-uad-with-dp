@@ -156,7 +156,7 @@ def get_subgroup_loss_weights(fraction: Tuple[float, float], mode="auroc", dp=Fa
         else:
             print(f"weight modifiers at fraction", fraction, "are", (1, 1 / fraction[1]))
             return 1, 1 / fraction[1]
-    elif mode == "fraction_reverse":
+    elif mode == "fraction_rev":
         # pull the weights in the opposite direction
         print(f"weight modifiers at fraction", fraction, "are", (fraction[0], 1/fraction[1]))
         return fraction[0], 1 / fraction[1]
