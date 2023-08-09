@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from argparse import Namespace
 from numbers import Number
 from typing import Any, Dict, Tuple
-
+import re
 import numpy as np
 import torch
 import torch.nn as nn
@@ -161,6 +161,7 @@ def get_subgroup_loss_weights(fraction: Tuple[float, float], mode="auroc", dp=Fa
         return fraction[0], 1 / fraction[1]
     elif mode.startswith("old_down_weighted"):
         # get number at the end of the string
-        weight = float(mode[-3:])
+        pattern = ".*_([0-9]+.[0-9]+)"
+        weight = float(re.match(pattern,mode).group(1))
         print(f"weight modifiers at fraction", fraction, "are", (weight, 1))
         return weight, 1
