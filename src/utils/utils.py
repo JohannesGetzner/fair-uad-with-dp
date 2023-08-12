@@ -162,6 +162,6 @@ def get_subgroup_loss_weights(fraction: Tuple[float, float], mode="auroc", dp=Fa
     elif mode.startswith("old_down_weighted"):
         # get number at the end of the string
         pattern = ".*_([0-9]+.[0-9]+)"
-        weight = float(re.match(pattern,mode).group(1))
+        weight = float(re.match(pattern, mode).group(1))
         print(f"weight modifiers at fraction", fraction, "are", (weight, 1))
         return weight, 1

@@ -8,17 +8,16 @@ from opacus.utils.batch_memory_manager import BatchMemoryManager
 
 sys.path.append('..')
 import os
-from argparse import ArgumentParser, BooleanOptionalAction
+from argparse import ArgumentParser
 from collections import defaultdict
 
 from dotmap import DotMap
-from time import time, sleep
-from datetime import datetime, timedelta
+from time import time
+from datetime import datetime
 
 import pandas as pd
 import torch
 import wandb
-import math
 
 from src.data.datasets import get_dataloaders
 from src.models.DeepSVDD.deepsvdd import DeepSVDD
