@@ -21,12 +21,4 @@ source activate $ANACONDA_ENV
 
 # Your commands using the Anaconda environment
 echo "Running script with Anaconda environment: $ANACONDA_ENV"
-#$ANACONDA_PYTHON train.py --run_name dp_1 --protected_attr_percent 0.0 --d "${date}"
-#$ANACONDA_PYTHON train.py --run_name dp_1 --protected_attr_percent 0.25 --d "${date}"
-#$ANACONDA_PYTHON train.py --run_name dp_1 --protected_attr_percent 0.50 --d "${date}"
-#$ANACONDA_PYTHON train.py --run_name dp_1 --protected_attr_percent 0.75 --custom 0.9 --job_type_mod "lw09" --d "${date}"
-#$ANACONDA_PYTHON train.py --run_name dp_1 --protected_attr_percent 0.75 --custom 0.7 --job_type_mod "lw07" --d "${date}"
-#$ANACONDA_PYTHON train.py --run_name dp_1 --protected_attr_percent 0.75 --custom 0.5 --job_type_mod "lw05" --d "${date}"
-#$ANACONDA_PYTHON train.py --run_name dp_1 --protected_attr_percent 0.75 --custom 0.3 --job_type_mod "lw03" --d "${date}"
-$ANACONDA_PYTHON train.py --run_name dp_1 --protected_attr_percent 0.75 --custom 0.01 --job_type_mod "lw001" --d "${date}"
-#$ANACONDA_PYTHON train.py --run_name dp_1 --protected_attr_percent 1.0 --d "${date}"
+$ANACONDA_PYTHON train.py --run_name dp_1 --protected_attr_percent 0.75 --custom 0.001 --job_type_mod "lw0001" --d "${date}"
