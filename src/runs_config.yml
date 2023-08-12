@@ -19,9 +19,9 @@ non_dp:
   wandb_project: "unsupervised-fairness"
   dp: False
   batch_size: 32
-  group_name_mod: "bs32_fraction_od_weighted"
+  group_name_mod: "bs32_old_down_weighted"
   initial_seed: 1
-  weigh_loss: "fraction_od"
+  weigh_loss: "old_down_weighted"
 test_local:
   protected_attr: "age"
   num_seeds: 1
