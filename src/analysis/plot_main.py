@@ -12,7 +12,7 @@ sns.set(font_scale=1.2, style="whitegrid")
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
-
+from scipy.stats import linregress
 from einops import repeat
 from scipy import stats
 
@@ -193,15 +193,16 @@ def plot_metric_bar_compare(df, groups, fig_size=(10, 6)):
         group_data = df[df["group"] == group]
         group_data["percent"] = group_data["percent"] * 4
         # TODO: regression and statistical significance
-
-        g = sns.regplot(
-            x="percent",
-            y="value",
-            data=group_data,
-            scatter=False,
-            line_kws={"label": f"{group} regression line", "color": colors[idx], "lw": 1.5, "ls": "--"},
-            truncate=False
-        )
+        slope, intercept, r_value, p_value, std_err = linregress(group_data["percent"], group_data["value"])
+        if p_value < 0.05:
+            g = sns.regplot(
+                x="percent",
+                y="value",
+                data=group_data,
+                scatter=False,
+                line_kws={"label": f"{group} regression line", "color": colors[idx], "lw": 1.7, "ls": "--"},
+                truncate=False
+            )
     # set axis labels
     plt.xlabel(f"percent {groups[0]} samples in training data")
     plt.ylabel("subgroup AUROC")
