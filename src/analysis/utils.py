@@ -96,7 +96,7 @@ def avg_numeric_in_df(df: pd.DataFrame):
     return df
 
 
-def combine_non_and_dp_data(exp_dir: str, exp_dir_dp: str, attr_key: str, metrics: List[str], group_names: List[str]):
+def combine_non_and_dp_data(exp_dir: str, exp_dir_dp: str, attr_key: str, metrics: Tuple[str], group_names: List[str]):
     data, attr_key_values = gather_data_seeds(exp_dir, attr_key, metrics)
     data_dp, attr_key_values_dp = gather_data_seeds(exp_dir_dp, attr_key, metrics, dp=True)
 
