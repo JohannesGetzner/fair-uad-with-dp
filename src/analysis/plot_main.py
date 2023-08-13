@@ -5,8 +5,10 @@ sys.path.append('..')
 import math
 import os
 import json
-from typing import Dict, List
-
+from typing import Dict, List, Tuple
+import seaborn as sns
+# set seaborn font-scale
+sns.set(font_scale=1.2, style="whitegrid")
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
@@ -14,13 +16,13 @@ import numpy as np
 from einops import repeat
 from scipy import stats
 
-from utils import gather_data_seeds
+from utils import gather_data_seeds, combine_non_and_dp_data
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 plt.rcParams["font.family"] = "Times New Roman"
 
 
-def plot_metric(experiment_dir: str, attr_key: str, metrics: List[str], xlabel: str, ylabel: str, title: str,
+def plot_metric(experiment_dir: str, attr_key: str, metrics: Tuple[str], xlabel: str, ylabel: str, title: str,
                 plt_name: str, dp=False):
     """Plots the given metrics as different plots"""
     # Collect data from all runs
@@ -39,45 +41,6 @@ def plot_metric(experiment_dir: str, attr_key: str, metrics: List[str], xlabel: 
     for f, plot_name in [(plot_metric_bar, "bar")]:
         plotting_args["plt_name"] = plt_name + '_' + plot_name + ("_DP" if dp else "") + '.png'
         f(**plotting_args)
-
-
-def plot_metric_compare(exp_dir: str, exp_dir_dp: str, attr_key:str, metrics: List[str]):
-    data, attr_key_values = gather_data_seeds(exp_dir, attr_key, metrics)
-    data_dp, attr_key_values_dp = gather_data_seeds(exp_dir_dp, attr_key, metrics, dp=True)
-    import pandas as pd
-    df = pd.DataFrame(columns=["percent", "metric", "protected_attr"])
-    for metric_name, metric_values in data.items():
-        tmp = pd.DataFrame(metric_values)
-        num_cols = tmp.shape[1]
-        for idx, row in tmp.iterrows():
-            for i in range(num_cols):
-                bar_label = "old" if "old" in metric_name else "young"
-                new_row = {
-                    "percent": attr_key_values[idx],
-                    "protected_attr": bar_label,
-                    "metric": row[i]
-                }
-                df = pd.concat([df, pd.DataFrame(new_row, index=[0])])
-    for metric_name, metric_values in data_dp.items():
-        tmp = pd.DataFrame(metric_values)
-        num_cols = tmp.shape[1]
-        for idx, row in tmp.iterrows():
-            for i in range(num_cols):
-                bar_label = "old_dp" if "old" in metric_name else "young_dp"
-                new_row = {
-                    "percent": attr_key_values_dp[idx],
-                    "protected_attr": bar_label,
-                    "metric": row[i]}
-                df = pd.concat([df, pd.DataFrame(new_row, index=[0])])
-    import seaborn as sns
-    colors = ["#3274A1", "#3FB3ED", "#E1812C", "#F48F2D"]
-    order = ["old", "old_dp", "young", "young_dp"]
-    df.sort_values(by="protected_attr", key=lambda column: column.map(lambda e: order.index(e)), inplace=True)
-    g = sns.barplot(x="percent", y="metric", hue="protected_attr", data=df, palette=colors)
-    g.set(xlabel="Fraction of 'old' samples in training data", ylabel="Metric")
-    plt.title(f"{metrics[0]} vs. {metrics[1]}")
-    plt.show()
-    return g
 
 
 def plot_metric_scatter(data: Dict[str, np.ndarray], attr_key_values: np.ndarray, metrics: List[str], xlabel: str,
@@ -218,6 +181,32 @@ def plot_metric_bar(data: Dict[str, np.ndarray], attr_key_values: np.ndarray, me
     plt.close()
 
 
+def plot_metric_bar_compare(df, groups, fig_size=(10, 6)):
+    plt.figure(figsize=fig_size)
+    colors = ["#336699", "#6688AA", "#FF9933", "#FFB366"]
+    # create bar-plot
+    df.sort_values(by="group", key=lambda column: column.map(lambda e: groups.index(e)), inplace=True)
+    g = sns.barplot(x="percent", y="value", hue="group", data=df, palette=colors, errorbar="ci")
+    g.set(ylim=(0.5, 1.0))
+    # plot regression lines
+    for idx, group in enumerate(df["group"].unique()):
+        group_data = df[df["group"] == group]
+        group_data["percent"] = group_data["percent"] * 4
+        # TODO: regression and statistical significance
+
+        g = sns.regplot(
+            x="percent",
+            y="value",
+            data=group_data,
+            scatter=False,
+            line_kws={"label": f"{group} regression line", "color": colors[idx], "lw": 1.5, "ls": "--"},
+            truncate=False
+        )
+    # set axis labels
+    plt.xlabel(f"percent {groups[0]} samples in training data")
+    plt.ylabel("subgroup AUROC")
+    return g
+
 def plot_metric_box_whisker(data: Dict[str, np.ndarray], attr_key_values: np.ndarray, metrics: List[str], xlabel: str,
                             ylabel: str, title: str, plt_name: str, experiment_dir: str):
     """
@@ -282,30 +271,21 @@ if __name__ == '__main__':
             g = ("male", "female")
         metrics = [
             # fpr@0.95
-            #(f"test/lungOpacity_{g[0]}_fpr@0.95", f"test/lungOpacity_{g[1]}_fpr@0.95", "fpr@0.95tpr"),
+            # (f"test/lungOpacity_{g[0]}_fpr@0.95", f"test/lungOpacity_{g[1]}_fpr@0.95", "fpr@0.95tpr"),
             # tpr@0.05
-            #(f"test/lungOpacity_{g[0]}_tpr@0.05", f"test/lungOpacity_{g[1]}_tpr@0.05", "tpr@0.05fpr"),
+            # (f"test/lungOpacity_{g[0]}_tpr@0.05", f"test/lungOpacity_{g[1]}_tpr@0.05", "tpr@0.05fpr"),
             # anomaly score
-            #(f"test/lungOpacity_{g[0]}_anomaly_score", f"test/lungOpacity_{g[1]}_anomaly_score", "anomaly score"),
+            # (f"test/lungOpacity_{g[0]}_anomaly_score", f"test/lungOpacity_{g[1]}_anomaly_score", "anomaly score"),
             # AUROC
-            #(f"test/lungOpacity_{g[0]}_AUROC", f"test/lungOpacity_{g[1]}_AUROC", "AUROC"),
+            # (f"test/lungOpacity_{g[0]}_AUROC", f"test/lungOpacity_{g[1]}_AUROC", "AUROC"),
             # subgroupAUROC
             (f"test/lungOpacity_{g[0]}_subgroupAUROC", f"test/lungOpacity_{g[1]}_subgroupAUROC", "subgroupAUROC"),
             # Average precision
-            #(f"test/lungOpacity_{g[0]}_AP", f"test/lungOpacity_{g[1]}_AP", "AP")
+            # (f"test/lungOpacity_{g[0]}_AP", f"test/lungOpacity_{g[1]}_AP", "AP")
         ]
 
-        #test_dir_1 = os.path.join("../logs_persist", "2023.07.11-20:38:32-FAE-rsna-age-bs32-noDP")
-        #test_dir_2 = os.path.join("../logs_persist", "2023.07.13-09:20:21-FAE-rsna-age-bs1024_mgn001-DP")
-
-        # plot_metric_compare(
-        #     test_dir_1,
-        #     test_dir_2,
-        #     f"old_percent",
-        #     (f"test/lungOpacity_old_subgroupAUROC", f"test/lungOpacity_young_subgroupAUROC")
-        # )
-
         for metric in metrics:
+            break
             title = f"FAE {metric[2]} on RSNA for different proportions of {g[0]} patients in training" + "_DP" if "noDP" not in experiment_dir else ""
             plot_metric(
                 experiment_dir=experiment_dir,
@@ -317,3 +297,18 @@ if __name__ == '__main__':
                 plt_name=f"fae_rsna_{pv}_{metric[2]}",
                 dp="noDP" not in experiment_dir
             )
+
+    if True:
+        non_dp_dir = os.path.join("../logs_persist", "2023.07.11-20:38:32-FAE-rsna-age-bs32-noDP")
+        dp_dir = os.path.join("../logs_persist", "2023.07.13-09:20:21-FAE-rsna-age-bs1024_mgn001-DP")
+        metrics = (f"test/lungOpacity_old_subgroupAUROC", f"test/lungOpacity_young_subgroupAUROC")
+        groups = ["old", "young", "old_dp", "young_dp"]
+        df = combine_non_and_dp_data(
+            non_dp_dir,
+            dp_dir,
+            "old_percent",
+            metrics,
+            ["old", "young", "old_dp", "young_dp"]
+        )
+        g = plot_metric_bar_compare(df, groups)
+        plt.show()
