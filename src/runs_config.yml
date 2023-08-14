@@ -13,7 +13,7 @@ dp_1:
   weigh_loss: "old_down_weighted"
 non_dp:
   protected_attr: "age"
-  num_seeds: 10
+  num_seeds: 5
   epochs: 187
   #epochs: 67
   wandb_project: "unsupervised-fairness"
