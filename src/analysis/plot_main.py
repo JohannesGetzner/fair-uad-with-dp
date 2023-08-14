@@ -261,7 +261,15 @@ def plot_metric_box_whisker(data: Dict[str, np.ndarray], attr_key_values: np.nda
 
 
 if __name__ == '__main__':
-    for experiment_dir in os.listdir("../logs_persist"):
+    to_skip = ["2023-08-07 16:45:30-FAE-rsna-age-bs1024_mgn001_old_down_weighted-DP"]
+    dir = ""
+    if dir == "":
+        dirs = os.listdir("../logs_persist")
+    else:
+        dirs = [dir]
+    for experiment_dir in dirs:
+        if experiment_dir in to_skip:
+            continue
         print("\nGenerating plots for", experiment_dir, "\n")
         experiment_dir = os.path.join("../logs_persist", experiment_dir)
         if "age" in experiment_dir:
@@ -286,7 +294,6 @@ if __name__ == '__main__':
         ]
 
         for metric in metrics:
-            break
             title = f"FAE {metric[2]} on RSNA for different proportions of {g[0]} patients in training" + "_DP" if "noDP" not in experiment_dir else ""
             plot_metric(
                 experiment_dir=experiment_dir,

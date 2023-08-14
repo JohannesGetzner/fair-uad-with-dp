@@ -25,7 +25,7 @@ Each results.csv file contains the results of a single run of the experiment.
 """
 import os
 import re
-from typing import List
+from typing import List, Tuple
 
 import numpy as np
 import pandas as pd
