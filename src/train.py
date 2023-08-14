@@ -1,7 +1,5 @@
-import functools
 import sys
 
-import numpy as np
 import yaml
 
 from opacus.utils.batch_memory_manager import BatchMemoryManager

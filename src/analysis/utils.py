@@ -51,7 +51,7 @@ def gather_data_seeds(experiment_dir: str, attr_key: str, metric_names: List[str
         df = pd.concat(seed_dfs)
         run_dfs.append(df)
         if "_map" in df.columns:
-            print("PLEASE EVALUATE")
+            # print("PLEASE EVALUATE")
             # accidentally logged the map as a string
             # get value from _map column
             config_str = df["_map"].values[0]
@@ -93,4 +93,29 @@ def avg_numeric_in_df(df: pd.DataFrame):
         if is_numeric(df[col]):
             df[col] = df[col].mean()
     df = df.iloc[:1]
+    return df
+
+
+def combine_non_and_dp_data(exp_dir: str, exp_dir_dp: str, attr_key: str, metrics: Tuple[str], group_names: List[str]):
+    data, attr_key_values = gather_data_seeds(exp_dir, attr_key, metrics)
+    data_dp, attr_key_values_dp = gather_data_seeds(exp_dir_dp, attr_key, metrics, dp=True)
+
+    df = pd.DataFrame(columns=["percent", "value", "group"])
+    for metric_name, metric_values in data.items():
+        tmp = pd.DataFrame(metric_values)
+        num_cols = tmp.shape[1]
+        for idx, row in tmp.iterrows():
+            for i in range(num_cols):
+                bar_label = group_names[0] if group_names[0] in metric_name else group_names[1]
+                new_row = {"percent": attr_key_values[idx], "group": bar_label, "value": row[i]}
+                df = pd.concat([df, pd.DataFrame(new_row, index=[0])])
+
+    for metric_name, metric_values in data_dp.items():
+        tmp = pd.DataFrame(metric_values)
+        num_cols = tmp.shape[1]
+        for idx, row in tmp.iterrows():
+            for i in range(num_cols):
+                bar_label = group_names[2] if group_names[0] in metric_name else group_names[3]
+                new_row = {"percent": attr_key_values_dp[idx], "group": bar_label, "value": row[i]}
+                df = pd.concat([df, pd.DataFrame(new_row, index=[0])])
     return df
