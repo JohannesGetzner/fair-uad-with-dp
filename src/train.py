@@ -86,6 +86,7 @@ DEFAULT_CONFIG = {
     "job_type_mod": None,
     "max_physical_batch_size": 512,
     "weigh_loss": None,
+    "n_adam": False
 }
 DEFAULT_CONFIG = DotMap(DEFAULT_CONFIG)
 
@@ -143,7 +144,10 @@ def init_model(config):
     compiled_model = model  # torch.compile(model)
 
     # Init optimizer
-    optimizer = torch.optim.Adam(model.parameters(), lr=config.lr, weight_decay=config.weight_decay)
+    if config.n_adam:
+        optimizer = torch.optim.NAdam(model.parameters(), lr=config.lr, weight_decay=config.weight_decay)
+    else:
+        optimizer = torch.optim.Adam(model.parameters(), lr=config.lr, weight_decay=config.weight_decay)
 
     return model, compiled_model, optimizer
 

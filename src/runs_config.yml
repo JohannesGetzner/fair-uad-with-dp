@@ -1,4 +1,5 @@
 ---
+# DP CONFIGS
 dp_1:
   protected_attr: "age"
   num_seeds: 1
@@ -7,10 +8,13 @@ dp_1:
   dp: True
   batch_size: 1024
   max_grad_norm: 0.01
-  group_name_mod: "bs1024_mgn001_old_down_weighted"
+  group_name_mod: "nadam_bs1024_mgn001_old_down_weighted"
   max_physical_batch_size: 512
   initial_seed: 1
   weigh_loss: "old_down_weighted"
+  n_adam: True
+  learning_rate: 0.002
+# NON DP CONFIGS
 non_dp:
   protected_attr: "age"
   num_seeds: 5
@@ -22,13 +26,18 @@ non_dp:
   group_name_mod: "bs32_old_down_weighted"
   initial_seed: 1
   weigh_loss: "old_down_weighted"
+# TEST CONFIG
 test_local:
   protected_attr: "age"
   num_seeds: 1
   wandb_project: "test"
-  epochs: 1
+  epochs: 100
   dp: True
   batch_size: 32
-  group_name_mod: "b32"
-  max_physical_batch_size: 32
+  max_grad_norm: 0.01
+  group_name_mod: "nadam_bs1024_mgn001_old_down_weighted"
+  max_physical_batch_size: 16
+  initial_seed: 1
   weigh_loss: "old_down_weighted"
+  n_adam: True
+  learning_rate: 0.002
