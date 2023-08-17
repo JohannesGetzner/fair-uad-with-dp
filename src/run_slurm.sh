@@ -21,5 +21,6 @@ source activate $ANACONDA_ENV
 
 # Your commands using the Anaconda environment
 echo "Running script with Anaconda environment: $ANACONDA_ENV"
-$ANACONDA_PYTHON train.py --run_name dp_1 --protected_attr_percent 0.75 --weight 0.01 --job_type_mod "lw001" --d "${date}"
-$ANACONDA_PYTHON train.py --run_name dp_1 --protected_attr_percent 0.75 --weight 0.001 --job_type_mod "lw0001" --d "${date}"
+#$ANACONDA_PYTHON train.py --run_name dp_1 --protected_attr_percent 0.75 --weight 0.01 --job_type_mod "lw001" --d "${date}"
+#$ANACONDA_PYTHON train.py --run_name dp_1 --protected_attr_percent 0.75 --weight 0.001 --job_type_mod "lw0001" --d "${date}"
+$ANACONDA_PYTHON sweep.py --num_sweeps 10 --protected_attr_percent 0.75 --weight 0.01 --job_type_mod "lw001" --d "${date}"

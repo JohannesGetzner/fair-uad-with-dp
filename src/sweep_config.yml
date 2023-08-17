@@ -1,23 +1,23 @@
 ---
 experiment_config:
   dp: True
-  # initial_seed: 1
+  initial_seed: 1
   # num_seeds: 1
-  epochs: 3
-  batch_size: 32
+  epochs: 7500
+  batch_size: 1024
   max_grad_norm: 0.01
-  max_physical_batch_size: 16
+  max_physical_batch_size: 512
   protected_attr: "age"
-  wandb_project: "test"
+  wandb_project: "unsupervised-fairness"
   group_name_mod: "SWEEP_lr_bs1024_mgn001_old_down_weighted"
   weigh_loss: "old_down_weighted"
-  # n_adam: False
+  #n_adam: False
 sweep_config:
   method: 'random'
   parameters:
     lr:
-      max: 0.01
-      min: 0.001
+      max: 0.001
+      min: 0.0001
   metric:
     goal: 'minimize'
     name: "train/loss"
