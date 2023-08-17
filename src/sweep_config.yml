@@ -1,15 +1,21 @@
 ---
-exp_config:
-  num_runs: 50
-  protected_attr: "sex"
-  max_steps: 20000
+experiment_config:
   dp: True
-  wandb_project: "unsupervised-fairness"
-  sweep_param: "max_grad_norm"
+  # initial_seed: 1
+  # num_seeds: 1
+  epochs: 3
+  batch_size: 32
+  max_grad_norm: 0.01
+  max_physical_batch_size: 16
+  protected_attr: "age"
+  wandb_project: "test"
+  group_name_mod: "SWEEP_lr_bs1024_mgn001_old_down_weighted"
+  # weigh_loss: "old_down_weighted"
+  # n_adam: False
 sweep_config:
   method: 'random'
   parameters:
-    max_grad_norm:
+    lr:
       max: 0.01
       min: 0.001
   metric:
