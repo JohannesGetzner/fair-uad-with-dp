@@ -10,7 +10,7 @@ experiment_config:
   protected_attr: "age"
   wandb_project: "test"
   group_name_mod: "SWEEP_lr_bs1024_mgn001_old_down_weighted"
-  # weigh_loss: "old_down_weighted"
+  weigh_loss: "old_down_weighted"
   # n_adam: False
 sweep_config:
   method: 'random'

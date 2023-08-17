@@ -9,6 +9,8 @@ from utils.train_utils import train, train_dp, test, DEFAULT_CONFIG, load_data
 parser = ArgumentParser()
 parser.add_argument('--num_sweeps', default=10, type=float)
 parser.add_argument('--protected_attr_percent', default=0.5, type=float)
+parser.add_argument('--weight', default=0.9, type=float)
+parser.add_argument('--job_type_mod', default="", type=str)
 parser.add_argument('--d', type=str, default=str(datetime.strftime(datetime.now(), format="%Y.%m.%d-%H:%M:%S")))
 RUN_CONFIG = parser.parse_args()
 
@@ -34,6 +36,10 @@ if __name__ == '__main__':
         config[k] = v
     config.seed = config.initial_seed
     config.protected_attr_percent = RUN_CONFIG.protected_attr_percent
+    config.weigh_loss = config.weigh_loss + f"_{RUN_CONFIG.weight}"
+    if RUN_CONFIG.job_type_mod != "":
+        config.job_type_mod = RUN_CONFIG.job_type_mod
+
     train_loader, val_loader, test_loader = load_data(config)
     log_dir, group_name, job_type = construct_log_dir(config, RUN_CONFIG.d)
     sweep_config["name"] = group_name

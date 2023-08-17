@@ -27,7 +27,7 @@ parser = ArgumentParser()
 parser.add_argument('--run_name', default="dp_1", type=str)
 parser.add_argument('--job_type_mod', default="", type=str)
 parser.add_argument('--protected_attr_percent', default=0.5, type=float)
-parser.add_argument('--custom', default=0.9, type=float)
+parser.add_argument('--weight', default=0.9, type=float)
 parser.add_argument('--d', type=str, default=str(datetime.strftime(datetime.now(), format="%Y.%m.%d-%H:%M:%S")))
 RUN_CONFIG = parser.parse_args()
 
@@ -40,7 +40,7 @@ def run(config, run_config):
         config[arg_name] = arg_value
     # get protected attribute percent value
     config.protected_attr_percent = RUN_CONFIG.protected_attr_percent
-    config.weigh_loss = config.weigh_loss + f"_{RUN_CONFIG.custom}"
+    config.weigh_loss = config.weigh_loss + f"_{RUN_CONFIG.weight}"
     if RUN_CONFIG.job_type_mod != "":
         config.job_type_mod = RUN_CONFIG.job_type_mod
     # load data
