@@ -1,3 +1,5 @@
+import sys
+sys.path.append('..')
 import yaml
 import wandb
 from argparse import ArgumentParser
