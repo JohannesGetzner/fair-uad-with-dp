@@ -15,6 +15,7 @@ from datetime import datetime
 from src.data.datasets import get_dataloaders
 from dotmap import DotMap
 
+
 DEFAULT_CONFIG = {
     # General script settings
     "initial_seed": 1,
@@ -121,6 +122,7 @@ def compute_mean_per_sample_gradient_norm(model, num_samples):
             norm = torch.norm(per_sample_grad, dim=1, keepdim=True).to("cpu")
             mean_per_sample_grad_norm += norm
             c += 1
+    # print something
     return mean_per_sample_grad_norm / c
 
 

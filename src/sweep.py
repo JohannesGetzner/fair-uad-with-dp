@@ -1,7 +1,7 @@
 import yaml
 import wandb
 from argparse import ArgumentParser
-from src.utils.utils import construct_log_dir, init_wandb
+from utils.utils import construct_log_dir, init_wandb
 from datetime import datetime
 from utils.train_utils import train, train_dp, test, DEFAULT_CONFIG, load_data
 

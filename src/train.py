@@ -7,7 +7,7 @@ from datetime import datetime
 import wandb
 
 
-from src.utils.utils import init_wandb, construct_log_dir
+from utils.utils import init_wandb, construct_log_dir
 from opacus.validators.utils import register_module_fixer
 from torch import nn
 from utils.train_utils import train, train_dp, test, DEFAULT_CONFIG, load_data
