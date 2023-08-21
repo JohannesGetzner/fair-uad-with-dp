@@ -30,8 +30,6 @@ def main():
     del final_model
     torch.cuda.empty_cache()
     gc.collect()
-    print(torch.cuda.memory_summary())
-
 
 if __name__ == '__main__':
     with open('sweep_config.yml', 'r') as f:
