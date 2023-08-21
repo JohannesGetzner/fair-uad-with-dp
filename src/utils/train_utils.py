@@ -139,12 +139,9 @@ def train_step(model, optimizer, x, y, device, loss_weights):
     return loss_dict
 
 
-def train_step_dp(model, optimizer, x, y, device, loss_weights):
+def train_step_dp(model, optimizer, x, y, loss_weights):
     model.train()
     optimizer.zero_grad()
-    x = x.to(device)
-    y = y.to(device)
-    loss_weights = loss_weights.to(device)
     loss_dict = model._module.loss(x, per_sample_loss_weights=loss_weights)
     loss = loss_dict['loss']
     loss.backward()
@@ -260,11 +257,14 @@ def train_dp(train_loader, val_loader, config, log_dir):
             count_samples_per_class = {0: 0, 1: 0}
             model.train()
             for x, y, meta in new_train_loader:
+                x = x.to(config["device"])
+                y = y.to(config["device"])
                 i_step += 1
                 # compute weights loss weights
                 per_sample_loss_weights = torch.where(meta == 0, loss_weights[0], loss_weights[1])
+                per_sample_loss_weights = per_sample_loss_weights.to(config["device"])
                 # forward
-                loss_dict, accumulated_per_sample_norms = train_step_dp(model, optimizer, x, y, config.device, per_sample_loss_weights)
+                loss_dict, accumulated_per_sample_norms = train_step_dp(model, optimizer, x, y, per_sample_loss_weights)
                 # accumulate mean gradient norms per class
                 for g_norm, pv_label in zip(torch.squeeze(accumulated_per_sample_norms).tolist(), meta.tolist()):
                     mean_gradient_per_class[pv_label] += g_norm
@@ -305,6 +305,8 @@ def train_dp(train_loader, val_loader, config, log_dir):
                     print("Final validation...")
                     validate(config, model, val_loader, i_step, log_dir, log_imgs)
                     return model
+            del x
+            del y
             i_epoch += 1
             print(f'Finished epoch {i_epoch}/{config.epochs}, ({i_step} iterations)')
 

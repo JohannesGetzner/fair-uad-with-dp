@@ -6,7 +6,7 @@ import os
 from argparse import ArgumentParser
 from datetime import datetime
 import wandb
-
+import torch
 
 from utils.utils import init_wandb, construct_log_dir
 from opacus.validators.utils import register_module_fixer
@@ -62,6 +62,7 @@ def run(config, run_config):
             final_model = train(train_loader, val_loader, config, log_dir)
         test(config, final_model, test_loader, log_dir)
         wandb.finish()
+        del final_model
         torch.cuda.empty_cache()
         gc.collect()
 
