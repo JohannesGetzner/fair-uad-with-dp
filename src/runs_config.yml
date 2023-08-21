@@ -31,7 +31,7 @@ test_local:
   protected_attr: "age"
   num_seeds: 1
   wandb_project: "test"
-  epochs: 100
+  epochs: 3
   dp: True
   batch_size: 32
   max_grad_norm: 0.01

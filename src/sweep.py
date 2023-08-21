@@ -6,7 +6,8 @@ from argparse import ArgumentParser
 from utils.utils import construct_log_dir, init_wandb
 from datetime import datetime
 from utils.train_utils import train, train_dp, test, DEFAULT_CONFIG, load_data
-
+import torch
+import gc
 
 parser = ArgumentParser()
 parser.add_argument('--num_sweeps', default=10, type=float)
@@ -26,6 +27,10 @@ def main():
     else:
         final_model = train(train_loader, val_loader, config, log_dir)
     test(config, final_model, test_loader, log_dir)
+    del final_model
+    torch.cuda.empty_cache()
+    gc.collect()
+    print(torch.cuda.memory_summary())
 
 
 if __name__ == '__main__':
