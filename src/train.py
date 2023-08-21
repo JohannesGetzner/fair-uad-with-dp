@@ -1,5 +1,6 @@
 import sys
 import yaml
+import gc
 sys.path.append('..')
 import os
 from argparse import ArgumentParser
@@ -61,6 +62,9 @@ def run(config, run_config):
             final_model = train(train_loader, val_loader, config, log_dir)
         test(config, final_model, test_loader, log_dir)
         wandb.finish()
+        torch.cuda.empty_cache()
+        gc.collect()
+
 
 
 if __name__ == '__main__':
