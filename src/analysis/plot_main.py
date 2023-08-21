@@ -4,6 +4,7 @@ import sys
 sys.path.append('..')
 import math
 import os
+import re
 import json
 from typing import Dict, List, Tuple
 import seaborn as sns
@@ -173,7 +174,8 @@ def plot_metric_bar(data: Dict[str, np.ndarray], attr_key_values: np.ndarray, me
     plt.title(title, wrap=True)
     plt.xticks(centers, attr_key_values.round(2))
     plt.xlim(left, right)
-    plt.legend(bars, metrics)
+    legend_labels = [re.search(r"(old|female|male|young)", m).group(1) for m in metrics]
+    plt.legend(bars,legend_labels)
     ylim_min = max(0, mini - 0.1 * (maxi - mini))
     plt.ylim(ylim_min, plt.ylim()[1])
     print(f"Saving plot to {plt_name}")
@@ -261,7 +263,7 @@ def plot_metric_box_whisker(data: Dict[str, np.ndarray], attr_key_values: np.nda
 
 
 if __name__ == '__main__':
-    to_skip = ["2023-08-07 16:45:30-FAE-rsna-age-bs1024_mgn001_old_down_weighted-DP"]
+    to_skip = ["2023-08-07 16:45:30-FAE-rsna-age-bs1024_mgn001_old_down_weighted-DP","2023-08-13 09:52:07-FAE-rsna-age-bs32_old_down_weighted-noDP"]
     dir = ""
     if dir == "":
         dirs = os.listdir("../logs_persist")
@@ -294,7 +296,7 @@ if __name__ == '__main__':
         ]
 
         for metric in metrics:
-            title = f"FAE {metric[2]} on RSNA for different proportions of {g[0]} patients in training" + "_DP" if "noDP" not in experiment_dir else ""
+            title = f"FAE {metric[2]} on RSNA for different proportions of {g[0]} patients in training"
             plot_metric(
                 experiment_dir=experiment_dir,
                 metrics=metric[:2],
@@ -306,7 +308,7 @@ if __name__ == '__main__':
                 dp="noDP" not in experiment_dir
             )
 
-    if True:
+    if False:
         non_dp_dir = os.path.join("../logs_persist", "2023.07.11-20:38:32-FAE-rsna-age-bs32-noDP")
         dp_dir = os.path.join("../logs_persist", "2023.07.13-09:20:21-FAE-rsna-age-bs1024_mgn001-DP")
         metrics = (f"test/lungOpacity_old_subgroupAUROC", f"test/lungOpacity_young_subgroupAUROC")
