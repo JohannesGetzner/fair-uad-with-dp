@@ -6,7 +6,7 @@ experiment_config:
   epochs: 100
   batch_size: 1024
   max_grad_norm: 0.01
-  max_physical_batch_size: 512
+  max_physical_batch_size: 256
   protected_attr: "age"
   wandb_project: "test"
   group_name_mod: "SWEEP_lr_bs1024_mgn001_old_down_weighted"
