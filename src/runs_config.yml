@@ -17,27 +17,33 @@ dp_1:
 # NON DP CONFIGS
 non_dp:
   protected_attr: "age"
-  num_seeds: 5
-  epochs: 187
-  # for sex: epochs: 67
+  num_seeds: 10
   wandb_project: "unsupervised-fairness"
-  dp: False
-  batch_size: 32
-  group_name_mod: "bs32_old_down_weighted"
-  initial_seed: 1
-  weigh_loss: "old_down_weighted"
-# TEST CONFIG
-test_local:
-  protected_attr: "age"
-  num_seeds: 1
-  wandb_project: "test"
-  epochs: 3
+  # for sex: epochs: 67
+  epochs: 187
   dp: False
   batch_size: 32
   max_grad_norm: 0.01
-  group_name_mod: "nadam_bs1024_mgn001_old_down_weighted"
+  group_name_mod: "bs32_two_stage"
   max_physical_batch_size: 32
   initial_seed: 1
   weigh_loss: "old_down_weighted"
-  #n_adam: True
-  lr: 0.002
+  # n_adam: True
+  # lr: 0.002
+
+# TEST CONFIG
+test_local:
+  protected_attr: "age"
+  num_seeds: 10
+  wandb_project: "test"
+  # for sex: epochs: 67
+  epochs: 10
+  dp: False
+  batch_size: 16
+  max_grad_norm: 0.01
+  group_name_mod: "nadam_bs1024_mgn001_old_down_weighted"
+  max_physical_batch_size: 16
+  initial_seed: 1
+  weigh_loss: "old_down_weighted"
+  # n_adam: True
+  # lr: 0.002

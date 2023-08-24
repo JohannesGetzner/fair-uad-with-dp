@@ -98,7 +98,6 @@ def run(config, run_config):
             os.makedirs(log_dir, exist_ok=True)
         if config.dp:
             # Init DP
-            # TODO: how to deal with test results logging
             privacy_engine = PrivacyEngine(accountant="rdp")
             config.delta = 1 / (len(train_loader) * train_loader.batch_size)
             model, optimizer, data_loader = privacy_engine.make_private_with_epsilon(
