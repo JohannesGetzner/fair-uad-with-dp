@@ -32,12 +32,12 @@ test_local:
   num_seeds: 1
   wandb_project: "test"
   epochs: 3
-  dp: True
+  dp: False
   batch_size: 32
   max_grad_norm: 0.01
   group_name_mod: "nadam_bs1024_mgn001_old_down_weighted"
-  max_physical_batch_size: 16
+  max_physical_batch_size: 32
   initial_seed: 1
   weigh_loss: "old_down_weighted"
-  n_adam: True
+  #n_adam: True
   lr: 0.002

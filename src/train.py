@@ -10,7 +10,8 @@ import torch
 from utils.utils import init_wandb, construct_log_dir
 from opacus.validators.utils import register_module_fixer
 from torch import nn
-from utils.train_utils import train, train_dp, test, DEFAULT_CONFIG, load_data
+from opacus import PrivacyEngine
+from utils.train_utils import train, train_dp, test, DEFAULT_CONFIG, load_data, seed_everything, init_model
 
 
 @register_module_fixer([nn.BatchNorm1d, nn.BatchNorm2d, nn.BatchNorm3d, nn.SyncBatchNorm])
@@ -28,10 +29,43 @@ parser.add_argument('--run_name', default="dp_1", type=str)
 parser.add_argument('--job_type_mod', default="", type=str)
 parser.add_argument('--protected_attr_percent', default=0.5, type=float)
 parser.add_argument('--weight', default=0.9, type=float)
-parser.add_argument('--d', type=str, default=str(datetime.strftime(datetime.now(), format="%Y.%m.%d-%H:%M:%S")))
+parser.add_argument(
+    '--d',
+    type=str,
+    default=str(datetime.strftime(datetime.now(), format="%Y.%m.%d-%H:%M:%S"))
+)
+parser.add_argument('--stage_two_epsilon', default=0, type=float)
 RUN_CONFIG = parser.parse_args()
 
 """"""""""""""""""""""""""""""""" Main """""""""""""""""""""""""""""""""
+
+
+def run_stage_two(model, optimizer, config, log_dir):
+    print("Starting stage two...")
+    modified_config = config.copy()
+    modified_config.protected_attr_percent = 0
+    modified_config.epochs = modified_config.epochs / 3
+    modified_config.epsilon = RUN_CONFIG.stage_two_epsilon
+    train_loader, val_loader, test_loader = load_data(modified_config)
+    if modified_config.dp:
+        privacy_engine = PrivacyEngine(accountant="rdp")
+        modified_config.delta = 1 / (len(train_loader) * train_loader.batch_size)
+        model.train()
+        model, optimizer, data_loader = privacy_engine.make_private_with_epsilon(
+            module=model,
+            optimizer=optimizer,
+            data_loader=train_loader,
+            target_epsilon=modified_config.epsilon,
+            target_delta=modified_config.delta,
+            max_grad_norm=modified_config.max_grad_norm,
+            epochs=modified_config.epochs
+        )
+        model = train_dp(model, optimizer, data_loader, val_loader, modified_config, log_dir, privacy_engine)
+    else:
+        model = train(model, optimizer, train_loader, val_loader, modified_config, log_dir)
+    test(modified_config, model, test_loader, log_dir, stage_two=True)
+    return model
+
 
 def run(config, run_config):
     # update default values config
@@ -43,6 +77,8 @@ def run(config, run_config):
     config.weigh_loss = config.weigh_loss + f"_{RUN_CONFIG.weight}"
     if RUN_CONFIG.job_type_mod != "":
         config.job_type_mod = RUN_CONFIG.job_type_mod
+    if RUN_CONFIG.stage_two_epsilon != 0:
+        config.epsilon = config.epsilon - RUN_CONFIG.stage_two_epsilon
     # load data
     train_loader, val_loader, test_loader = load_data(config)
     # iterate over seeds
@@ -52,20 +88,40 @@ def run(config, run_config):
         # get log dir
         log_dir, group_name, job_type = construct_log_dir(config, current_time)
         init_wandb(config, log_dir, group_name, job_type)
+        # reproducibility
+        print(f"Setting seed to {config.seed}...")
+        seed_everything(config.seed)
+        # Init model
+        _, model, optimizer = init_model(config)
         # create log dir
         if not config.debug:
             os.makedirs(log_dir, exist_ok=True)
         if config.dp:
-            final_model = train_dp(train_loader, val_loader, config, log_dir)
+            # Init DP
+            # TODO: how to deal with test results logging
+            privacy_engine = PrivacyEngine(accountant="rdp")
+            config.delta = 1 / (len(train_loader) * train_loader.batch_size)
+            model, optimizer, data_loader = privacy_engine.make_private_with_epsilon(
+                module=model,
+                optimizer=optimizer,
+                data_loader=train_loader,
+                target_epsilon=config.epsilon,
+                target_delta=config.delta,
+                max_grad_norm=config.max_grad_norm,
+                epochs=config.epochs
+            )
+            model = train_dp(model, optimizer, data_loader, val_loader, config, log_dir, privacy_engine)
         else:
-            final_model = train(train_loader, val_loader, config, log_dir)
-        test(config, final_model, test_loader, log_dir)
+            model = train(model, optimizer, train_loader, val_loader, config, log_dir)
+        test(config, model, test_loader, log_dir)
+
+        if RUN_CONFIG.stage_two_epsilon != 0:
+            model = run_stage_two(model, optimizer, config, log_dir)
 
         wandb.finish()
-        del final_model
+        del model
         torch.cuda.empty_cache()
         gc.collect()
-
 
 
 if __name__ == '__main__':

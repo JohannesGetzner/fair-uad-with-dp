@@ -9,7 +9,6 @@ from src.models.FAE.fae import FeatureReconstructor
 from src.utils.metrics import AvgDictMeter, build_metrics
 from src.utils.utils import seed_everything, save_checkpoint, log_time, get_subgroup_loss_weights
 from opacus.validators import ModuleValidator
-from opacus import PrivacyEngine
 from time import time
 from datetime import datetime
 from src.data.datasets import get_dataloaders
@@ -71,6 +70,8 @@ DEFAULT_CONFIG.device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print(f"Using {DEFAULT_CONFIG.device}")
 
 """"""""""""""""""""""""""""""""" Load data """""""""""""""""""""""""""""""""
+
+
 def load_data(config):
     print("Loading data...")
     t_load_data_start = time()
@@ -84,6 +85,8 @@ def load_data(config):
 
 
 """"""""""""""""""""""""""""""""" Init model """""""""""""""""""""""""""""""""
+
+
 def init_model(config):
     print("Initializing model...")
     if config.model_type == 'FAE':
@@ -110,6 +113,7 @@ def init_model(config):
 
 
 """"""""""""""""""""""""""""""""" Training """""""""""""""""""""""""""""""""
+
 
 def compute_mean_per_sample_gradient_norm(model, num_samples):
     mean_per_sample_grad_norm = torch.zeros(num_samples, 1)
@@ -150,13 +154,7 @@ def train_step_dp(model, optimizer, x, y, loss_weights):
     return loss_dict, mean_per_sample_grad_norm
 
 
-def train(train_loader, val_loader, config, log_dir):
-    # reproducibility
-    print(f"Setting seed to {config.seed}...")
-    seed_everything(config.seed)
-
-    # Init model
-    _, model, optimizer = init_model(config)
+def train(model, optimizer, train_loader, val_loader, config, log_dir):
     # Training
     print('Starting training...')
     i_step = 0
@@ -168,6 +166,7 @@ def train(train_loader, val_loader, config, log_dir):
         mode=config.weigh_loss,
         dp=False
     )
+    log_imgs = False
     while True:
         model.train()
         for x, y, meta in train_loader:
@@ -212,26 +211,7 @@ def train(train_loader, val_loader, config, log_dir):
             return model
 
 
-def train_dp(train_loader, val_loader, config, log_dir):
-    # Reproducibility
-    print(f"Setting seed to {config.seed}...")
-    seed_everything(config.seed)
-
-    # Init model
-    _, model, optimizer = init_model(config)
-
-    # Init DP
-    privacy_engine = PrivacyEngine(accountant="rdp")
-    delta = config.delta if config.delta else 1 / (len(train_loader) * train_loader.batch_size)
-    model, optimizer, data_loader = privacy_engine.make_private_with_epsilon(
-        module=model,
-        optimizer=optimizer,
-        data_loader=train_loader,
-        target_epsilon=config.epsilon,
-        target_delta=delta,
-        max_grad_norm=config.max_grad_norm,
-        epochs=config.epochs
-    )
+def train_dp(model, optimizer, train_loader, val_loader, config, log_dir, privacy_engine):
     # validate model
     errors = ModuleValidator.validate(model, strict=False)
     if len(errors) > 0:
@@ -247,6 +227,7 @@ def train_dp(train_loader, val_loader, config, log_dir):
         mode = config.weigh_loss,
         dp=True
     )
+    log_imgs = False
     while True:
         with BatchMemoryManager(
                 data_loader=train_loader,
@@ -290,11 +271,11 @@ def train_dp(train_loader, val_loader, config, log_dir):
                     # Reset
                     train_losses.reset()
 
-                eps = privacy_engine.get_epsilon(delta)
+                eps = privacy_engine.get_epsilon(config.delta)
                 if i_step % config.val_frequency == 0:
                     log_imgs = i_step % config.log_img_freq == 0
                     val_results = validate(config, model, val_loader, i_step, log_dir, log_imgs)
-                    print(f"ɛ: {eps:.2f} (target: 8)")
+                    print(f"ɛ: {eps:.2f} (target: {config.epsilon})")
                     val_results['epsilon'] = eps
                     # Log to w&b
                     wandb.log(val_results, step=i_step)
@@ -408,7 +389,7 @@ def validate(config, model, loader, step, log_dir, log_imgs=False):
 """"""""""""""""""""""""""""""""" Testing """""""""""""""""""""""""""""""""
 
 
-def test(config, model, loader, log_dir):
+def test(config, model, loader, log_dir, stage_two=False):
     print("Testing...")
 
     device = next(model.parameters()).device
@@ -458,7 +439,7 @@ def test(config, model, loader, log_dir):
 
     # Save test results to csv
     if not config.debug:
-        csv_path = os.path.join(log_dir, 'test_results.csv')
+        csv_path = os.path.join(log_dir, 'test_results.csv' if not stage_two else 'test_results_stage_two.csv')
         # create dataframe from dict, keys are the columns and values are single row
         metrics_c = {k: v.item() for k, v in metrics_c.items()}
         df = pd.DataFrame.from_dict(metrics_c, orient='index').T
@@ -469,6 +450,6 @@ def test(config, model, loader, log_dir):
     # Save anomaly scores and labels to csv
     if not config.debug:
         # os.makedirs(log_dir, exist_ok=True)
-        csv_path = os.path.join(log_dir, 'anomaly_scores.csv')
+        csv_path = os.path.join(log_dir, 'anomaly_scores.csv' if not stage_two else 'anomaly_scores_stage_two.csv')
         df = pd.DataFrame({'anomaly_score': anomaly_scores, 'label': labels, 'subgroup_name': subgroup_names})
         df.to_csv(csv_path, index=False)
