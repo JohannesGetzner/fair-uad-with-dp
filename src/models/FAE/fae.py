@@ -270,9 +270,9 @@ class FeatureReconstructor(nn.Module):
             self.loss_fn = nn.MSELoss(reduction='none')
         else:
             raise ValueError(f"Unknown loss function: {config.loss_fn}")
-        self.weigh_loss = config.weigh_loss
-        if self.weigh_loss is not None:
-            print(f"Using weighted loss: {self.weigh_loss}")
+        self.use_weighted_loss = config.loss_weight_type is not None
+        if self.use_weighted_loss:
+            print(f"Using weighted loss: {config.loss_weight_type}")
         else:
             print("Using normal loss")
 
@@ -292,7 +292,7 @@ class FeatureReconstructor(nn.Module):
         return rec
 
     def loss(self, x: Tensor, **kwargs):
-        if self.weigh_loss is not None and "per_sample_loss_weights" in kwargs.keys():
+        if self.use_weighted_loss and "per_sample_loss_weights" in kwargs.keys():
             return self.weighted_loss(x, **kwargs)
         feats, rec = self(x)
         loss = self.loss_fn(rec, feats).mean()
@@ -305,6 +305,7 @@ class FeatureReconstructor(nn.Module):
         weighted_loss = (loss * expanded_loss_weights)
         min_loss = torch.min(weighted_loss)
         max_loss = torch.max(weighted_loss)
+        # times 2 because it was before also scaled between 0 and 2
         scaled_weighted_loss = 2 * (weighted_loss - min_loss) / (max_loss - min_loss)
         mean_weighted_loss = scaled_weighted_loss.mean()
         return {'loss': mean_weighted_loss, 'rec_loss': mean_weighted_loss}

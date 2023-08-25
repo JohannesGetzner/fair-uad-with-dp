@@ -1,0 +1,20 @@
+---
+v1:
+  dp: False
+  protected_attr: "age"
+  initial_seed: 1
+  num_seeds: 1
+  wandb_project: "test"
+  epochs: 3
+  batch_size: 32
+v2:
+  dp: True
+  max_grad_norm: 0.01
+  protected_attr: "sex"
+  initial_seed: 1
+  num_seeds: 1
+  wandb_project: "test"
+  epochs: 3
+  batch_size: 32
+  max_physical_batch_size: 16
+  lr: 0.0002

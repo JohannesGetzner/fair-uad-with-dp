@@ -130,44 +130,34 @@ def log_time(remaining_time: float):
     return f"{days}d-{hours}h-{minutes}m-{seconds}s"
 
 
-def get_subgroup_loss_weights(fraction: Tuple[float, float], mode, dp=False):
+def get_subgroup_loss_weights(fraction: Tuple[float, float], config):
     # first in tuple is always "male_percent" or "old_percent"
     auroc_scores_dp = {"old": [0.77570003, 0.78220001, 0.79969999, 0.80450004, 0.8143],
                        "young": [0.65380001, 0.64079997, 0.62100002, 0.60250002, 0.5941], }
     auroc_scores_non_dp = {"old": [0.80762002, 0.83074002, 0.83918, 0.85316001, 0.8567],
                            "young": [0.77636, 0.76678, 0.74872, 0.73270002, 0.68015997], }
-    scores = auroc_scores_dp if dp else auroc_scores_non_dp
-    if mode is None:
-        return 0,0
-    if mode == "auroc":
+    scores = auroc_scores_dp if config.dp else auroc_scores_non_dp
+    if config.loss_weight_type is None:
+        return 1, 1
+    if config.loss_weight_type == "auroc":
         auroc_at_frac = {(0.25, 0.75): (scores["old"][1], scores["young"][3]),
                          (0.50, 0.50): (scores["old"][2], scores["young"][2]),
                          (0.75, 0.25): (scores["old"][3], scores["young"][1]), }
-        print(f"weight modifiers at fraction", fraction, "are",
-              (1 / auroc_at_frac[fraction][0], 1 / auroc_at_frac[fraction][1]))
         return 1 / auroc_at_frac[fraction][0], 1 / auroc_at_frac[fraction][1]
-    elif mode == "fraction":
+    elif config.loss_weight_type == "fraction":
         if fraction == (0.5, 0.5):
-            print(f"weight modifiers at fraction", fraction, "are", (1, 2))
             return 1, 2
         else:
-            print(f"weight modifiers at fraction", fraction, "are", (1 / fraction[0], 1 / fraction[1]))
             return 1 / fraction[0], 1 / fraction[1]
-    elif mode == "fraction_od":
+    elif config.loss_weight_type == "fraction_od":
         # od = only_disadvantaged
         if fraction == (0.5, 0.5):
-            print(f"weight modifiers at fraction", fraction, "are", (1, 2))
             return 1, 2
         else:
-            print(f"weight modifiers at fraction", fraction, "are", (1, 1 / fraction[1]))
             return 1, 1 / fraction[1]
-    elif mode == "fraction_rev":
+    elif config.loss_weight_type == "fraction_rev":
         # pull the weights in the opposite direction
-        print(f"weight modifiers at fraction", fraction, "are", (fraction[0], 1 / fraction[1]))
         return fraction[0], 1 / fraction[1]
-    elif mode.startswith("old_down_weighted"):
-        # get number at the end of the string
-        pattern = ".*_([0-9]+.[0-9]+)"
-        weight = float(re.match(pattern, mode).group(1))
-        print(f"weight modifiers at fraction", fraction, "are", (weight, 1))
+    elif config.loss_weight_type.startswith("old_down_weighted"):
+        weight = config.weight
         return weight, 1

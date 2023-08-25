@@ -7,12 +7,21 @@ import pandas as pd
 from src.models.DeepSVDD.deepsvdd import DeepSVDD
 from src.models.FAE.fae import FeatureReconstructor
 from src.utils.metrics import AvgDictMeter, build_metrics
-from src.utils.utils import seed_everything, save_checkpoint, log_time, get_subgroup_loss_weights
+from src.utils.utils import save_checkpoint, log_time, get_subgroup_loss_weights
 from opacus.validators import ModuleValidator
 from time import time
 from datetime import datetime
 from src.data.datasets import get_dataloaders
 from dotmap import DotMap
+from opacus.validators.utils import register_module_fixer
+from torch import nn
+
+@register_module_fixer([nn.BatchNorm1d, nn.BatchNorm2d, nn.BatchNorm3d, nn.SyncBatchNorm])
+def _batchnorm_to_groupnorm(module) -> nn.GroupNorm:
+    num_groups = 32
+    if module.num_features % num_groups != 0:
+        num_groups = 25
+    return nn.GroupNorm(min(num_groups, module.num_features), module.num_features, affine=module.affine)
 
 
 DEFAULT_CONFIG = {
@@ -22,8 +31,6 @@ DEFAULT_CONFIG = {
     "debug": False,
     "disable_wandb": False,
     "wandb_project": "unsupervised-fairness",
-    # Experiment settings
-    "experiment_name": "insert-experiment-name",
     # Data settings
     "dataset": "rsna",
     "protected_attr": None,
@@ -57,12 +64,13 @@ DEFAULT_CONFIG = {
     "dp": False,
     "epsilon": 8.0,
     "delta": None,
-    "max_grad_norm": 1.0,
+    "max_grad_norm": 0.01,
     # Other
     "group_name_mod": None,
     "job_type_mod": None,
     "max_physical_batch_size": 512,
-    "weigh_loss": None,
+    "loss_weight_type": None,
+    "weight": 1,
     "n_adam": False
 }
 DEFAULT_CONFIG = DotMap(DEFAULT_CONFIG)
@@ -161,18 +169,14 @@ def train(model, optimizer, train_loader, val_loader, config, log_dir):
     i_epoch = 0
     train_losses = AvgDictMeter()
     t_start = time()
-    loss_weights = get_subgroup_loss_weights(
-        (config.protected_attr_percent, 1 - config.protected_attr_percent),
-        mode=config.weigh_loss,
-        dp=False
-    )
+    loss_weights = get_subgroup_loss_weights((config.protected_attr_percent, 1 - config.protected_attr_percent), config)
     log_imgs = False
     while True:
         model.train()
         for x, y, meta in train_loader:
             i_step += 1
             # forward
-            per_sample_loss_weights = torch.where(meta == 0, loss_weights[0], loss_weights[1])
+            per_sample_loss_weights = torch.where(meta == 0, loss_weights[0], loss_weights[1]).to(config["device"])
             loss_dict = train_step(model, optimizer, x, y, config.device, per_sample_loss_weights)
             # add loss
             train_losses.add(loss_dict)
@@ -222,11 +226,7 @@ def train_dp(model, optimizer, train_loader, val_loader, config, log_dir, privac
     i_epoch = 0
     train_losses = AvgDictMeter()
     t_start = time()
-    loss_weights = get_subgroup_loss_weights(
-        (config.protected_attr_percent, 1-config.protected_attr_percent),
-        mode = config.weigh_loss,
-        dp=True
-    )
+    loss_weights = get_subgroup_loss_weights((config.protected_attr_percent, 1-config.protected_attr_percent), config)
     log_imgs = False
     while True:
         with BatchMemoryManager(
@@ -242,8 +242,7 @@ def train_dp(model, optimizer, train_loader, val_loader, config, log_dir, privac
                 y = y.to(config["device"])
                 i_step += 1
                 # compute weights loss weights
-                per_sample_loss_weights = torch.where(meta == 0, loss_weights[0], loss_weights[1])
-                per_sample_loss_weights = per_sample_loss_weights.to(config["device"])
+                per_sample_loss_weights = torch.where(meta == 0, loss_weights[0], loss_weights[1]).to(config["device"])
                 # forward
                 loss_dict, accumulated_per_sample_norms = train_step_dp(model, optimizer, x, y, per_sample_loss_weights)
                 # accumulate mean gradient norms per class
@@ -301,6 +300,7 @@ def train_dp(model, optimizer, train_loader, val_loader, config, log_dir, privac
 
             if i_epoch >= config.epochs:
                 print(f'Reached {config.epochs} epochs.', 'Finished training.')
+                print(f"ɛ: {eps:.2f} (target: {config.epsilon})")
                 # Final validation
                 print("Final validation...")
                 validate(config, model, val_loader, i_step, log_dir, log_imgs)
