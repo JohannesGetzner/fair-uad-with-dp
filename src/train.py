@@ -74,7 +74,8 @@ def run(config, run_config):
         config[arg_name] = arg_value
     # get protected attribute percent value
     config.protected_attr_percent = RUN_CONFIG.protected_attr_percent
-    config.weigh_loss = config.weigh_loss + f"_{RUN_CONFIG.weight}"
+    if config.weigh_loss is not None:
+        config.weigh_loss = config.weigh_loss + f"_{RUN_CONFIG.weight}"
     if RUN_CONFIG.job_type_mod != "":
         config.job_type_mod = RUN_CONFIG.job_type_mod
     if RUN_CONFIG.stage_two_epsilon != 0:
@@ -115,8 +116,7 @@ def run(config, run_config):
         test(config, model, test_loader, log_dir)
 
         if RUN_CONFIG.stage_two_epsilon != 0:
-            model = run_stage_two(model, optimizer, config, log_dir)
-
+            _ = run_stage_two(model, optimizer, config, log_dir)
         wandb.finish()
         del model
         torch.cuda.empty_cache()

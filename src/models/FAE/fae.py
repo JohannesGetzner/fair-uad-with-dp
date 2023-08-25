@@ -271,6 +271,10 @@ class FeatureReconstructor(nn.Module):
         else:
             raise ValueError(f"Unknown loss function: {config.loss_fn}")
         self.weigh_loss = config.weigh_loss
+        if self.weigh_loss is not None:
+            print(f"Using weighted loss: {self.weigh_loss}")
+        else:
+            print("Using normal loss")
 
     def forward(self, x: Tensor):
         feats = self.get_feats(x)
