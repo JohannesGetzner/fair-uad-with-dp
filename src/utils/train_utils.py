@@ -285,8 +285,7 @@ def train_dp(model, optimizer, train_loader, val_loader, config, log_dir, privac
                     print("Final validation...")
                     validate(config, model, val_loader, i_step, log_dir, log_imgs)
                     return model
-            del x
-            del y
+
             i_epoch += 1
             print(f'Finished epoch {i_epoch}/{config.epochs}, ({i_step} iterations)')
 

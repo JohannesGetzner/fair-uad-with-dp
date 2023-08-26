@@ -1,3 +1,4 @@
+import math
 import sys
 import yaml
 import gc
@@ -27,9 +28,9 @@ parser.add_argument('--group_name_mod', default=None, type=str)
 parser.add_argument('--job_type_mod', default=None, type=str)
 parser.add_argument('--loss_weight_type', default=None, type=str)
 parser.add_argument('--weight', default=None, type=float)
-parser.add_argument('--second_stage_epsilon', default=0, type=float)
+parser.add_argument('--second_stage_epsilon', default=None, type=float)
 parser.add_argument('--d', type=str, default=str(datetime.strftime(datetime.now(), format="%Y.%m.%d-%H:%M:%S")))
-RUN_ARGS = parser.parse_args()
+DYNAMIC_PARAMS = parser.parse_args()
 
 """"""""""""""""""""""""""""""""" Main """""""""""""""""""""""""""""""""
 
@@ -40,10 +41,11 @@ def initialize_configuration(new_config, static_params):
         new_config[arg_name] = arg_value
 
     # update config with run params
-    for arg_name in RUN_ARGS.keys():
-        if getattr(RUN_ARGS, arg_name) is not None:
-            new_config[arg_name] = getattr(RUN_ARGS, arg_name)
-    new_config.epsilon = new_config.epsilon - RUN_ARGS.second_stage_epsilon
+    for arg_name in vars(DYNAMIC_PARAMS).keys():
+        if getattr(DYNAMIC_PARAMS, arg_name) is not None:
+            new_config[arg_name] = getattr(DYNAMIC_PARAMS, arg_name)
+    if new_config.dp:
+        new_config.epsilon = new_config.epsilon - new_config.second_stage_epsilon
     return new_config
 
 
@@ -67,7 +69,7 @@ def run(config):
             # Init DP
             privacy_engine = PrivacyEngine(accountant="rdp")
             config.delta = 1 / (len(train_loader) * train_loader.batch_size)
-            model, optimizer, data_loader = privacy_engine.make_private_with_epsilon(
+            model, optimizer, dp_train_loader = privacy_engine.make_private_with_epsilon(
                 module=model,
                 optimizer=optimizer,
                 data_loader=train_loader,
@@ -76,12 +78,12 @@ def run(config):
                 max_grad_norm=config.max_grad_norm,
                 epochs=config.epochs
             )
-            model = train_dp(model, optimizer, data_loader, val_loader, config, log_dir, privacy_engine)
+            model = train_dp(model, optimizer, dp_train_loader, val_loader, config, log_dir, privacy_engine)
         else:
             model = train(model, optimizer, train_loader, val_loader, config, log_dir)
         test(config, model, test_loader, log_dir)
 
-        if RUN_ARGS.second_stage_epsilon != 0:
+        if config.second_stage_epsilon != 0:
             _ = run_stage_two(model, optimizer, config, log_dir)
         wandb.finish()
         del model
@@ -90,17 +92,19 @@ def run(config):
 
 
 def run_stage_two(model, optimizer, config, log_dir):
-    print("Starting stage two...")
+    print("Starting second stage...")
     modified_config = config.copy()
     modified_config.protected_attr_percent = 0
-    modified_config.epochs = modified_config.epochs / 3
-    modified_config.epsilon = RUN_ARGS.second_stage_epsilon
+    modified_config.epochs = math.floor(modified_config.epochs / 3)
+    if modified_config.dp:
+        modified_config.epsilon = modified_config.second_stage_epsilon
+        print("Second stage epsilon:", modified_config.epsilon)
     train_loader, val_loader, test_loader = load_data(modified_config)
     if modified_config.dp:
         privacy_engine = PrivacyEngine(accountant="rdp")
         modified_config.delta = 1 / (len(train_loader) * train_loader.batch_size)
         model.train()
-        model, optimizer, data_loader = privacy_engine.make_private_with_epsilon(
+        model, optimizer, dp_train_loader = privacy_engine.make_private_with_epsilon(
             module=model,
             optimizer=optimizer,
             data_loader=train_loader,
@@ -109,7 +113,7 @@ def run_stage_two(model, optimizer, config, log_dir):
             max_grad_norm=modified_config.max_grad_norm,
             epochs=modified_config.epochs
         )
-        model = train_dp(model, optimizer, data_loader, val_loader, modified_config, log_dir, privacy_engine)
+        model = train_dp(model, optimizer, dp_train_loader, val_loader, modified_config, log_dir, privacy_engine)
     else:
         model = train(model, optimizer, train_loader, val_loader, modified_config, log_dir)
     test(modified_config, model, test_loader, log_dir, stage_two=True)
@@ -118,13 +122,13 @@ def run_stage_two(model, optimizer, config, log_dir):
 
 if __name__ == '__main__':
     # get time
-    current_time = RUN_ARGS.d
+    current_time = DYNAMIC_PARAMS.d
     # copy default config
     default_config = DEFAULT_CONFIG.copy()
     # get run config
-    with open(f'run_{RUN_ARGS.run_config}_config.yml', 'r') as f:
+    with open(f'run_{DYNAMIC_PARAMS.run_config}_config.yml', 'r') as f:
         run_configs = yaml.safe_load(f)
-    run_config = run_configs[RUN_ARGS.run_version]
-    print(f"Running {RUN_ARGS.run_config}/{RUN_ARGS.run_version}...")
+    run_config = run_configs[DYNAMIC_PARAMS.run_version]
+    print(f"Running {DYNAMIC_PARAMS.run_config}/{DYNAMIC_PARAMS.run_version}...")
     current_config = initialize_configuration(default_config.copy(), run_config)
     run(current_config)
