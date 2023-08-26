@@ -22,5 +22,6 @@ source activate $ANACONDA_ENV
 # Your commands using the Anaconda environment
 echo "Running script with Anaconda environment: $ANACONDA_ENV"
 
-$ANACONDA_PYTHON sweep.py --protected_attr_percent 0.75 --d "${date}" --group_name_mod "SWEEP-lr-bs1024-mgn001"
-# $ANACONDA_PYTHON train.py --run_config dp --run_version v3 --protected_attr_percent 0.75 --n_adam --lr 0.002 --d "${date}" --group_name_mod "nadam-lr0002"
+$ANACONDA_PYTHON train.py --run_name dp_1 --protected_attr_percent 0.25 --stage_two_epsilon 2 --d "${date}"
+$ANACONDA_PYTHON train.py --run_name dp_1 --protected_attr_percent 0.5 --stage_two_epsilon 2 --d "${date}"
+$ANACONDA_PYTHON train.py --run_name dp_1 --protected_attr_percent 0.75 --stage_two_epsilon 2 --d "${date}"

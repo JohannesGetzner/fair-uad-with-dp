@@ -6,10 +6,11 @@ sys.path.append('..')
 import os
 from argparse import ArgumentParser, BooleanOptionalAction
 from datetime import datetime
+from models.FAE.fae import FeatureReconstructor
 import wandb
 import torch
 from utils.utils import init_wandb, construct_log_dir, seed_everything
-
+from dotmap import DotMap
 from opacus import PrivacyEngine
 from utils.train_utils import train, train_dp, test, DEFAULT_CONFIG, load_data, init_model
 
@@ -29,6 +30,10 @@ parser.add_argument('--job_type_mod', default=None, type=str)
 parser.add_argument('--loss_weight_type', default=None, type=str)
 parser.add_argument('--weight', default=None, type=float)
 parser.add_argument('--second_stage_epsilon', default=None, type=float)
+
+parser.add_argument('--pretrained_model_path', default=None, type=str)
+parser.add_argument('--wb_custom_run_name',  default=None, type=str)
+
 parser.add_argument('--d', type=str, default=str(datetime.strftime(datetime.now(), format="%Y.%m.%d-%H:%M:%S")))
 DYNAMIC_PARAMS = parser.parse_args()
 
@@ -60,28 +65,36 @@ def run(config):
         # reproducibility
         print(f"Setting seed to {config.seed}...")
         seed_everything(config.seed)
-        # Init model
-        _, model, optimizer = init_model(config)
         # create log dir
         if not config.debug:
             os.makedirs(log_dir, exist_ok=True)
-        if config.dp:
-            # Init DP
-            privacy_engine = PrivacyEngine(accountant="rdp")
-            config.delta = 1 / (len(train_loader) * train_loader.batch_size)
-            model, optimizer, dp_train_loader = privacy_engine.make_private_with_epsilon(
-                module=model,
-                optimizer=optimizer,
-                data_loader=train_loader,
-                target_epsilon=config.epsilon,
-                target_delta=config.delta,
-                max_grad_norm=config.max_grad_norm,
-                epochs=config.epochs
-            )
-            model, steps_done = train_dp(model, optimizer, dp_train_loader, val_loader, config, log_dir, privacy_engine)
+        # init model
+        if "pretrained_model_path" in config.keys():
+            model, steps_done, old_c = load_pretrained_model(config.pretrained_model_path)
+            model = model.to(config.device)
+            # override config
+            for k, v in old_c.items():
+                config[k] = v
+            _, _, optimizer = init_model(config)
         else:
-            model, steps_done = train(model, optimizer, train_loader, val_loader, config, log_dir)
-        test(config, model, test_loader, log_dir)
+            _, model, optimizer = init_model(config)
+            if config.dp:
+                # Init DP
+                privacy_engine = PrivacyEngine(accountant="rdp")
+                config.delta = 1 / (len(train_loader) * train_loader.batch_size)
+                model, optimizer, dp_train_loader = privacy_engine.make_private_with_epsilon(
+                    module=model,
+                    optimizer=optimizer,
+                    data_loader=train_loader,
+                    target_epsilon=config.epsilon,
+                    target_delta=config.delta,
+                    max_grad_norm=config.max_grad_norm,
+                    epochs=config.epochs
+                )
+                model, steps_done = train_dp(model, optimizer, dp_train_loader, val_loader, config, log_dir, privacy_engine)
+            else:
+                model, steps_done = train(model, optimizer, train_loader, val_loader, config, log_dir)
+            test(config, model, test_loader, log_dir)
 
         if config.second_stage_epsilon != 0:
             _ = run_stage_two(model, optimizer, config, log_dir, steps_done)
@@ -92,7 +105,7 @@ def run(config):
 
 
 def run_stage_two(model, optimizer, config, log_dir, steps_done):
-    print("Starting second stage...")
+    print("\nStarting second stage...")
     modified_config = config.copy()
     modified_config.protected_attr_percent = 0
     modified_config.epochs = math.floor(modified_config.epochs / 3)
@@ -118,6 +131,18 @@ def run_stage_two(model, optimizer, config, log_dir, steps_done):
         model, _ = train(model, optimizer, train_loader, val_loader, modified_config, log_dir, prev_step=steps_done)
     test(modified_config, model, test_loader, log_dir, stage_two=True)
     return model
+
+
+def load_pretrained_model(path):
+    # load model from logs
+    path = os.path.join(os.getcwd(), 'logs', path)
+    checkpoint = torch.load(path)
+    old_config = DotMap(checkpoint["config"]['_map'])
+    if "loss_weight_type" not in old_config.keys():
+        old_config.loss_weight_type = None
+    model = FeatureReconstructor(old_config)
+    model.load_state_dict(checkpoint["model"])
+    return model, checkpoint["step"], old_config
 
 
 if __name__ == '__main__':
