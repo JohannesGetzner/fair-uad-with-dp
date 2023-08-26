@@ -71,7 +71,9 @@ DEFAULT_CONFIG = {
     "max_physical_batch_size": 512,
     "loss_weight_type": None,
     "weight": 1,
-    "n_adam": False
+    "n_adam": False,
+    "wb_custom_run_name": None,
+    "second_stage_epsilon":None
 }
 DEFAULT_CONFIG = DotMap(DEFAULT_CONFIG)
 DEFAULT_CONFIG.device = 'cuda' if torch.cuda.is_available() else 'cpu'
