@@ -22,6 +22,6 @@ source activate $ANACONDA_ENV
 # Your commands using the Anaconda environment
 echo "Running script with Anaconda environment: $ANACONDA_ENV"
 
-$ANACONDA_PYTHON train.py --run_name dp_1 --protected_attr_percent 0.25 --second_stage_epsilon 2 --d "${date}"
-$ANACONDA_PYTHON train.py --run_name dp_1 --protected_attr_percent 0.50 --second_stage_epsilon 2 --d "${date}"
-$ANACONDA_PYTHON train.py --run_name dp_1 --protected_attr_percent 0.75 --second_stage_epsilon 2 --d "${date}"
+$ANACONDA_PYTHON train.py --run_config dp --run_version v1 --protected_attr_percent 0.25 --second_stage_epsilon 2 --d "${date}" --group_name_mod "bs1024-mgn001-ss2"
+$ANACONDA_PYTHON train.py --run_config dp --run_version v1 --protected_attr_percent 0.50 --second_stage_epsilon 2 --d "${date}" --group_name_mod "bs1024-mgn001-ss2"
+$ANACONDA_PYTHON train.py --run_config dp --run_version v1 --protected_attr_percent 0.75 --second_stage_epsilon 2 --d "${date}" --group_name_mod "bs1024-mgn001-ss2"
