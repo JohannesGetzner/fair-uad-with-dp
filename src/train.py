@@ -78,20 +78,20 @@ def run(config):
                 max_grad_norm=config.max_grad_norm,
                 epochs=config.epochs
             )
-            model = train_dp(model, optimizer, dp_train_loader, val_loader, config, log_dir, privacy_engine)
+            model, steps_done = train_dp(model, optimizer, dp_train_loader, val_loader, config, log_dir, privacy_engine)
         else:
-            model = train(model, optimizer, train_loader, val_loader, config, log_dir)
+            model, steps_done = train(model, optimizer, train_loader, val_loader, config, log_dir)
         test(config, model, test_loader, log_dir)
 
         if config.second_stage_epsilon != 0:
-            _ = run_stage_two(model, optimizer, config, log_dir)
+            _ = run_stage_two(model, optimizer, config, log_dir, steps_done)
         wandb.finish()
         del model
         torch.cuda.empty_cache()
         gc.collect()
 
 
-def run_stage_two(model, optimizer, config, log_dir):
+def run_stage_two(model, optimizer, config, log_dir, steps_done):
     print("Starting second stage...")
     modified_config = config.copy()
     modified_config.protected_attr_percent = 0
@@ -113,9 +113,9 @@ def run_stage_two(model, optimizer, config, log_dir):
             max_grad_norm=modified_config.max_grad_norm,
             epochs=modified_config.epochs
         )
-        model = train_dp(model, optimizer, dp_train_loader, val_loader, modified_config, log_dir, privacy_engine)
+        model, _ = train_dp(model, optimizer, dp_train_loader, val_loader, modified_config, log_dir, privacy_engine, prev_step=steps_done)
     else:
-        model = train(model, optimizer, train_loader, val_loader, modified_config, log_dir)
+        model, _ = train(model, optimizer, train_loader, val_loader, modified_config, log_dir, prev_step=steps_done)
     test(modified_config, model, test_loader, log_dir, stage_two=True)
     return model
 

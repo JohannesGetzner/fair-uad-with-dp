@@ -162,10 +162,10 @@ def train_step_dp(model, optimizer, x, y, loss_weights):
     return loss_dict, mean_per_sample_grad_norm
 
 
-def train(model, optimizer, train_loader, val_loader, config, log_dir):
+def train(model, optimizer, train_loader, val_loader, config, log_dir, prev_step=0):
     # Training
     print('Starting training...')
-    i_step = 0
+    i_step = prev_step
     i_epoch = 0
     train_losses = AvgDictMeter()
     t_start = time()
@@ -212,17 +212,17 @@ def train(model, optimizer, train_loader, val_loader, config, log_dir):
             # Final validation
             print("Final validation...")
             validate(config, model, val_loader, i_step, log_dir, log_imgs)
-            return model
+            return model, i_step
 
 
-def train_dp(model, optimizer, train_loader, val_loader, config, log_dir, privacy_engine):
+def train_dp(model, optimizer, train_loader, val_loader, config, log_dir, privacy_engine, prev_step=0):
     # validate model
     errors = ModuleValidator.validate(model, strict=False)
     if len(errors) > 0:
         print(f'WARNING: model validation failed with errors: {errors}')
     # Training
     print('Starting training...')
-    i_step = 0
+    i_step = prev_step
     i_epoch = 0
     train_losses = AvgDictMeter()
     t_start = time()
@@ -303,7 +303,7 @@ def train_dp(model, optimizer, train_loader, val_loader, config, log_dir, privac
                 # Final validation
                 print("Final validation...")
                 validate(config, model, val_loader, i_step, log_dir, log_imgs)
-                return model
+                return model, i_step
 
 
 """"""""""""""""""""""""""""""""" Validation """""""""""""""""""""""""""""""""
