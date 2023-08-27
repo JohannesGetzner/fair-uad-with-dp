@@ -30,6 +30,7 @@ parser.add_argument('--job_type_mod', default=None, type=str)
 parser.add_argument('--loss_weight_type', default=None, type=str)
 parser.add_argument('--weight', default=None, type=float)
 parser.add_argument('--second_stage_epsilon', default=None, type=float)
+parser.add_argument('--second_stage_epochs', default=None, type=int)
 
 parser.add_argument('--pretrained_model_path', default=None, type=str)
 parser.add_argument('--wb_custom_run_name',  default=None, type=str)
@@ -108,7 +109,7 @@ def run_stage_two(model, optimizer, config, log_dir, steps_done):
     print("\nStarting second stage...")
     modified_config = config.copy()
     modified_config.protected_attr_percent = 0
-    modified_config.epochs = math.floor(modified_config.epochs / 3)
+    modified_config.epochs = modified_config.second_stage_epochs
     if modified_config.dp:
         modified_config.epsilon = modified_config.second_stage_epsilon
         print("Second stage epsilon:", modified_config.epsilon)
@@ -155,5 +156,6 @@ if __name__ == '__main__':
         run_configs = yaml.safe_load(f)
     run_config = run_configs[DYNAMIC_PARAMS.run_version]
     print(f"Running {DYNAMIC_PARAMS.run_config}/{DYNAMIC_PARAMS.run_version}...")
+    print(f"Run config: {run_config}")
     current_config = initialize_configuration(default_config.copy(), run_config)
     run(current_config)
