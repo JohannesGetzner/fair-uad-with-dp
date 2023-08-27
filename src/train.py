@@ -34,7 +34,7 @@ parser.add_argument('--second_stage_epsilon', default=None, type=float)
 parser.add_argument('--pretrained_model_path', default=None, type=str)
 parser.add_argument('--wb_custom_run_name',  default=None, type=str)
 
-parser.add_argument('--d', type=str, default=str(datetime.strftime(datetime.now(), format="%Y.%m.%d-%H:%M:%S")))
+parser.add_argument('--d', type=str, default=str(datetime.strftime(datetime.now(), format="%Y-%m-%d %H:%M:%S")))
 DYNAMIC_PARAMS = parser.parse_args()
 
 """"""""""""""""""""""""""""""""" Main """""""""""""""""""""""""""""""""

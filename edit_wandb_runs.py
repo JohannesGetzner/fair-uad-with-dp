@@ -1,7 +1,7 @@
 import wandb
 api = wandb.Api()
-current = "2023-08-12 11:14:45-FAE-rsna-age-bs1024_mgn001_old_down_weighted-DP"
-target = "2023-08-07 16:45:30-FAE-rsna-age-bs1024_mgn001_old_down_weighted-DP"
+current = "2023.08.19-15:49:47-FAE-rsna-age-SWEEP-lr-bs1024-mgn001-old-down-weighted-DP"
+target = "2023-08-19 15:49:47-FAE-rsna-age-SWEEP-lr-bs1024-mgn001-old-down-weighted-DP"
 for r in api.runs(
         "thesis-getzner/unsupervised-fairness",
         filters={

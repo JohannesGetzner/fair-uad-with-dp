@@ -16,7 +16,7 @@ parser.add_argument('--num_sweeps', default=10, type=float)
 parser.add_argument('--protected_attr_percent', default=0.5, type=float)
 parser.add_argument('--job_type_mod', default=None, type=str)
 parser.add_argument('--group_name_mod', default=None, type=str)
-parser.add_argument('--d', type=str, default=str(datetime.strftime(datetime.now(), format="%Y.%m.%d-%H:%M:%S")))
+parser.add_argument('--d', type=str, default=str(datetime.strftime(datetime.now(), format="%Y-%m-%d %H:%M:%S")))
 RUN_CONFIG = parser.parse_args()
 
 

@@ -17,7 +17,7 @@ from scipy.stats import linregress
 from einops import repeat
 from scipy import stats
 
-from utils import gather_data_seeds, combine_non_and_dp_data
+from utils import gather_data_seeds, compare_two_runs
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 plt.rcParams["font.family"] = "Times New Roman"
@@ -194,7 +194,6 @@ def plot_metric_bar_compare(df, groups, fig_size=(10, 6)):
     for idx, group in enumerate(df["group"].unique()):
         group_data = df[df["group"] == group]
         group_data["percent"] = group_data["percent"] * 4
-        # TODO: regression and statistical significance
         slope, intercept, r_value, p_value, std_err = linregress(group_data["percent"], group_data["value"])
         if p_value < 0.05:
             g = sns.regplot(
@@ -263,7 +262,7 @@ def plot_metric_box_whisker(data: Dict[str, np.ndarray], attr_key_values: np.nda
 
 
 if __name__ == '__main__':
-    to_skip = ["2023-08-07 16:45:30-FAE-rsna-age-bs1024_mgn001_old_down_weighted-DP","2023-08-13 09:52:07-FAE-rsna-age-bs32_old_down_weighted-noDP"]
+    to_skip = ["2023-08-07 16:45:30-FAE-rsna-age-bs1024-mgn001-olddownweighted-DP", "2023-08-13 09:52:07-FAE-rsna-age-bs32-olddownweighted-noDP"]
     dir = ""
     if dir == "":
         dirs = os.listdir("../logs_persist")
@@ -296,7 +295,7 @@ if __name__ == '__main__':
         ]
 
         for metric in metrics:
-            title = f"FAE {metric[2]} on RSNA for different proportions of {g[0]} patients in training"
+            title = f"RSNA FAE {metric[2]} for diff. proportions of {g[0]}"
             plot_metric(
                 experiment_dir=experiment_dir,
                 metrics=metric[:2],
@@ -308,17 +307,19 @@ if __name__ == '__main__':
                 dp="noDP" not in experiment_dir
             )
 
-    if False:
-        non_dp_dir = os.path.join("../logs_persist", "2023.07.11-20:38:32-FAE-rsna-age-bs32-noDP")
-        dp_dir = os.path.join("../logs_persist", "2023.07.13-09:20:21-FAE-rsna-age-bs1024_mgn001-DP")
+    if True:
+        non_dp_dir = os.path.join("../logs_persist", "2023-07-11 20:38:32-FAE-rsna-age-bs32-noDP")
+        dp_dir = os.path.join("../logs_persist", "2023-08-26 14:14:04-FAE-rsna-age-bs32-ss-noDP")
         metrics = (f"test/lungOpacity_old_subgroupAUROC", f"test/lungOpacity_young_subgroupAUROC")
-        groups = ["old", "young", "old_dp", "young_dp"]
-        df = combine_non_and_dp_data(
+        groups = ["old", "young", "old second stage", "young second stage"]
+        df = compare_two_runs(
             non_dp_dir,
             dp_dir,
             "old_percent",
             metrics,
-            ["old", "young", "old_dp", "young_dp"]
+            groups
         )
         g = plot_metric_bar_compare(df, groups)
+        # set title
+        g.set_title("batch-size: 32, no-DP, min. 5 seeds")
         plt.show()
