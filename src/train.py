@@ -108,6 +108,7 @@ def run(config):
 def run_stage_two(model, optimizer, config, log_dir, steps_done):
     print("\nStarting second stage...")
     modified_config = config.copy()
+    modified_config.initial_stage_protected_attr_percent = modified_config.protected_attr_percent
     modified_config.protected_attr_percent = 0
     modified_config.epochs = modified_config.second_stage_epochs
     if modified_config.dp:

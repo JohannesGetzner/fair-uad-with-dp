@@ -60,13 +60,7 @@ def gather_data_seeds(experiment_dir: str, attr_key: str, metric_names, ss=False
             attr_key_values.append(extracted_value)
         else:
             if ss:
-                if "-DP" in run_dir:
-                    number_str = re.search(r'\d+$', run_dir[:-3]).group()
-                else:
-                    number_str = re.search(r'\d+$', run_dir).group()
-                number_str = number_str[0] + "." + number_str[1:]
-                number_float = float(number_str)
-                attr_key_values.append(number_float)
+                attr_key_values.append(df["initial_stage_protected_attr_percent"].values[0])
             else:
                 attr_key_values.append(df["protected_attr_percent"].values[0])
 
