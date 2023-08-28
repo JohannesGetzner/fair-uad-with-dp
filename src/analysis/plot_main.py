@@ -27,7 +27,7 @@ def plot_metric(experiment_dir: str, attr_key: str, metrics: Tuple[str], xlabel:
                 plt_name: str, dp=False):
     """Plots the given metrics as different plots"""
     # Collect data from all runs
-    data, attr_key_values = gather_data_seeds(experiment_dir, attr_key, metrics, dp=dp)
+    data, attr_key_values = gather_data_seeds(experiment_dir, attr_key, metrics)
     plotting_args = {
         "data": data,
         "attr_key_values": attr_key_values,
@@ -195,6 +195,8 @@ def plot_metric_bar_compare(df, groups, fig_size=(10, 6)):
         group_data = df[df["group"] == group]
         group_data["percent"] = group_data["percent"] * 4
         slope, intercept, r_value, p_value, std_err = linregress(group_data["percent"], group_data["value"])
+        if "second" in group:
+            continue
         if p_value < 0.05:
             g = sns.regplot(
                 x="percent",
@@ -269,6 +271,7 @@ if __name__ == '__main__':
     else:
         dirs = [dir]
     for experiment_dir in dirs:
+        break
         if experiment_dir in to_skip:
             continue
         print("\nGenerating plots for", experiment_dir, "\n")
@@ -308,18 +311,18 @@ if __name__ == '__main__':
             )
 
     if True:
-        non_dp_dir = os.path.join("../logs_persist", "2023-07-11 20:38:32-FAE-rsna-age-bs32-noDP")
-        dp_dir = os.path.join("../logs_persist", "2023-08-26 14:14:04-FAE-rsna-age-bs32-ss-noDP")
+        dir_1 = os.path.join("../logs_persist", "2023-07-13 09:20:21-FAE-rsna-age-bs1024-mgn001-DP/")
+        dir_2 = os.path.join("../logs_persist", "2023-08-26 16:02:35-FAE-rsna-age-bs1024-mgn001-ss2-DP/")
         metrics = (f"test/lungOpacity_old_subgroupAUROC", f"test/lungOpacity_young_subgroupAUROC")
         groups = ["old", "young", "old second stage", "young second stage"]
         df = compare_two_runs(
-            non_dp_dir,
-            dp_dir,
+            dir_1,
+            dir_2,
             "old_percent",
             metrics,
             groups
         )
         g = plot_metric_bar_compare(df, groups)
         # set title
-        g.set_title("batch-size: 32, no-DP, min. 5 seeds")
+        g.set_title("batch-size: 1024, DP, min. 1 seed, mgn: 0.01, lr: 0.0002, ε: 6 (+2)")
         plt.show()

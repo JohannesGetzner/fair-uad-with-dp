@@ -31,12 +31,12 @@ import numpy as np
 import pandas as pd
 
 
-def gather_data_seeds(experiment_dir: str, attr_key: str, metric_names, dp: bool = False):
+def gather_data_seeds(experiment_dir: str, attr_key: str, metric_names):
     """Gather the data of multiple random seeds
     For every metric, it returns a matrix of shape (num_runs, num_seeds)
     """
+    test = os.listdir(experiment_dir)
     run_dirs = [os.path.join(experiment_dir, run_dir) for run_dir in os.listdir(experiment_dir) if not run_dir.endswith('.png') and not run_dir.endswith('.json') and not run_dir.endswith('.ipynb')]
-    run_dirs = [run_dir for run_dir in run_dirs if run_dir.endswith('DP') and dp or not run_dir.endswith('DP') and not dp]
     run_dfs = []
     if len(run_dirs) == 0:
         return None, None
@@ -97,8 +97,8 @@ def avg_numeric_in_df(df: pd.DataFrame):
 
 
 def compare_two_runs(exp_dir: str, exp_dir_two: str, attr_key: str, metrics: Tuple[str], group_names: List[str]):
-    data, attr_key_values = gather_data_seeds(exp_dir, attr_key, metrics, dp=False if "noDP" in exp_dir else False)
-    data_two, attr_key_values_two = gather_data_seeds(exp_dir_two, attr_key, metrics, dp=False if "noDP" in exp_dir_two else False)
+    data, attr_key_values = gather_data_seeds(exp_dir, attr_key, metrics)
+    data_two, attr_key_values_two = gather_data_seeds(exp_dir_two, attr_key, metrics)
 
     df = pd.DataFrame(columns=["percent", "value", "group"])
     for metric_name, metric_values in data.items():
