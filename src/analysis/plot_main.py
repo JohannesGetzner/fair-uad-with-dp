@@ -27,7 +27,7 @@ def plot_metric(experiment_dir: str, attr_key: str, metrics: Tuple[str], xlabel:
                 plt_name: str, dp=False):
     """Plots the given metrics as different plots"""
     # Collect data from all runs
-    data, attr_key_values = gather_data_seeds(experiment_dir, attr_key, metrics)
+    data, attr_key_values = gather_data_seeds(experiment_dir, attr_key, metrics, ss=True if "ss" in experiment_dir else False)
     plotting_args = {
         "data": data,
         "attr_key_values": attr_key_values,
@@ -195,17 +195,19 @@ def plot_metric_bar_compare(df, groups, fig_size=(10, 6)):
         group_data = df[df["group"] == group]
         group_data["percent"] = group_data["percent"] * 4
         slope, intercept, r_value, p_value, std_err = linregress(group_data["percent"], group_data["value"])
-        if "second" in group:
-            continue
-        if p_value < 0.05:
-            g = sns.regplot(
-                x="percent",
-                y="value",
-                data=group_data,
-                scatter=False,
-                line_kws={"label": f"{group} regression line", "color": colors[idx], "lw": 1.7, "ls": "--"},
-                truncate=False
-            )
+        if p_value >= 0.05:
+            print("Regression line not significant for", group)
+        #if "second stage" in group:
+        #    continue
+        g = sns.regplot(
+            x="percent",
+            y="value",
+            data=group_data,
+            scatter=False,
+            line_kws={"label": f"{group} regression line", "color": colors[idx], "lw": 1.7, "ls": "--"},
+            truncate=False,
+            ci=None if "second stage" in group else 95
+        )
     # set axis labels
     plt.xlabel(f"percent {groups[0]} samples in training data")
     plt.ylabel("subgroup AUROC")
@@ -271,7 +273,6 @@ if __name__ == '__main__':
     else:
         dirs = [dir]
     for experiment_dir in dirs:
-        break
         if experiment_dir in to_skip:
             continue
         print("\nGenerating plots for", experiment_dir, "\n")
@@ -283,18 +284,7 @@ if __name__ == '__main__':
             pv = "sex"
             g = ("male", "female")
         metrics = [
-            # fpr@0.95
-            # (f"test/lungOpacity_{g[0]}_fpr@0.95", f"test/lungOpacity_{g[1]}_fpr@0.95", "fpr@0.95tpr"),
-            # tpr@0.05
-            # (f"test/lungOpacity_{g[0]}_tpr@0.05", f"test/lungOpacity_{g[1]}_tpr@0.05", "tpr@0.05fpr"),
-            # anomaly score
-            # (f"test/lungOpacity_{g[0]}_anomaly_score", f"test/lungOpacity_{g[1]}_anomaly_score", "anomaly score"),
-            # AUROC
-            # (f"test/lungOpacity_{g[0]}_AUROC", f"test/lungOpacity_{g[1]}_AUROC", "AUROC"),
-            # subgroupAUROC
             (f"test/lungOpacity_{g[0]}_subgroupAUROC", f"test/lungOpacity_{g[1]}_subgroupAUROC", "subgroupAUROC"),
-            # Average precision
-            # (f"test/lungOpacity_{g[0]}_AP", f"test/lungOpacity_{g[1]}_AP", "AP")
         ]
 
         for metric in metrics:
@@ -311,8 +301,8 @@ if __name__ == '__main__':
             )
 
     if True:
-        dir_1 = os.path.join("../logs_persist", "2023-07-13 09:20:21-FAE-rsna-age-bs1024-mgn001-DP/")
-        dir_2 = os.path.join("../logs_persist", "2023-08-26 16:02:35-FAE-rsna-age-bs1024-mgn001-ss2-DP/")
+        dir_1 = os.path.join("../logs_persist", "2023-07-13 09:20:21-FAE-rsna-age-bs1024-mgn001-DP")
+        dir_2 = os.path.join("../logs_persist", "2023-08-26 16:02:35-FAE-rsna-age-bs1024-mgn001-ss2-DP")
         metrics = (f"test/lungOpacity_old_subgroupAUROC", f"test/lungOpacity_young_subgroupAUROC")
         groups = ["old", "young", "old second stage", "young second stage"]
         df = compare_two_runs(
@@ -324,5 +314,6 @@ if __name__ == '__main__':
         )
         g = plot_metric_bar_compare(df, groups)
         # set title
-        g.set_title("batch-size: 1024, DP, min. 1 seed, mgn: 0.01, lr: 0.0002, ε: 6 (+2)")
+        g.set_title("batch-size: 1024, mgn: 0.01, lr: 0.0002, ε: 6 (+2), epochs: 15000/12000 (+4000)")
+        # g.set_title("batch-size: 1024, DP, min. 5 seeds, lr: 0.0002, 187 (+62) epochs")
         plt.show()
