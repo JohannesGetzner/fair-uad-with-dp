@@ -396,7 +396,7 @@ class SubgroupAUROC(Metric):
         if targets.sum() == 0 or targets.sum() == len(targets):
             return torch.tensor(0.)
 
-        # Sort predictions and targets by descending prediction score
+        # Sort predictions and targets by descending anomaly score
         sorted_indices = torch.argsort(preds, descending=True)
         sorted_targets = targets[sorted_indices]
         sorted_subgroups = subgroups[sorted_indices]

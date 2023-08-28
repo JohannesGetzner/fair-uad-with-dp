@@ -31,12 +31,11 @@ import numpy as np
 import pandas as pd
 
 
-def gather_data_seeds(experiment_dir: str, attr_key: str, metric_names, dp: bool = False):
+def gather_data_seeds(experiment_dir: str, attr_key: str, metric_names, ss=False):
     """Gather the data of multiple random seeds
     For every metric, it returns a matrix of shape (num_runs, num_seeds)
     """
     run_dirs = [os.path.join(experiment_dir, run_dir) for run_dir in os.listdir(experiment_dir) if not run_dir.endswith('.png') and not run_dir.endswith('.json') and not run_dir.endswith('.ipynb')]
-    run_dirs = [run_dir for run_dir in run_dirs if run_dir.endswith('DP') and dp or not run_dir.endswith('DP') and not dp]
     run_dfs = []
     if len(run_dirs) == 0:
         return None, None
@@ -45,7 +44,7 @@ def gather_data_seeds(experiment_dir: str, attr_key: str, metric_names, dp: bool
         seed_dirs = [os.path.join(run_dir, seed_dir) for seed_dir in os.listdir(run_dir)]
         seed_dfs = []
         for seed_dir in seed_dirs:
-            results_file = os.path.join(seed_dir, 'test_results.csv')
+            results_file = os.path.join(seed_dir, 'test_results.csv' if not ss else 'test_results_stage_two.csv')
             df = pd.read_csv(results_file)
             seed_dfs.append(df)
         df = pd.concat(seed_dfs)
@@ -60,7 +59,17 @@ def gather_data_seeds(experiment_dir: str, attr_key: str, metric_names, dp: bool
             extracted_value = float(result.group(1))
             attr_key_values.append(extracted_value)
         else:
-            attr_key_values.append(df["protected_attr_percent"].values[0])
+            if ss:
+                if "-DP" in run_dir:
+                    number_str = re.search(r'\d+$', run_dir[:-3]).group()
+                else:
+                    number_str = re.search(r'\d+$', run_dir).group()
+                number_str = number_str[0] + "." + number_str[1:]
+                number_float = float(number_str)
+                attr_key_values.append(number_float)
+            else:
+                attr_key_values.append(df["protected_attr_percent"].values[0])
+
     # Sort by protected attribute
     run_dfs = [df for _, df in sorted(zip(attr_key_values, run_dfs))]
     attr_key_values = np.sort(np.array(attr_key_values))
@@ -97,8 +106,8 @@ def avg_numeric_in_df(df: pd.DataFrame):
 
 
 def compare_two_runs(exp_dir: str, exp_dir_two: str, attr_key: str, metrics: Tuple[str], group_names: List[str]):
-    data, attr_key_values = gather_data_seeds(exp_dir, attr_key, metrics, dp=False if "noDP" in exp_dir else False)
-    data_two, attr_key_values_two = gather_data_seeds(exp_dir_two, attr_key, metrics, dp=False if "noDP" in exp_dir_two else False)
+    data, attr_key_values = gather_data_seeds(exp_dir, attr_key, metrics, ss=True if "ss" in exp_dir else False)
+    data_two, attr_key_values_two = gather_data_seeds(exp_dir_two, attr_key, metrics, ss=True if "ss" in exp_dir_two else False)
 
     df = pd.DataFrame(columns=["percent", "value", "group"])
     for metric_name, metric_values in data.items():
