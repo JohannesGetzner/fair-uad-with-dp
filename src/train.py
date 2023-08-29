@@ -137,13 +137,15 @@ def run_stage_two(model, optimizer, config, log_dir, steps_done):
 
 def load_pretrained_model(path):
     # load model from logs
-    path = os.path.join(os.getcwd(), 'logs', path)
+    path = os.path.join(os.getcwd(), 'logs_persist', path)
     checkpoint = torch.load(path)
     old_config = DotMap(checkpoint["config"]['_map'])
     if "loss_weight_type" not in old_config.keys():
         old_config.loss_weight_type = None
     model = FeatureReconstructor(old_config)
-    model.load_state_dict(checkpoint["model"])
+    state_dict = checkpoint["model"]
+    new_state_dict = {key.replace('_module.', ''): value for key, value in state_dict.items()}
+    model.load_state_dict(new_state_dict)
     return model, checkpoint["step"], old_config
 
 
