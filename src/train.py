@@ -7,6 +7,7 @@ from opacus.validators import ModuleValidator
 
 sys.path.append('..')
 import os
+os.environ["WANDB__SERVICE_WAIT"] = "300"
 from argparse import ArgumentParser, BooleanOptionalAction
 from datetime import datetime
 from models.FAE.fae import FeatureReconstructor
