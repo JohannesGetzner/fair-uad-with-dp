@@ -2,6 +2,9 @@ import math
 import sys
 import yaml
 import gc
+
+from opacus.validators import ModuleValidator
+
 sys.path.append('..')
 import os
 from argparse import ArgumentParser, BooleanOptionalAction
@@ -75,6 +78,8 @@ def run(config):
             model = model.to(config.device)
             # override config
             for k, v in old_c.items():
+                if k.startswith("second_stage"):
+                    continue
                 config[k] = v
             _, _, optimizer = init_model(config)
         else:
@@ -143,6 +148,7 @@ def load_pretrained_model(path):
     if "loss_weight_type" not in old_config.keys():
         old_config.loss_weight_type = None
     model = FeatureReconstructor(old_config)
+    model = ModuleValidator.fix(model)
     state_dict = checkpoint["model"]
     new_state_dict = {key.replace('_module.', ''): value for key, value in state_dict.items()}
     model.load_state_dict(new_state_dict)
