@@ -11,7 +11,7 @@ date=$(date '+%Y-%m-%d %H:%M:%S')
 module load python/anaconda3
 
 # Specify the Anaconda environment name
-ANACONDA_ENV="fix"
+ANACONDA_ENV="thesis_custom_opacus"
 
 # Specify the full path to the Anaconda environment's Python interpreter
 ANACONDA_PYTHON="/u/home/getzner/.conda/envs/$ANACONDA_ENV/bin/python"
@@ -22,5 +22,5 @@ source activate $ANACONDA_ENV
 # Your commands using the Anaconda environment
 echo "Running script with Anaconda environment: $ANACONDA_ENV"
 
-$ANACONDA_PYTHON train.py --run_config dp --run_version v1 --protected_attr_percent 0.8 ----upsampling_strategy "even" --d "${date}" --group_name_mod "bs1024-mgn001-upsamplingeven"
-$ANACONDA_PYTHON train.py --run_config dp --run_version v1 --protected_attr_percent 0.9 ----upsampling_strategy "even" --d "${date}" --group_name_mod "bs1024-mgn001-upsamplingeven"
+$ANACONDA_PYTHON train.py --run_config dp --run_version v1 --protected_attr_percent 0.8 --upsampling_strategy "even" --d "${date}" --group_name_mod "bs1024-mgn001-upsamplingeven"
+$ANACONDA_PYTHON train.py --run_config dp --run_version v1 --protected_attr_percent 0.9 --upsampling_strategy "even" --d "${date}" --group_name_mod "bs1024-mgn001-upsamplingeven"
