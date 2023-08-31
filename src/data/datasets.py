@@ -1,3 +1,4 @@
+from collections import Counter
 from functools import partial
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
@@ -99,7 +100,8 @@ def get_dataloaders(dataset: str,
                     protected_attr: str,
                     num_workers: Optional[int] = 4,
                     male_percent: Optional[float] = 0.5,
-                    old_percent: Optional[float] = 0.5) -> Tuple[DataLoader, DataLoader, DataLoader]:
+                    old_percent: Optional[float] = 0.5,
+                    upsampling_strategy=None) -> Tuple[DataLoader, DataLoader, DataLoader, int]:
     """
     Returns dataloaders for the RSNA dataset.
     """
@@ -109,7 +111,7 @@ def get_dataloaders(dataset: str,
         if protected_attr == 'none':
             data, labels, meta = load_rsna_naive_split(RSNA_DIR)
         elif protected_attr == 'age':
-            data, labels, meta = load_rsna_age_two_split(RSNA_DIR, old_percent=old_percent)
+            data, labels, meta = load_rsna_age_two_split(RSNA_DIR, old_percent=old_percent, upsampling_strategy=upsampling_strategy)
         elif protected_attr == 'sex':
             data, labels, meta = load_rsna_gender_split(RSNA_DIR, male_percent=male_percent)
         else:
@@ -120,6 +122,14 @@ def get_dataloaders(dataset: str,
     train_data = data['train']
     train_labels = labels['train']
     train_meta = meta['train']
+    if upsampling_strategy:
+        # get the max number of times a sample appears in train_data
+        counts = Counter(train_data)
+        max_count = max(counts.values())
+        print(f"Sampling rate is {max_count}/{batch_size}")
+    else:
+        max_count = 1
+
     val_data = {k: v for k, v in data.items() if 'val' in k}
     val_labels = {k: v for k, v in labels.items() if 'val' in k}
     val_meta = {k: v for k, v in meta.items() if 'val' in k}
@@ -158,4 +168,4 @@ def get_dataloaders(dataset: str,
 
     return (train_dataloader,
             val_dataloader,
-            test_dataloader)
+            test_dataloader, max_count)

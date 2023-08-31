@@ -74,7 +74,8 @@ DEFAULT_CONFIG = {
     "n_adam": False,
     "wb_custom_run_name": None,
     "second_stage_epsilon": None,
-    "second_stage_epochs": None
+    "second_stage_epochs": None,
+    "upsampling_strategy": None
 }
 DEFAULT_CONFIG = DotMap(DEFAULT_CONFIG)
 DEFAULT_CONFIG.device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -86,13 +87,16 @@ print(f"Using {DEFAULT_CONFIG.device}")
 def load_data(config):
     print("Loading data...")
     t_load_data_start = time()
-    train_loader, val_loader, test_loader = get_dataloaders(dataset=config.dataset, batch_size=config.batch_size,
-                                                            img_size=config.img_size, num_workers=config.num_workers,
-                                                            protected_attr=config.protected_attr,
-                                                            male_percent=config.protected_attr_percent,
-                                                            old_percent=config.protected_attr_percent, )
+    train_loader, val_loader, test_loader, max_sample_freq = get_dataloaders(
+        dataset=config.dataset,
+        batch_size=config.batch_size,
+        img_size=config.img_size, num_workers=config.num_workers,
+        protected_attr=config.protected_attr,
+        male_percent=config.protected_attr_percent,
+        old_percent=config.protected_attr_percent,
+        upsampling_strategy=config.upsampling_strategy)
     print(f'Loaded datasets in {time() - t_load_data_start:.2f}s')
-    return train_loader, val_loader, test_loader
+    return train_loader, val_loader, test_loader, max_sample_freq
 
 
 """"""""""""""""""""""""""""""""" Init model """""""""""""""""""""""""""""""""

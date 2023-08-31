@@ -173,9 +173,17 @@ def load_rsna_gender_split(rsna_dir: str = RSNA_DIR,
     return filenames, labels, meta
 
 
+def upsample_dataset(data:pd.DataFrame, upsampling_freq):
+    """upsample a dataset to a given frequency."""
+    pass
+
+
+
+
 def load_rsna_age_two_split(rsna_dir: str = RSNA_DIR,
                             old_percent: float = 0.5,
-                            anomaly: str = 'lungOpacity'):
+                            anomaly: str = 'lungOpacity',
+                            upsampling_strategy=None):
     """Load data with age balanced val and test sets. Training fraction of old
     and young patients can be specified.
     lo = lung opacity
@@ -233,12 +241,25 @@ def load_rsna_age_two_split(rsna_dir: str = RSNA_DIR,
     n_old = int(n_samples * old_percent)
     train_young = rest_normal_young.sample(n=n_young, random_state=42)
     train_old = rest_normal_old.sample(n=n_old, random_state=42)
-
+    print(f"Using {len(train_young)} young and {len(train_old)} old samples for training.")
+    if upsampling_strategy:
+        if old_percent == 1 or young_percent == 1:
+            raise ValueError("Cannot up-sample when one of the classes is 100%")
+        num_add_samples = n_old - n_young
+        if upsampling_strategy == "even":
+            replication_factor = (n_young+num_add_samples)/n_young
+            train_young_new = train_young.loc[train_young.index.repeat(np.floor(replication_factor))]
+            if replication_factor % 1 != 0:
+                num_remaining_replications = int(np.rint((replication_factor % 1)*n_young))
+                additional_samples = train_young.sample(n=num_remaining_replications, replace=False, random_state=42)
+                train_young_new = pd.concat([train_young_new, additional_samples])
+            train_young = train_young_new
+        else:
+            train_young = pd.concat([train_young, train_young.sample(n=num_add_samples, replace=True, random_state=42)])
+        print("Up-sampling young samples by", num_add_samples)
+        print(f"Using {len(train_young)} young and {len(train_old)} old samples for training.")
     # Aggregate training set and shuffle
     train = pd.concat([train_young, train_old]).sample(frac=1, random_state=42).reset_index(drop=True)
-
-    print(f"Using {n_young} young and {n_old} old samples for training.")
-
     # Return
     filenames = {}
     labels = {}
@@ -256,6 +277,9 @@ def load_rsna_age_two_split(rsna_dir: str = RSNA_DIR,
         labels[mode] = [min(1, label) for label in data.label.values]
         meta[mode] = np.where(data['PatientAge'] < t[1], 1, np.where(data['PatientAge'] >= t[2], 0, None))
     return filenames, labels, meta
+
+
+
 
 
 if __name__ == '__main__':

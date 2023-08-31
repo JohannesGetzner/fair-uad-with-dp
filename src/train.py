@@ -39,6 +39,8 @@ parser.add_argument('--second_stage_epochs', default=None, type=int)
 parser.add_argument('--pretrained_model_path', default=None, type=str)
 parser.add_argument('--wb_custom_run_name',  default=None, type=str)
 
+parser.add_argument('--upsampling_strategy', default=None, type=str)
+
 parser.add_argument('--d', type=str, default=str(datetime.strftime(datetime.now(), format="%Y-%m-%d %H:%M:%S")))
 DYNAMIC_PARAMS = parser.parse_args()
 
@@ -54,14 +56,14 @@ def initialize_configuration(new_config, static_params):
     for arg_name in vars(DYNAMIC_PARAMS).keys():
         if getattr(DYNAMIC_PARAMS, arg_name) is not None:
             new_config[arg_name] = getattr(DYNAMIC_PARAMS, arg_name)
-    if new_config.dp:
+    if new_config.second_stage_epsilon:
         new_config.epsilon = new_config.epsilon - new_config.second_stage_epsilon
     return new_config
 
 
 def run(config):
     # load data
-    train_loader, val_loader, test_loader = load_data(config)
+    train_loader, val_loader, test_loader, max_sample_freq = load_data(config)
     for i in range(config.num_seeds):
         config.seed = config.initial_seed + i
         # get log dir
@@ -96,7 +98,8 @@ def run(config):
                     target_epsilon=config.epsilon,
                     target_delta=config.delta,
                     max_grad_norm=config.max_grad_norm,
-                    epochs=config.epochs
+                    epochs=config.epochs,
+                    custom_sample_rate=max_sample_freq/len(train_loader)
                 )
                 model, steps_done = train_dp(model, optimizer, dp_train_loader, val_loader, config, log_dir, privacy_engine)
             else:
@@ -120,7 +123,7 @@ def run_stage_two(model, optimizer, config, log_dir, steps_done):
     if modified_config.dp:
         modified_config.epsilon = modified_config.second_stage_epsilon
         print("Second stage epsilon:", modified_config.epsilon)
-    train_loader, val_loader, test_loader = load_data(modified_config)
+    train_loader, val_loader, test_loader, max_sample_freq = load_data(modified_config)
     if modified_config.dp:
         privacy_engine = PrivacyEngine(accountant="rdp")
         modified_config.delta = 1 / (len(train_loader) * train_loader.batch_size)

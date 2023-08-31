@@ -61,7 +61,7 @@ if __name__ == '__main__':
     config.job_type_mod = RUN_CONFIG.job_type_mod
     config.group_name_mod = RUN_CONFIG.group_name_mod
 
-    train_loader, val_loader, test_loader = load_data(config)
+    train_loader, val_loader, test_loader, _ = load_data(config)
     log_dir, group_name, job_type = construct_log_dir(config, RUN_CONFIG.d)
     sweep_config["name"] = group_name
     sweep_id = wandb.sweep(sweep_config, project=config.wandb_project)
