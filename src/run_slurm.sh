@@ -11,7 +11,7 @@ date=$(date '+%Y-%m-%d %H:%M:%S')
 module load python/anaconda3
 
 # Specify the Anaconda environment name
-ANACONDA_ENV="thesis_custom_opacus"
+ANACONDA_ENV="thesis_opacus"
 
 # Specify the full path to the Anaconda environment's Python interpreter
 ANACONDA_PYTHON="/u/home/getzner/.conda/envs/$ANACONDA_ENV/bin/python"
