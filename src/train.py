@@ -99,7 +99,7 @@ def run(config):
                     target_delta=config.delta,
                     max_grad_norm=config.max_grad_norm,
                     epochs=config.epochs,
-                    custom_sample_rate=max_sample_freq/len(train_loader)
+                    custom_sample_rate=max_sample_freq/len(train_loader) if config.upsampling_strategy else None
                 )
                 model, steps_done = train_dp(model, optimizer, dp_train_loader, val_loader, config, log_dir, privacy_engine)
             else:
