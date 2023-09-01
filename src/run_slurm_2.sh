@@ -22,7 +22,7 @@ source activate $ANACONDA_ENV
 # Your commands using the Anaconda environment
 echo "Running script with Anaconda environment: $ANACONDA_ENV"
 
-$ANACONDA_PYTHON -u train.py --run_config dp --run_version v1 --protected_attr_percent 0.80 --upsampling_strategy "even" --d "${date}" --group_name_mod "bs1024-mgn001-upsamplingeven"
-$ANACONDA_PYTHON -u train.py --run_config dp --run_version v1 --protected_attr_percent 0.85 --upsampling_strategy "even" --d "${date}" --group_name_mod "bs1024-mgn001-upsamplingeven"
-$ANACONDA_PYTHON -u train.py --run_config dp --run_version v1 --protected_attr_percent 0.90 --upsampling_strategy "even" --d "${date}" --group_name_mod "bs1024-mgn001-upsamplingeven"
-$ANACONDA_PYTHON -u train.py --run_config dp --run_version v1 --protected_attr_percent 0.95 --upsampling_strategy "even" --d "${date}" --group_name_mod "bs1024-mgn001-upsamplingeven"
+$ANACONDA_PYTHON -u train.py --run_config dp --run_version v1 --protected_attr_percent 0.80 --upsampling_strategy "even" --d "${date}" --group_name_mod "bs512-mgn001-upsamplingeven"
+$ANACONDA_PYTHON -u train.py --run_config dp --run_version v1 --protected_attr_percent 0.85 --upsampling_strategy "even" --d "${date}" --group_name_mod "bs512-mgn001-upsamplingeven"
+$ANACONDA_PYTHON -u train.py --run_config dp --run_version v1 --protected_attr_percent 0.90 --upsampling_strategy "even" --d "${date}" --group_name_mod "bs512-mgn001-upsamplingeven"
+$ANACONDA_PYTHON -u train.py --run_config dp --run_version v1 --protected_attr_percent 0.95 --upsampling_strategy "even" --d "${date}" --group_name_mod "bs512-mgn001-upsamplingeven"
