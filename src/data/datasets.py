@@ -126,7 +126,7 @@ def get_dataloaders(dataset: str,
         # get the max number of times a sample appears in train_data
         counts = Counter(train_data)
         max_count = max(counts.values())
-        print(f"Sampling rate is {max_count}/{batch_size}")
+        print(f"max sample replication is {max_count}")
     else:
         max_count = 1
 
