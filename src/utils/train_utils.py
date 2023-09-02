@@ -116,15 +116,13 @@ def init_model(config):
     if config.dp:
         model = ModuleValidator.fix(model)
 
-    compiled_model = model  # torch.compile(model)
-
     # Init optimizer
     if config.n_adam:
         optimizer = torch.optim.NAdam(model.parameters(), lr=config.lr, weight_decay=config.weight_decay)
     else:
         optimizer = torch.optim.Adam(model.parameters(), lr=config.lr, weight_decay=config.weight_decay)
 
-    return model, compiled_model, optimizer
+    return model, optimizer
 
 
 """"""""""""""""""""""""""""""""" Training """""""""""""""""""""""""""""""""

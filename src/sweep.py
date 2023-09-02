@@ -24,7 +24,7 @@ def main():
     init_wandb(config, log_dir, group_name, job_type, sweep=True)
     for param in sweep_config["parameters"].keys():
         config[param] = wandb.config[param]
-    _, model, optimizer = init_model(config)
+    model, optimizer = init_model(config)
     if config.dp:
         # Init DP
         privacy_engine = PrivacyEngine(accountant="rdp")

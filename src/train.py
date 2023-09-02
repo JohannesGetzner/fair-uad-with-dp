@@ -76,35 +76,25 @@ def run(config):
         if not config.debug:
             os.makedirs(log_dir, exist_ok=True)
         # init model
-        if "pretrained_model_path" in config.keys():
-            model, steps_done, old_c = load_pretrained_model(config.pretrained_model_path)
-            model = model.to(config.device)
-            # override config
-            for k, v in old_c.items():
-                if k.startswith("second_stage"):
-                    continue
-                config[k] = v
-            _, _, optimizer = init_model(config)
+        model, optimizer = init_model(config)
+        if config.dp:
+            # Init DP
+            privacy_engine = PrivacyEngine(accountant="rdp")
+            config.delta = 1 / (len(train_loader) * train_loader.batch_size)
+            model, optimizer, dp_train_loader = privacy_engine.make_private_with_epsilon(
+                module=model,
+                optimizer=optimizer,
+                data_loader=train_loader,
+                target_epsilon=config.epsilon,
+                target_delta=config.delta,
+                max_grad_norm=config.max_grad_norm,
+                epochs=config.epochs,
+                custom_sample_rate=max_sample_freq/len(train_loader) if config.upsampling_strategy else None
+            )
+            model, steps_done = train_dp(model, optimizer, dp_train_loader, val_loader, config, log_dir, privacy_engine)
         else:
-            _, model, optimizer = init_model(config)
-            if config.dp:
-                # Init DP
-                privacy_engine = PrivacyEngine(accountant="rdp")
-                config.delta = 1 / (len(train_loader) * train_loader.batch_size)
-                model, optimizer, dp_train_loader = privacy_engine.make_private_with_epsilon(
-                    module=model,
-                    optimizer=optimizer,
-                    data_loader=train_loader,
-                    target_epsilon=config.epsilon,
-                    target_delta=config.delta,
-                    max_grad_norm=config.max_grad_norm,
-                    epochs=config.epochs,
-                    custom_sample_rate=max_sample_freq/len(train_loader) if config.upsampling_strategy else None
-                )
-                model, steps_done = train_dp(model, optimizer, dp_train_loader, val_loader, config, log_dir, privacy_engine)
-            else:
-                model, steps_done = train(model, optimizer, train_loader, val_loader, config, log_dir)
-            test(config, model, test_loader, log_dir)
+            model, steps_done = train(model, optimizer, train_loader, val_loader, config, log_dir)
+        test(config, model, test_loader, log_dir)
 
         if config.second_stage_epsilon:
             _ = run_stage_two(model, optimizer, config, log_dir, steps_done)
@@ -146,17 +136,16 @@ def run_stage_two(model, optimizer, config, log_dir, steps_done):
 
 def load_pretrained_model(path):
     # load model from logs
-    path = os.path.join(os.getcwd(), 'logs_persist', path)
+    path = os.path.join(os.getcwd(), 'logs', path)
     checkpoint = torch.load(path)
-    old_config = DotMap(checkpoint["config"]['_map'])
-    if "loss_weight_type" not in old_config.keys():
-        old_config.loss_weight_type = None
+    old_config = DotMap(checkpoint["config"])
     model = FeatureReconstructor(old_config)
     model = ModuleValidator.fix(model)
     state_dict = checkpoint["model"]
     new_state_dict = {key.replace('_module.', ''): value for key, value in state_dict.items()}
     model.load_state_dict(new_state_dict)
-    return model, checkpoint["step"], old_config
+    # TODO: accountant still needs to be loaded and optimizer needs to be initialized
+    return model, checkpoint["optimizer"], checkpoint["accountant"], checkpoint["step"], old_config
 
 
 if __name__ == '__main__':
