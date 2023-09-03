@@ -259,8 +259,8 @@ def load_rsna_age_two_split(rsna_dir: str = RSNA_DIR,
         print("Up-sampling young samples by", num_add_samples)
         print(f"Using {len(train_young)} young and {len(train_old)} old samples for training.")
     # Aggregate training set and shuffle
-    # train = pd.concat([train_young, train_old]).sample(frac=1, random_state=42).reset_index(drop=True)
-    train = pd.concat([train_young]).sample(frac=1, random_state=42).reset_index(drop=True)
+    train = pd.concat([train_young, train_old]).sample(frac=1, random_state=42).reset_index(drop=True)
+    print("Final dataset shape: ", train.shape)
     # Return
     filenames = {}
     labels = {}
