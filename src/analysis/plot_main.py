@@ -16,6 +16,8 @@ import numpy as np
 from scipy.stats import linregress
 from einops import repeat
 from scipy import stats
+import pandas as pd
+pd.options.mode.chained_assignment = None
 
 from utils import gather_data_seeds, compare_two_runs
 
@@ -186,21 +188,32 @@ def plot_metric_bar(data: Dict[str, np.ndarray], attr_key_values: np.ndarray, me
 def plot_metric_bar_compare(df, groups, fig_size=(10, 6)):
     plt.figure(figsize=fig_size)
     colors = ["#336699", "#6688AA", "#FF9933", "#FFB366"]
-    # create bar-plot
-    df.sort_values(by="group", key=lambda column: column.map(lambda e: groups.index(e)), inplace=True)
-    g = sns.barplot(x="percent", y="value", hue="group", data=df, palette=colors, errorbar="ci")
-    g.set(ylim=(0.5, 1.0))
-    # plot regression lines
+    color_map = {g: c for g, c in zip(groups, colors)}
+    g = sns.barplot(x="percent", y="value", hue="group", data=df, palette=color_map, errorbar="ci")
+    plt.ylim(0.5, 0.9)
+
+    x_coords = sorted([patch.get_x() + patch.get_width() / 2 for patch in g.patches])
+    x_coords_by_group = {g: [] for g in groups}
+    idx_to_group = {idx: g for idx, g in enumerate(groups)}
+    for idx, x_coord in enumerate(x_coords):
+        x_coords_by_group[idx_to_group[idx%4]].append(x_coord)
+
     for idx, group in enumerate(df["group"].unique()):
         group_data = df[df["group"] == group]
-        group_data["percent"] = group_data["percent"] * 4
+        # create mapping between percent and x-coord
+        x_coords = x_coords_by_group[group]
+        # get unique sorted percent values
+        percent_values = sorted(group_data["percent"].unique())
+        percent_to_x_coord = {p: x for p, x in zip(percent_values, x_coords)}
+        # create x-coord column
+        group_data.loc[:,"x_coord"] = group_data.loc[:,"percent"].map(percent_to_x_coord)
+
         slope, intercept, r_value, p_value, std_err = linregress(group_data["percent"], group_data["value"])
         if p_value >= 0.05:
             print("Regression line not significant for", group)
-        #if "second stage" in group:
-        #    continue
+
         g = sns.regplot(
-            x="percent",
+            x="x_coord",
             y="value",
             data=group_data,
             scatter=False,
@@ -208,7 +221,7 @@ def plot_metric_bar_compare(df, groups, fig_size=(10, 6)):
             truncate=False,
             ci=None if "second stage" in group else 95
         )
-    # set axis labels
+        # set axis labels
     plt.xlabel(f"percent {groups[0]} samples in training data")
     plt.ylabel("subgroup AUROC")
     return g
@@ -301,10 +314,10 @@ if __name__ == '__main__':
             )
 
     if True:
-        dir_1 = os.path.join("../logs_persist", "2023-07-13 09:20:21-FAE-rsna-age-bs1024-mgn001-DP")
-        dir_2 = os.path.join("../logs_persist", "2023-08-26 16:02:35-FAE-rsna-age-bs1024-mgn001-ss2-DP")
+        dir_1 = os.path.join("../logs_persist", "2023-09-02 22:38:35-FAE-rsna-age-bs32-noDP")
+        dir_2 = os.path.join("../logs_persist", "2023-09-02 10:28:22-FAE-rsna-age-bs32-upsamplingrandom-noDP")
         metrics = (f"test/lungOpacity_old_subgroupAUROC", f"test/lungOpacity_young_subgroupAUROC")
-        groups = ["old", "young", "old second stage", "young second stage"]
+        groups = ["old", "young", "old random", "young random"]
         df = compare_two_runs(
             dir_1,
             dir_2,
@@ -314,6 +327,5 @@ if __name__ == '__main__':
         )
         g = plot_metric_bar_compare(df, groups)
         # set title
-        g.set_title("batch-size: 1024, mgn: 0.01, lr: 0.0002, ε: 6 (+2), epochs: 15000/12000 (+4000)")
-        # g.set_title("batch-size: 1024, DP, min. 5 seeds, lr: 0.0002, 187 (+62) epochs")
+        g.set_title("batch-size: 32, lr: 0.0002, epochs: 187")
         plt.show()
