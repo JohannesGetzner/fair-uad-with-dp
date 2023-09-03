@@ -32,13 +32,16 @@ def default(val, d):
 def save_checkpoint(path: str, model: nn.Module, optimizer, step: int, config: Dict):
     if not os.path.exists(os.path.dirname(path)):
         os.makedirs(os.path.dirname(path))
-    checkpoint = {'model': model.state_dict(), 'config': config, 'step': step}
-    if config["dp"]:
-        checkpoint["optimizer"] = optimizer.original_optimizer.state_dict()
-    else:
-        checkpoint["optimizer"] = optimizer.state_dict()
+    checkpoint = {'model': model.state_dict(), 'config': config, 'step': step, "optimizer": optimizer.state_dict()}
     torch.save(checkpoint, path)
 
+
+def save_checkpoint_dp(path: str, model: nn.Module, optimizer, privacy_engine, step: int, config: Dict):
+    if not os.path.exists(os.path.dirname(path)):
+        os.makedirs(os.path.dirname(path))
+    checkpoint = {'model': model.state_dict(), 'config': config, 'step': step,
+                  "optimizer": optimizer.original_optimizer.state_dict(), "accountant": privacy_engine.accountant}
+    torch.save(checkpoint, path)
 
 
 def init_wandb(config, log_dir: str, group_name: str, job_type: str, sweep=False):

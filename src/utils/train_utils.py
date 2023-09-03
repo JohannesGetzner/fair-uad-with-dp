@@ -7,7 +7,7 @@ import pandas as pd
 from src.models.DeepSVDD.deepsvdd import DeepSVDD
 from src.models.FAE.fae import FeatureReconstructor
 from src.utils.metrics import AvgDictMeter, build_metrics
-from src.utils.utils import save_checkpoint, log_time, get_subgroup_loss_weights
+from src.utils.utils import save_checkpoint, save_checkpoint_dp, log_time, get_subgroup_loss_weights
 from opacus.validators import ModuleValidator
 from time import time
 from datetime import datetime
@@ -280,7 +280,7 @@ def train_dp(model, optimizer, train_loader, val_loader, config, log_dir, privac
                 eps = privacy_engine.get_epsilon(config.delta)
                 if i_step % config.val_frequency == 0:
                     log_imgs = i_step % config.log_img_freq == 0
-                    val_results = validate(config, model, optimizer, val_loader, i_step, log_dir, log_imgs)
+                    val_results = validate(config, model, optimizer, val_loader, i_step, log_dir, log_imgs, privacy_engine=privacy_engine)
                     print(f"ɛ: {eps:.2f} (target: {config.epsilon})")
                     val_results['epsilon'] = eps
                     # Log to w&b
@@ -290,7 +290,7 @@ def train_dp(model, optimizer, train_loader, val_loader, config, log_dir, privac
                     print(f'Reached maximum ɛ {eps}/{config.epsilon}.', 'Finished training.')
                     # Final validation
                     print("Final validation...")
-                    validate(config, model, optimizer, val_loader, i_step, log_dir, log_imgs)
+                    validate(config, model, optimizer, val_loader, i_step, log_dir, log_imgs, privacy_engine=privacy_engine)
                     return model
 
             i_epoch += 1
@@ -309,7 +309,7 @@ def train_dp(model, optimizer, train_loader, val_loader, config, log_dir, privac
                 print(f"ɛ: {eps:.2f} (target: {config.epsilon})")
                 # Final validation
                 print("Final validation...")
-                validate(config, model, optimizer, val_loader, i_step, log_dir, log_imgs)
+                validate(config, model, optimizer, val_loader, i_step, log_dir, log_imgs, privacy_engine=privacy_engine)
                 return model, i_step
 
 
@@ -335,7 +335,7 @@ def val_step(model, x, y, meta, device, dp=False):
     return loss_dict, anomaly_map, anomaly_score
 
 
-def validate(config, model, optimizer, loader, step, log_dir, log_imgs=False):
+def validate(config, model, optimizer, loader, step, log_dir, log_imgs=False, privacy_engine=None):
     i_step = 0
     device = next(model.parameters()).device
     x, y, meta = next(iter(loader))
@@ -388,7 +388,10 @@ def validate(config, model, optimizer, loader, step, log_dir, log_imgs=False):
     if not config.debug:
         ckpt_name = os.path.join(log_dir, 'ckpt_last.pth')
         print(f'Saving checkpoint to {ckpt_name}')
-        save_checkpoint(ckpt_name, model, optimizer, step, dict(config))
+        if config.dp:
+            save_checkpoint_dp(ckpt_name, model, optimizer, privacy_engine, step, dict(config))
+        else:
+            save_checkpoint(ckpt_name, model, optimizer, step, dict(config))
     return results
 
 
