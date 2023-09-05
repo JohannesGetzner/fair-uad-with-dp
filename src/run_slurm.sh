@@ -22,7 +22,8 @@ source activate $ANACONDA_ENV
 # Your commands using the Anaconda environment
 echo "Running script with Anaconda environment: $ANACONDA_ENV"
 
-$ANACONDA_PYTHON -u train.py --run_config dp --run_version v1 --protected_attr_percent 0.55 --upsampling_strategy "even" --d "${date}" --group_name_mod "bs512-mgn001-upsamplingeven"
-$ANACONDA_PYTHON -u train.py --run_config dp --run_version v1 --protected_attr_percent 0.65 --upsampling_strategy "even" --d "${date}" --group_name_mod "bs512-mgn001-upsamplingeven"
-$ANACONDA_PYTHON -u train.py --run_config dp --run_version v1 --protected_attr_percent 0.70 --upsampling_strategy "even" --d "${date}" --group_name_mod "bs512-mgn001-upsamplingeven"
-$ANACONDA_PYTHON -u train.py --run_config dp --run_version v1 --protected_attr_percent 0.75 --upsampling_strategy "even" --d "${date}" --group_name_mod "bs512-mgn001-upsamplingeven"
+$ANACONDA_PYTHON -u train.py --run_config dp --run_version v1 --protected_attr_percent 0.55 --d "${date}" --group_name_mod "bs512-mgn001"
+$ANACONDA_PYTHON -u train.py --run_config dp --run_version v1 --protected_attr_percent 0.65 --d "${date}" --group_name_mod "bs512-mgn001"
+$ANACONDA_PYTHON -u train.py --run_config dp --run_version v1 --protected_attr_percent 0.70 --d "${date}" --group_name_mod "bs512-mgn001"
+$ANACONDA_PYTHON -u train.py --run_config dp --run_version v1 --protected_attr_percent 0.75 --d "${date}" --group_name_mod "bs512-mgn001"
+$ANACONDA_PYTHON -u train.py --run_config dp --run_version v1 --protected_attr_percent 0.80 --d "${date}" --group_name_mod "bs512-mgn001"
