@@ -75,7 +75,8 @@ DEFAULT_CONFIG = {
     "wb_custom_run_name": None,
     "second_stage_epsilon": None,
     "second_stage_epochs": None,
-    "upsampling_strategy": None
+    "upsampling_strategy": None,
+    "custom_sr": False
 }
 DEFAULT_CONFIG = DotMap(DEFAULT_CONFIG)
 DEFAULT_CONFIG.device = 'cuda' if torch.cuda.is_available() else 'cpu'

@@ -31,6 +31,7 @@ parser.add_argument('--second_stage_epochs', default=None, type=int)
 parser.add_argument('--pretrained_model_path', default=None, type=str)
 parser.add_argument('--wb_custom_run_name',  default=None, type=str)
 parser.add_argument('--upsampling_strategy', default=None, type=str)
+parser.add_argument('--custom_sr', action=BooleanOptionalAction, default=None)
 parser.add_argument('--d', type=str, default=str(datetime.strftime(datetime.now(), format="%Y-%m-%d %H:%M:%S")))
 DYNAMIC_PARAMS = parser.parse_args()
 
@@ -68,7 +69,13 @@ def run(config):
             # Init DP
             privacy_engine = PrivacyEngine(accountant="rdp")
             config.delta = 1 / len(train_loader.dataset)
-            config.sample_rate = max_sample_freq/len(train_loader) if config.upsampling_strategy else None
+            if config.upsampling_strategy:
+                if config.custom_sr:
+                    config.sample_rate = max_sample_freq/len(train_loader)
+                else:
+                    config.sample_rate = None
+            else:
+                config.sample_rate = None
             model, optimizer, dp_train_loader = privacy_engine.make_private_with_epsilon(
                 module=model,
                 optimizer=optimizer,
