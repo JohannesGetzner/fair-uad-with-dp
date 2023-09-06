@@ -113,7 +113,7 @@ def get_dataloaders(dataset: str,
         elif protected_attr == 'age':
             data, labels, meta = load_rsna_age_two_split(RSNA_DIR, old_percent=old_percent, upsampling_strategy=upsampling_strategy)
         elif protected_attr == 'sex':
-            data, labels, meta = load_rsna_gender_split(RSNA_DIR, male_percent=male_percent)
+            data, labels, meta = load_rsna_gender_split(RSNA_DIR, male_percent=male_percent, upsampling_strategy=upsampling_strategy)
         else:
             raise ValueError(f'Unknown protected attribute: {protected_attr} for dataset {dataset}')
     else:

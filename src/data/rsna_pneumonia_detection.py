@@ -102,7 +102,7 @@ def load_rsna_naive_split(rsna_dir: str = RSNA_DIR,
 
 def load_rsna_gender_split(rsna_dir: str = RSNA_DIR,
                            male_percent: float = 0.5,
-                           anomaly: str = 'lungOpacity'):
+                           anomaly: str = 'lungOpacity', upsampling_strategy=None):
     """Load data with age balanced val and test sets. Training is either young, avg, or old.
     lo = lung opacity
     oa = other anomaly
@@ -148,11 +148,18 @@ def load_rsna_gender_split(rsna_dir: str = RSNA_DIR,
     n_female = int(n_samples * female_percent)
     train_male = rest_normal_male.sample(n=n_male, random_state=42)
     train_female = rest_normal_female.sample(n=n_female, random_state=42)
+    print(f"Using {len(train_female)} female and {len(train_male)} male samples for training.")
+
+    if upsampling_strategy:
+        if male_percent == 1 or female_percent == 1:
+            raise ValueError("Cannot up-sample when one of the classes is 100%")
+        num_add_samples = n_male - n_female
+        train_female = upsample_dataset(train_female, upsampling_strategy, num_add_samples)
+        print(f"Using {len(train_female)} female and {len(train_male)} male samples for training.")
 
     # Aggregate training set and shuffle
     train = pd.concat([train_male, train_female]).sample(frac=1, random_state=42).reset_index(drop=True)
-
-    print(f"Using {n_male} male and {n_female} female samples for training.")
+    print("Final dataset shape: ", train.shape)
 
     # Return
     filenames = {}
@@ -171,13 +178,6 @@ def load_rsna_gender_split(rsna_dir: str = RSNA_DIR,
         labels[mode] = [min(1, label) for label in data.label.values]
         meta[mode] = np.array([SEX_MAPPING[v] for v in data['PatientSex'].values])
     return filenames, labels, meta
-
-
-def upsample_dataset(data:pd.DataFrame, upsampling_freq):
-    """upsample a dataset to a given frequency."""
-    pass
-
-
 
 
 def load_rsna_age_two_split(rsna_dir: str = RSNA_DIR,
@@ -246,17 +246,7 @@ def load_rsna_age_two_split(rsna_dir: str = RSNA_DIR,
         if old_percent == 1 or young_percent == 1:
             raise ValueError("Cannot up-sample when one of the classes is 100%")
         num_add_samples = n_old - n_young
-        if upsampling_strategy == "even":
-            replication_factor = (n_young+num_add_samples)/n_young
-            train_young_new = train_young.loc[train_young.index.repeat(np.floor(replication_factor))]
-            if replication_factor % 1 != 0:
-                num_remaining_replications = int(np.rint((replication_factor % 1)*n_young))
-                additional_samples = train_young.sample(n=num_remaining_replications, replace=False, random_state=42)
-                train_young_new = pd.concat([train_young_new, additional_samples])
-            train_young = train_young_new
-        else:
-            train_young = pd.concat([train_young, train_young.sample(n=num_add_samples, replace=True, random_state=42)])
-        print("Up-sampling young samples by", num_add_samples)
+        train_young = upsample_dataset(train_young, upsampling_strategy, num_add_samples)
         print(f"Using {len(train_young)} young and {len(train_old)} old samples for training.")
     # Aggregate training set and shuffle
     train = pd.concat([train_young, train_old]).sample(frac=1, random_state=42).reset_index(drop=True)
@@ -280,10 +270,17 @@ def load_rsna_age_two_split(rsna_dir: str = RSNA_DIR,
     return filenames, labels, meta
 
 
-
-
-
-if __name__ == '__main__':
-    download_rsna()
-    extract_metadata()
-    pass
+def upsample_dataset(data:pd.DataFrame, strategy:str, num_add_samples:int):
+    n = len(data)
+    if strategy == "even":
+        replication_factor = (n + num_add_samples) / n
+        data_new = data.loc[data.index.repeat(np.floor(replication_factor))]
+        if replication_factor % 1 != 0:
+            num_remaining_replications = int(np.rint((replication_factor % 1) * n))
+            additional_samples = data.sample(n=num_remaining_replications, replace=False, random_state=42)
+            data_new = pd.concat([data_new, additional_samples])
+        data = data_new
+    else:
+        data = pd.concat([data, data.sample(n=num_add_samples, replace=True, random_state=42)])
+    print("Up-sampling by", num_add_samples)
+    return data
