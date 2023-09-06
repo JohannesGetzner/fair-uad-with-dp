@@ -32,6 +32,7 @@ parser.add_argument('--pretrained_model_path', default=None, type=str)
 parser.add_argument('--wb_custom_run_name',  default=None, type=str)
 parser.add_argument('--upsampling_strategy', default=None, type=str)
 parser.add_argument('--custom_sr', action=BooleanOptionalAction, default=None)
+parser.add_argument('--effective_dataset_size', default=1.0, type=float)
 parser.add_argument('--d', type=str, default=str(datetime.strftime(datetime.now(), format="%Y-%m-%d %H:%M:%S")))
 DYNAMIC_PARAMS = parser.parse_args()
 

@@ -5,7 +5,7 @@ v1:
   initial_seed: 1
   num_seeds: 1
   wandb_project: "test"
-  epochs: 10
+  epochs: 3
   batch_size: 32
 v2:
   dp: True

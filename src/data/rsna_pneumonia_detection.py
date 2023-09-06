@@ -100,9 +100,13 @@ def load_rsna_naive_split(rsna_dir: str = RSNA_DIR,
     return filenames, labels, meta
 
 
-def load_rsna_gender_split(rsna_dir: str = RSNA_DIR,
-                           male_percent: float = 0.5,
-                           anomaly: str = 'lungOpacity', upsampling_strategy=None):
+def load_rsna_gender_split(
+        rsna_dir: str = RSNA_DIR,
+        male_percent: float = 0.5,
+        anomaly: str = 'lungOpacity',
+        upsampling_strategy=None,
+        effective_dataset_size=1.0
+):
     """Load data with age balanced val and test sets. Training is either young, avg, or old.
     lo = lung opacity
     oa = other anomaly
@@ -148,8 +152,11 @@ def load_rsna_gender_split(rsna_dir: str = RSNA_DIR,
     n_female = int(n_samples * female_percent)
     train_male = rest_normal_male.sample(n=n_male, random_state=42)
     train_female = rest_normal_female.sample(n=n_female, random_state=42)
+    if effective_dataset_size != 1.0:
+        print(f"Reducing dataset size to {effective_dataset_size} ({len(train_female)} female and {len(train_male)} amle samples are available)")
+        train_female = train_female.sample(frac=effective_dataset_size, random_state=42, replace=False)
+        train_male = train_male.sample(frac=effective_dataset_size, random_state=42, replace=False)
     print(f"Using {len(train_female)} female and {len(train_male)} male samples for training.")
-
     if upsampling_strategy:
         if male_percent == 1 or female_percent == 1:
             raise ValueError("Cannot up-sample when one of the classes is 100%")
@@ -180,10 +187,13 @@ def load_rsna_gender_split(rsna_dir: str = RSNA_DIR,
     return filenames, labels, meta
 
 
-def load_rsna_age_two_split(rsna_dir: str = RSNA_DIR,
-                            old_percent: float = 0.5,
-                            anomaly: str = 'lungOpacity',
-                            upsampling_strategy=None):
+def load_rsna_age_two_split(
+        rsna_dir: str = RSNA_DIR,
+        old_percent: float = 0.5,
+        anomaly: str = 'lungOpacity',
+        upsampling_strategy=None,
+        effective_dataset_size=1.0
+):
     """Load data with age balanced val and test sets. Training fraction of old
     and young patients can be specified.
     lo = lung opacity
@@ -241,6 +251,10 @@ def load_rsna_age_two_split(rsna_dir: str = RSNA_DIR,
     n_old = int(n_samples * old_percent)
     train_young = rest_normal_young.sample(n=n_young, random_state=42)
     train_old = rest_normal_old.sample(n=n_old, random_state=42)
+    if effective_dataset_size != 1.0:
+        print(f"Reducing dataset size to {effective_dataset_size} ({len(train_young)} young and {len(train_old)} old samples are available)")
+        train_young = train_young.sample(frac=effective_dataset_size, random_state=42, replace=False)
+        train_old = train_old.sample(frac=effective_dataset_size, random_state=42, replace=False)
     print(f"Using {len(train_young)} young and {len(train_old)} old samples for training.")
     if upsampling_strategy:
         if old_percent == 1 or young_percent == 1:

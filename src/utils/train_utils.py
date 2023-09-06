@@ -76,7 +76,8 @@ DEFAULT_CONFIG = {
     "second_stage_epsilon": None,
     "second_stage_epochs": None,
     "upsampling_strategy": None,
-    "custom_sr": False
+    "custom_sr": False,
+    "effective_dataset_size": 1.0
 }
 DEFAULT_CONFIG = DotMap(DEFAULT_CONFIG)
 DEFAULT_CONFIG.device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -93,7 +94,9 @@ def load_data(config):
         protected_attr=config.protected_attr,
         male_percent=config.protected_attr_percent,
         old_percent=config.protected_attr_percent,
-        upsampling_strategy=config.upsampling_strategy)
+        upsampling_strategy=config.upsampling_strategy,
+        effective_dataset_size=config.effective_dataset_size
+    )
     print(f'Loaded datasets in {time() - t_load_data_start:.2f}s')
     return train_loader, val_loader, test_loader, max_sample_freq
 
