@@ -1,57 +1,44 @@
-import math
-import sys
-import yaml
-import gc
-
-from opacus.validators import ModuleValidator
-
-sys.path.append('..')
 import os
 os.environ["WANDB__SERVICE_WAIT"] = "300"
-from argparse import ArgumentParser, BooleanOptionalAction
-from datetime import datetime
-from models.FAE.fae import FeatureReconstructor
+import sys
+sys.path.append('..')
+import yaml
+import gc
 import wandb
 import torch
-from utils.utils import init_wandb, construct_log_dir, seed_everything
+from opacus.validators import ModuleValidator
 from dotmap import DotMap
+from datetime import datetime
 from opacus import PrivacyEngine
+from models.FAE.fae import FeatureReconstructor
+from argparse import ArgumentParser, BooleanOptionalAction
+from utils.utils import init_wandb, construct_log_dir, seed_everything
 from utils.train_utils import train, train_dp, test, DEFAULT_CONFIG, load_data, init_model
 
-
-""""""""""""""""""""""""""""""""""" Config """""""""""""""""""""""""""""""""""
 
 parser = ArgumentParser()
 parser.add_argument('--run_config', default="dp", type=str)
 parser.add_argument('--run_version', default="v1", type=str)
-
 parser.add_argument('--protected_attr_percent', default=None, type=float)
 parser.add_argument('--lr', default=None, type=float)
 parser.add_argument('--n_adam', action=BooleanOptionalAction, default=None)
-
 parser.add_argument('--group_name_mod', default=None, type=str)
 parser.add_argument('--job_type_mod', default=None, type=str)
 parser.add_argument('--loss_weight_type', default=None, type=str)
 parser.add_argument('--weight', default=None, type=float)
 parser.add_argument('--second_stage_epsilon', default=None, type=float)
 parser.add_argument('--second_stage_epochs', default=None, type=int)
-
 parser.add_argument('--pretrained_model_path', default=None, type=str)
 parser.add_argument('--wb_custom_run_name',  default=None, type=str)
-
 parser.add_argument('--upsampling_strategy', default=None, type=str)
-
 parser.add_argument('--d', type=str, default=str(datetime.strftime(datetime.now(), format="%Y-%m-%d %H:%M:%S")))
 DYNAMIC_PARAMS = parser.parse_args()
-
-""""""""""""""""""""""""""""""""" Main """""""""""""""""""""""""""""""""
 
 
 def initialize_configuration(new_config, static_params):
     # update config with static params
     for arg_name, arg_value in static_params.items():
         new_config[arg_name] = arg_value
-
     # update config with run params
     for arg_name in vars(DYNAMIC_PARAMS).keys():
         if getattr(DYNAMIC_PARAMS, arg_name) is not None:
@@ -80,7 +67,8 @@ def run(config):
         if config.dp:
             # Init DP
             privacy_engine = PrivacyEngine(accountant="rdp")
-            config.delta = 1 / (len(train_loader) * train_loader.batch_size)
+            config.delta = 1 / len(train_loader.dataset)
+            config.sample_rate = max_sample_freq/len(train_loader) if config.upsampling_strategy else None
             model, optimizer, dp_train_loader = privacy_engine.make_private_with_epsilon(
                 module=model,
                 optimizer=optimizer,
@@ -89,7 +77,7 @@ def run(config):
                 target_delta=config.delta,
                 max_grad_norm=config.max_grad_norm,
                 epochs=config.epochs,
-                custom_sample_rate=max_sample_freq/len(train_loader) if config.upsampling_strategy else None
+                custom_sample_rate=config.sample_rate
             )
             model, steps_done = train_dp(model, optimizer, dp_train_loader, val_loader, config, log_dir, privacy_engine)
         else:
@@ -144,7 +132,7 @@ def load_pretrained_model(path):
     state_dict = checkpoint["model"]
     new_state_dict = {key.replace('_module.', ''): value for key, value in state_dict.items()}
     model.load_state_dict(new_state_dict)
-    # TODO: accountant still needs to be loaded and optimizer needs to be initialized
+    # accountant still needs to be loaded and optimizer needs to be initialized
     return model, checkpoint["optimizer"], checkpoint["accountant"], checkpoint["step"], old_config
 
 

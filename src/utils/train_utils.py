@@ -81,8 +81,6 @@ DEFAULT_CONFIG = DotMap(DEFAULT_CONFIG)
 DEFAULT_CONFIG.device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print(f"Using {DEFAULT_CONFIG.device}")
 
-""""""""""""""""""""""""""""""""" Load data """""""""""""""""""""""""""""""""
-
 
 def load_data(config):
     print("Loading data...")
@@ -97,9 +95,6 @@ def load_data(config):
         upsampling_strategy=config.upsampling_strategy)
     print(f'Loaded datasets in {time() - t_load_data_start:.2f}s')
     return train_loader, val_loader, test_loader, max_sample_freq
-
-
-""""""""""""""""""""""""""""""""" Init model """""""""""""""""""""""""""""""""
 
 
 def init_model(config):
@@ -123,9 +118,6 @@ def init_model(config):
         optimizer = torch.optim.Adam(model.parameters(), lr=config.lr, weight_decay=config.weight_decay)
 
     return model, optimizer
-
-
-""""""""""""""""""""""""""""""""" Training """""""""""""""""""""""""""""""""
 
 
 def compute_mean_per_sample_gradient_norm(model, num_samples):
@@ -319,7 +311,6 @@ def val_step(model, x, y, meta, device, dp=False):
     x = x.to(device)
     y = y.to(device)
     with torch.no_grad():
-        # TODO: find a better way to compute the loss when wrapped with DP
         if dp:
             loss_dict = model._module.loss(x, y=y)
             anomaly_map, anomaly_score = model._module.predict_anomaly(x)
