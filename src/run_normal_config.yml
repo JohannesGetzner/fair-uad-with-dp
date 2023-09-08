@@ -13,7 +13,7 @@ v2:
   dp: False
   protected_attr: "sex"
   initial_seed: 1
-  num_seeds: 5
+  num_seeds: 3
   wandb_project: "unsupervised-fairness"
   epochs: 67
   batch_size: 32
