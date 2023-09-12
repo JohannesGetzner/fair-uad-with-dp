@@ -26,7 +26,7 @@ date=$(date '+%Y-%m-%d %H:%M:%S')
 $ANACONDA_PYTHON -u train.py --run_config dp --run_version v1 --protected_attr_percent 0.60 --upsampling_strategy "even" --d "${date}" --group_name_mod "bs512-mgn001"
 $ANACONDA_PYTHON -u train.py --run_config dp --run_version v1 --protected_attr_percent 0.70 --upsampling_strategy "even" --d "${date}" --group_name_mod "bs512-mgn001"
 $ANACONDA_PYTHON -u train.py --run_config dp --run_version v1 --protected_attr_percent 0.80 --upsampling_strategy "even" --d "${date}" --group_name_mod "bs512-mgn001"
-
+date=$(date '+%Y-%m-%d %H:%M:%S')
 $ANACONDA_PYTHON -u train.py --run_config dp --run_version v2 --protected_attr_percent 0.60 --upsampling_strategy "even" --d "${date}" --group_name_mod "bs512-mgn001"
 $ANACONDA_PYTHON -u train.py --run_config dp --run_version v2 --protected_attr_percent 0.70 --upsampling_strategy "even" --d "${date}" --group_name_mod "bs512-mgn001"
 $ANACONDA_PYTHON -u train.py --run_config dp --run_version v2 --protected_attr_percent 0.80 --upsampling_strategy "even" --d "${date}" --group_name_mod "bs512-mgn001"
