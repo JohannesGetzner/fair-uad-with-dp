@@ -20,7 +20,7 @@ v2:
   initial_seed: 1
   num_seeds: 1
   wandb_project: "unsupervised-fairness"
-  epochs: 15000
-  batch_size: 1024
+  epochs: 7500
+  batch_size: 512
   max_physical_batch_size: 512
   lr: 0.0002
