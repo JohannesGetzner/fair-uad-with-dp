@@ -22,27 +22,7 @@ source activate $ANACONDA_ENV
 # Your commands using the Anaconda environment
 echo "Running script with Anaconda environment: $ANACONDA_ENV"
 
-$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.0 --effective_dataset_size 0.7 --d "${date}" --group_name_mod "bs32-dss" --job_type_mod "07"
-$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.0 --effective_dataset_size 0.4 --d "${date}" --group_name_mod "bs32-dss" --job_type_mod "04"
-$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.0 --effective_dataset_size 0.1 --d "${date}" --group_name_mod "bs32-dss" --job_type_mod "01"
-$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.0 --effective_dataset_size 0.01 --d "${date}" --group_name_mod "bs32-dss" --job_type_mod "001"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.50 --effective_dataset_size 0.7 --d "${date}" --group_name_mod "bs32-dss" --job_type_mod "07"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.50 --effective_dataset_size 0.4 --d "${date}" --group_name_mod "bs32-dss" --job_type_mod "04"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.50 --effective_dataset_size 0.1 --d "${date}" --group_name_mod "bs32-dss" --job_type_mod "01"
 
-$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.25 --effective_dataset_size 0.7 --d "${date}" --group_name_mod "bs32-dss" --job_type_mod "07"
-$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.25 --effective_dataset_size 0.4 --d "${date}" --group_name_mod "bs32-dss" --job_type_mod "04"
-$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.25 --effective_dataset_size 0.1 --d "${date}" --group_name_mod "bs32-dss" --job_type_mod "01"
-$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.25 --effective_dataset_size 0.01 --d "${date}" --group_name_mod "bs32-dss" --job_type_mod "001"
-
-$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.50 --effective_dataset_size 0.7 --d "${date}" --group_name_mod "bs32-dss" ---job_type_mod "07"
-$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.50 --effective_dataset_size 0.4 --d "${date}" --group_name_mod "bs32-dss" ---job_type_mod "04"
-$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.50 --effective_dataset_size 0.1 --d "${date}" --group_name_mod "bs32-dss" ---job_type_mod "01"
-$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.50 --effective_dataset_size 0.01 --d "${date}" --group_name_mod "bs32-dss"  --job_type_mod "001"
-
-$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.75 --effective_dataset_size 0.7 --d "${date}" --group_name_mod "bs32-dss" --job_type_mod "07"
-$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.75 --effective_dataset_size 0.4 --d "${date}" --group_name_mod "bs32-dss" --job_type_mod "04"
-$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.75 --effective_dataset_size 0.1 --d "${date}" --group_name_mod "bs32-dss" --job_type_mod "01"
-$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.75 --effective_dataset_size 0.01 --d "${date}" --group_name_mod "bs32-dss" --job_type_mod "001"
-
-$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 1.0 --effective_dataset_size 0.7 --d "${date}" --group_name_mod "bs32-dss" --job_type_mod "07"
-$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 1.0 --effective_dataset_size 0.4 --d "${date}" --group_name_mod "bs32-dss" --job_type_mod "04"
-$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 1.0 --effective_dataset_size 0.1 --d "${date}" --group_name_mod "bs32-dss" --job_type_mod "01"
-$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 1.0 --effective_dataset_size 0.01 --d "${date}" --group_name_mod "bs32-dss" --job_type_mod "001"
