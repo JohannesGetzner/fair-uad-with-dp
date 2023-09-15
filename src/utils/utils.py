@@ -53,7 +53,7 @@ def init_wandb(config, log_dir: str, group_name: str, job_type: str, sweep=False
             job_type=job_type)
     else:
         run = wandb.init(
-            project=config.wandb_project, config=config, group=group_name, dir=log_dir, tags=wandb_tags,
+            project=config.wandb_project, config=dict(config), group=group_name, dir=log_dir, tags=wandb_tags,
             job_type=job_type, name="seed_" + str(config.seed) if not config.wb_custom_run_name else config.wb_custom_run_name,
             mode="disabled" if (config.debug or config.disable_wandb) else "online"
         )

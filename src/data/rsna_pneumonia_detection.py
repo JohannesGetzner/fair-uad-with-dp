@@ -160,8 +160,11 @@ def load_rsna_gender_split(
     if upsampling_strategy:
         if male_percent == 1 or female_percent == 1:
             raise ValueError("Cannot up-sample when one of the classes is 100%")
-        num_add_samples = n_male - n_female
-        train_female = upsample_dataset(train_female, upsampling_strategy, num_add_samples)
+        num_add_samples = abs(n_male - n_female)
+        if upsampling_strategy.endswith("female"):
+            train_female = upsample_dataset(train_female, upsampling_strategy, num_add_samples)
+        else:
+            train_male = upsample_dataset(train_male, upsampling_strategy, num_add_samples)
         print(f"Using {len(train_female)} female and {len(train_male)} male samples for training.")
 
     # Aggregate training set and shuffle
@@ -259,8 +262,11 @@ def load_rsna_age_two_split(
     if upsampling_strategy:
         if old_percent == 1 or young_percent == 1:
             raise ValueError("Cannot up-sample when one of the classes is 100%")
-        num_add_samples = n_old - n_young
-        train_young = upsample_dataset(train_young, upsampling_strategy, num_add_samples)
+        num_add_samples = abs(n_old - n_young)
+        if upsampling_strategy.endswith("young"):
+            train_young = upsample_dataset(train_young, upsampling_strategy, num_add_samples)
+        else:
+            train_old = upsample_dataset(train_old, upsampling_strategy, num_add_samples)
         print(f"Using {len(train_young)} young and {len(train_old)} old samples for training.")
     # Aggregate training set and shuffle
     train = pd.concat([train_young, train_old]).sample(frac=1, random_state=42).reset_index(drop=True)
@@ -286,7 +292,7 @@ def load_rsna_age_two_split(
 
 def upsample_dataset(data:pd.DataFrame, strategy:str, num_add_samples:int):
     n = len(data)
-    if strategy == "even":
+    if strategy.startswith("even"):
         replication_factor = (n + num_add_samples) / n
         data_new = data.loc[data.index.repeat(np.floor(replication_factor))]
         if replication_factor % 1 != 0:

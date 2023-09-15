@@ -109,7 +109,7 @@ def compare_two_runs(exp_dir: str, exp_dir_two: str, attr_key: str, metrics: Tup
         num_cols = tmp.shape[1]
         for idx, row in tmp.iterrows():
             for i in range(num_cols):
-                bar_label = group_names[0] if group_names[0] in metric_name else group_names[1]
+                bar_label = group_names[1] if group_names[1] in metric_name else group_names[0]
                 new_row = {"percent": attr_key_values[idx], "group": bar_label, "value": row[i]}
                 df = pd.concat([df, pd.DataFrame(new_row, index=[0])])
 
@@ -118,7 +118,7 @@ def compare_two_runs(exp_dir: str, exp_dir_two: str, attr_key: str, metrics: Tup
         num_cols = tmp.shape[1]
         for idx, row in tmp.iterrows():
             for i in range(num_cols):
-                bar_label = group_names[2] if group_names[0] in metric_name else group_names[3]
+                bar_label = group_names[3] if group_names[1] in metric_name else group_names[2]
                 new_row = {"percent": attr_key_values_two[idx], "group": bar_label, "value": row[i]}
                 df = pd.concat([df, pd.DataFrame(new_row, index=[0])])
     return df

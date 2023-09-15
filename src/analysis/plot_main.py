@@ -206,7 +206,7 @@ def plot_metric_bar_compare(df, groups, fig_size=(10, 6)):
         percent_values = sorted(group_data["percent"].unique())
         percent_to_x_coord = {p: x for p, x in zip(percent_values, x_coords)}
         # create x-coord column
-        group_data.loc[:,"x_coord"] = group_data.loc[:,"percent"].map(percent_to_x_coord)
+        group_data.loc[:, "x_coord"] = group_data.loc[:, "percent"].map(percent_to_x_coord)
 
         slope, intercept, r_value, p_value, std_err = linregress(group_data["percent"], group_data["value"])
         if p_value >= 0.05:
@@ -219,7 +219,7 @@ def plot_metric_bar_compare(df, groups, fig_size=(10, 6)):
             scatter=False,
             line_kws={"label": f"{group} regression line", "color": colors[idx], "lw": 1.7, "ls": "--"},
             truncate=False,
-            ci=None if "second stage" in group else 95
+            ci=None #if "second stage" in group else 95
         )
         # set axis labels
     plt.xlabel(f"percent {groups[0]} samples in training data")
@@ -279,13 +279,19 @@ def plot_metric_box_whisker(data: Dict[str, np.ndarray], attr_key_values: np.nda
 
 
 if __name__ == '__main__':
-    to_skip = ["2023-08-07 16:45:30-FAE-rsna-age-bs1024-mgn001-olddownweighted-DP", "2023-08-13 09:52:07-FAE-rsna-age-bs32-olddownweighted-noDP"]
+    to_skip = [
+        "2023-08-07 16:45:30-FAE-rsna-age-bs1024-mgn001-olddownweighted-DP",
+        "2023-08-13 09:52:07-FAE-rsna-age-bs32-olddownweighted-noDP",
+        "2023-09-07 15:16:09-FAE-rsna-age-bs32-dss-noDP",
+        "2023-09-07 22:33:03-FAE-rsna-age-bs32-ms-noDP"
+    ]
     dir = ""
     if dir == "":
         dirs = os.listdir("../logs_persist")
     else:
         dirs = [dir]
     for experiment_dir in dirs:
+        break
         if experiment_dir in to_skip:
             continue
         print("\nGenerating plots for", experiment_dir, "\n")
@@ -314,18 +320,21 @@ if __name__ == '__main__':
             )
 
     if True:
-        dir_1 = os.path.join("../logs_persist", "2023-09-02 22:38:35-FAE-rsna-age-bs32-noDP")
-        dir_2 = os.path.join("../logs_persist", "2023-09-02 10:28:22-FAE-rsna-age-bs32-upsamplingrandom-noDP")
-        metrics = (f"test/lungOpacity_old_subgroupAUROC", f"test/lungOpacity_young_subgroupAUROC")
-        groups = ["old", "young", "old random", "young random"]
+        dir_1 = os.path.join("../logs_persist", "2023-09-10 22:11:20-FAE-rsna-sex-bs512-mgn001-upsamplingeven-DP")
+        dir_2 = os.path.join("../logs_persist", "2023-09-08 12:42:27-FAE-rsna-sex-bs512-mgn001-upsamplingeven-csr-DP")
+        metrics = (f"test/lungOpacity_male_subgroupAUROC", f"test/lungOpacity_female_subgroupAUROC")
+        #metrics = (f"test/lungOpacity_old_subgroupAUROC", f"test/lungOpacity_young_subgroupAUROC")
+        groups = ["male", "female", "male (csr)", "female (csr)"]
+        #groups = ["old", "young", "old (csr)", "young (csr)"]
         df = compare_two_runs(
             dir_1,
             dir_2,
-            "old_percent",
+            #"old_percent",
+            "male_percent",
             metrics,
             groups
         )
         g = plot_metric_bar_compare(df, groups)
         # set title
-        g.set_title("batch-size: 32, lr: 0.0002, epochs: 187")
+        g.set_title("batch-size: 512, lr: 0.0002, mgn: 0.01, epochs: 7500")
         plt.show()

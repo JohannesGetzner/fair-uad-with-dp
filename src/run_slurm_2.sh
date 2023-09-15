@@ -22,16 +22,39 @@ source activate $ANACONDA_ENV
 # Your commands using the Anaconda environment
 echo "Running script with Anaconda environment: $ANACONDA_ENV"
 
-$ANACONDA_PYTHON -u train.py --run_config dp --run_version v1 --protected_attr_percent 0.60 --upsampling_strategy "even" --custom_sr --d "${date}" --group_name_mod "bs512-mgn001-upsamplingeven-csr"
-$ANACONDA_PYTHON -u train.py --run_config dp --run_version v1 --protected_attr_percent 0.70 --upsampling_strategy "even" --custom_sr --d "${date}" --group_name_mod "bs512-mgn001-upsamplingeven-csr"
-$ANACONDA_PYTHON -u train.py --run_config dp --run_version v1 --protected_attr_percent 0.80 --upsampling_strategy "even" --custom_sr --d "${date}" --group_name_mod "bs512-mgn001-upsamplingeven-csr"
+
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.25 --hidden_dims 3 6 9 12    --d "${date}" --group_name_mod "bs32-ms" --job_type_mod "ms3-6-9-12"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.25 --hidden_dims 3 8 13 18   --d "${date}" --group_name_mod "bs32-ms" --job_type_mod "ms3-8-13-18"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.25 --hidden_dims 5 10 15 20  --d "${date}" --group_name_mod "bs32-ms" --job_type_mod "ms5-10-15-20"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.25 --hidden_dims 15 20 25 30 --d "${date}" --group_name_mod "bs32-ms" --job_type_mod "ms15-20-25-30"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.25 --hidden_dims 35 40 45 50 --d "${date}" --group_name_mod "bs32-ms" --job_type_mod "ms35-40-45-50"
+
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.50 --hidden_dims 3 6 9 12    --d "${date}" --group_name_mod "bs32-ms" --job_type_mod "ms3-6-9-12"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.50 --hidden_dims 3 8 13 18   --d "${date}" --group_name_mod "bs32-ms" --job_type_mod "ms3-8-13-18"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.50 --hidden_dims 5 10 15 20  --d "${date}" --group_name_mod "bs32-ms" --job_type_mod "ms5-10-15-20"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.50 --hidden_dims 15 20 25 30 --d "${date}" --group_name_mod "bs32-ms" --job_type_mod "ms15-20-25-30"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.50 --hidden_dims 35 40 45 50 --d "${date}" --group_name_mod "bs32-ms" --job_type_mod "ms35-40-45-50"
+
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.75 --hidden_dims 3 6 9 12    --d "${date}" --group_name_mod "bs32-ms" --job_type_mod "ms3-6-9-12"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.75 --hidden_dims 3 8 13 18   --d "${date}" --group_name_mod "bs32-ms" --job_type_mod "ms3-8-13-18"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.75 --hidden_dims 5 10 15 20  --d "${date}" --group_name_mod "bs32-ms" --job_type_mod "ms5-10-15-20"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.75 --hidden_dims 15 20 25 30 --d "${date}" --group_name_mod "bs32-ms" --job_type_mod "ms15-20-25-30"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.75 --hidden_dims 35 40 45 50 --d "${date}" --group_name_mod "bs32-ms" --job_type_mod "ms35-40-45-50"
 date=$(date '+%Y-%m-%d %H:%M:%S')
-$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.60 --d "${date}" --group_name_mod "bs32"
-$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.70 --d "${date}" --group_name_mod "bs32"
-$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.80 --d "${date}" --group_name_mod "bs32"
-$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.90 --d "${date}" --group_name_mod "bs32"
-date=$(date '+%Y-%m-%d %H:%M:%S')
-$ANACONDA_PYTHON -u train.py --run_config dp --run_version v1 --protected_attr_percent 0.60 --upsampling_strategy "even" --d "${date}" --group_name_mod "bs512-mgn001-upsamplingeven"
-$ANACONDA_PYTHON -u train.py --run_config dp --run_version v1 --protected_attr_percent 0.70 --upsampling_strategy "even" --d "${date}" --group_name_mod "bs512-mgn001-upsamplingeven"
-$ANACONDA_PYTHON -u train.py --run_config dp --run_version v1 --protected_attr_percent 0.80 --upsampling_strategy "even" --d "${date}" --group_name_mod "bs512-mgn001-upsamplingeven"
-$ANACONDA_PYTHON -u train.py --run_config dp --run_version v1 --protected_attr_percent 0.90 --upsampling_strategy "even" --d "${date}" --group_name_mod "bs512-mgn001-upsamplingeven"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v2 --protected_attr_percent 0.25 --hidden_dims 3 6 9 12    --d "${date}" --group_name_mod "bs32-ms" --job_type_mod "ms3-6-9-12"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v2 --protected_attr_percent 0.25 --hidden_dims 3 8 13 18   --d "${date}" --group_name_mod "bs32-ms" --job_type_mod "ms3-8-13-18"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v2 --protected_attr_percent 0.25 --hidden_dims 5 10 15 20  --d "${date}" --group_name_mod "bs32-ms" --job_type_mod "ms5-10-15-20"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v2 --protected_attr_percent 0.25 --hidden_dims 15 20 25 30 --d "${date}" --group_name_mod "bs32-ms" --job_type_mod "ms15-20-25-30"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v2 --protected_attr_percent 0.25 --hidden_dims 35 40 45 50 --d "${date}" --group_name_mod "bs32-ms" --job_type_mod "ms35-40-45-50"
+
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v2 --protected_attr_percent 0.50 --hidden_dims 3 6 9 12    --d "${date}" --group_name_mod "bs32-ms" --job_type_mod "ms3-6-9-12"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v2 --protected_attr_percent 0.50 --hidden_dims 3 8 13 18   --d "${date}" --group_name_mod "bs32-ms" --job_type_mod "ms3-8-13-18"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v2 --protected_attr_percent 0.50 --hidden_dims 5 10 15 20  --d "${date}" --group_name_mod "bs32-ms" --job_type_mod "ms5-10-15-20"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v2 --protected_attr_percent 0.50 --hidden_dims 15 20 25 30 --d "${date}" --group_name_mod "bs32-ms" --job_type_mod "ms15-20-25-30"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v2 --protected_attr_percent 0.50 --hidden_dims 35 40 45 50 --d "${date}" --group_name_mod "bs32-ms" --job_type_mod "ms35-40-45-50"
+
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v2 --protected_attr_percent 0.75 --hidden_dims 3 6 9 12    --d "${date}" --group_name_mod "bs32-ms" --job_type_mod "ms3-6-9-12"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v2 --protected_attr_percent 0.75 --hidden_dims 3 8 13 18   --d "${date}" --group_name_mod "bs32-ms" --job_type_mod "ms3-8-13-18"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v2 --protected_attr_percent 0.75 --hidden_dims 5 10 15 20  --d "${date}" --group_name_mod "bs32-ms" --job_type_mod "ms5-10-15-20"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v2 --protected_attr_percent 0.75 --hidden_dims 15 20 25 30 --d "${date}" --group_name_mod "bs32-ms" --job_type_mod "ms15-20-25-30"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v2 --protected_attr_percent 0.75 --hidden_dims 35 40 45 50 --d "${date}" --group_name_mod "bs32-ms" --job_type_mod "ms35-40-45-50"

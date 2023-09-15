@@ -4,7 +4,7 @@ v1:
   dp: False
   protected_attr: "age"
   initial_seed: 1
-  num_seeds: 3
+  num_seeds: 5
   wandb_project: "unsupervised-fairness"
   epochs: 187
   batch_size: 32
@@ -13,16 +13,7 @@ v2:
   dp: False
   protected_attr: "sex"
   initial_seed: 1
-  num_seeds: 3
+  num_seeds: 5
   wandb_project: "unsupervised-fairness"
   epochs: 67
   batch_size: 32
-# playing around
-v3:
-  dp: False
-  protected_attr: "age"
-  initial_seed: 1
-  num_seeds: 5
-  wandb_project: "unsupervised-fairness"
-  epochs: 374
-  batch_size: 64
