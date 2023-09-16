@@ -5,7 +5,7 @@ v1:
   max_grad_norm: 0.01
   protected_attr: "age"
   initial_seed: 1
-  num_seeds: 1
+  num_seeds: 3
   wandb_project: "unsupervised-fairness"
   epochs: 15000
   batch_size: 512
