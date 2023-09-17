@@ -22,7 +22,11 @@ source activate $ANACONDA_ENV
 # Your commands using the Anaconda environment
 echo "Running script with Anaconda environment: $ANACONDA_ENV"
 
-$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.1 --second_stage_epsilon -1 --second_stage_epochs 62 --d "${date}" --group_name_mod "bs32-ss"
-$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.2 --second_stage_epsilon -1 --second_stage_epochs 62 --d "${date}" --group_name_mod "bs32-ss"
-$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.3 --second_stage_epsilon -1 --second_stage_epochs 62 --d "${date}" --group_name_mod "bs32-ss"
-$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.4 --second_stage_epsilon -1 --second_stage_epochs 62 --d "${date}" --group_name_mod "bs32-ss"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.55 --second_stage_epsilon -1 --second_stage_epochs 62 --d "${date}" --group_name_mod "bs32-ss"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.6 --second_stage_epsilon -1 --second_stage_epochs 62 --d "${date}" --group_name_mod "bs32-ss"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.65 --second_stage_epsilon -1 --second_stage_epochs 62 --d "${date}" --group_name_mod "bs32-ss"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.7 --second_stage_epsilon -1 --second_stage_epochs 62 --d "${date}" --group_name_mod "bs32-ss"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.8 --second_stage_epsilon -1 --second_stage_epochs 62 --d "${date}" --group_name_mod "bs32-ss"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.85 --second_stage_epsilon -1 --second_stage_epochs 62 --d "${date}" --group_name_mod "bs32-ss"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.9 --second_stage_epsilon -1 --second_stage_epochs 62 --d "${date}" --group_name_mod "bs32-ss"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.95 --second_stage_epsilon -1 --second_stage_epochs 62 --d "${date}" --group_name_mod "bs32-ss"
