@@ -21,5 +21,5 @@ source activate $ANACONDA_ENV
 echo "Running script with Anaconda environment: $ANACONDA_ENV"
 
 date=$(date '+%Y-%m-%d %H:%M:%S')
-$ANACONDA_PYTHON -u train.py --run_config dp --run_version v1 --protected_attr_percent 0.50 --effective_dataset_size 0.4    --d "${date}" --group_name_mod "bs32-dss" --job_type_mod "04"
-$ANACONDA_PYTHON -u train.py --run_config dp --run_version v1 --protected_attr_percent 0.50 --effective_dataset_size 0.008  --d "${date}" --group_name_mod "bs32-dss" --job_type_mod "0008"
+$ANACONDA_PYTHON -u train.py --run_config dp --run_version v1 --protected_attr_percent 0.50 --effective_dataset_size 0.7    --d "${date}" --group_name_mod "bs32-dss" --job_type_mod "07"
+$ANACONDA_PYTHON -u train.py --run_config dp --run_version v1 --protected_attr_percent 0.50 --effective_dataset_size 0.005  --d "${date}" --group_name_mod "bs32-dss" --job_type_mod "0005"
