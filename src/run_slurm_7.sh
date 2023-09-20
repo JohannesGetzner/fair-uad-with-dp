@@ -21,9 +21,8 @@ source activate $ANACONDA_ENV
 echo "Running script with Anaconda environment: $ANACONDA_ENV"
 
 date=$(date '+%Y-%m-%d %H:%M:%S')
-$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.5 --hidden_dims 100 150 200  --d "${date}" --group_name_mod "bs32-ms" --job_type_mod "ms100-150-200"
-$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.5 --hidden_dims 100 150 150  --d "${date}" --group_name_mod "bs32-ms" --job_type_mod "ms100-150-150"
-$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.5 --hidden_dims 100 150      --d "${date}" --group_name_mod "bs32-ms" --job_type_mod "ms100-150"
-$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.5 --hidden_dims 100 150      --d "${date}" --group_name_mod "bs32-ms" --job_type_mod "ms100-150"
-$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.5 --hidden_dims 100          --d "${date}" --group_name_mod "bs32-ms" --job_type_mod "ms100"
-$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.5 --hidden_dims 50           --d "${date}" --group_name_mod "bs32-ms" --job_type_mod "ms50"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.5 --hidden_dims 50  --d "${date}" --group_name_mod "bs32-ms" --job_type_mod "ms50"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.5 --hidden_dims 40  --d "${date}" --group_name_mod "bs32-ms" --job_type_mod "ms40"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.5 --hidden_dims 30  --d "${date}" --group_name_mod "bs32-ms" --job_type_mod "ms30"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.5 --hidden_dims 20  --d "${date}" --group_name_mod "bs32-ms" --job_type_mod "ms20"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.5 --hidden_dims 10  --d "${date}" --group_name_mod "bs32-ms" --job_type_mod "ms10"
