@@ -124,6 +124,7 @@ def plot_metric_scatter(data: Dict[str, np.ndarray], attr_key_values: np.ndarray
 
 def plot_metric_bar(data: Dict[str, np.ndarray], attr_key_values: np.ndarray, metrics: List[str], xlabel: str,
                     ylabel: str, title: str, plt_name: str, experiment_dir: str):
+    plt.figure(figsize=(10,8))
     # Prepare plot
     width = 0.25
     ind = np.arange(len(data[metrics[0]]))
@@ -186,6 +187,14 @@ def plot_metric_bar(data: Dict[str, np.ndarray], attr_key_values: np.ndarray, me
 
 
 def plot_metric_bar_compare(df, groups, fig_size=(10, 6)):
+    min_set = set(df["percent"].values)
+    for g in groups:
+        sub = df[df["group"] == g]
+        percent_set = set(sub["percent"].values)
+        if len(percent_set) < len(min_set):
+            min_set = percent_set
+    # subset df by percent values in min_set
+    df = df[df["percent"].isin(min_set)]
     plt.figure(figsize=fig_size)
     colors = ["#336699", "#6688AA", "#FF9933", "#FFB366"]
     color_map = {g: c for g, c in zip(groups, colors)}
@@ -283,7 +292,13 @@ if __name__ == '__main__':
         "2023-08-07 16:45:30-FAE-rsna-age-bs1024-mgn001-olddownweighted-DP",
         "2023-08-13 09:52:07-FAE-rsna-age-bs32-olddownweighted-noDP",
         "2023-09-07 15:16:09-FAE-rsna-age-bs32-dss-noDP",
-        "2023-09-07 22:33:03-FAE-rsna-age-bs32-ms-noDP"
+        "2023-09-07 22:33:03-FAE-rsna-age-bs32-ms-noDP",
+        "2023-09-16 02:37:52-FAE-rsna-sex-bs32-ms-noDP",
+        "2023-09-15 21:03:45-FAE-rsna-age-bs32-ms-noDP",
+        "2023-09-16 11:14:45-FAE-rsna-age-bs32-dss-DP",
+        "2023-09-16 10:52:18-FAE-rsna-sex-bs32-dss-noDP",
+        "2023-09-18 08:19:53-FAE-rsna-age-bs32-ms-noDP",
+        "archive"
     ]
     dir = ""
     if dir == "":
@@ -320,21 +335,21 @@ if __name__ == '__main__':
             )
 
     if True:
-        dir_1 = os.path.join("../logs_persist", "2023-09-10 22:11:20-FAE-rsna-sex-bs512-mgn001-upsamplingeven-DP")
-        dir_2 = os.path.join("../logs_persist", "2023-09-08 12:42:27-FAE-rsna-sex-bs512-mgn001-upsamplingeven-csr-DP")
-        metrics = (f"test/lungOpacity_male_subgroupAUROC", f"test/lungOpacity_female_subgroupAUROC")
-        #metrics = (f"test/lungOpacity_old_subgroupAUROC", f"test/lungOpacity_young_subgroupAUROC")
-        groups = ["male", "female", "male (csr)", "female (csr)"]
-        #groups = ["old", "young", "old (csr)", "young (csr)"]
+        dir_1 = os.path.join("../logs_persist", "2023-08-26 14:14:04-FAE-rsna-age-bs32-ss-noDP")
+        dir_2 = os.path.join("../logs_persist", "2023-09-02 05:22:36-FAE-rsna-age-bs32-upsamplingeven-noDP")
+        # metrics = (f"test/lungOpacity_male_subgroupAUROC", f"test/lungOpacity_female_subgroupAUROC")
+        metrics = (f"test/lungOpacity_old_subgroupAUROC", f"test/lungOpacity_young_subgroupAUROC")
+        # groups = ["male", "female", "male (up-sampled)", "female (up-sampled)"]
+        groups = ["old", "young", "old (up-sampled)", "young (up-sampled)"]
         df = compare_two_runs(
             dir_1,
             dir_2,
-            #"old_percent",
-            "male_percent",
+            "old_percent",
+            # "male_percent",
             metrics,
             groups
         )
         g = plot_metric_bar_compare(df, groups)
         # set title
-        g.set_title("batch-size: 512, lr: 0.0002, mgn: 0.01, epochs: 7500")
+        g.set_title("batch-size: 32, lr: 0.0002, mgn: 0.01, epochs: 67, fine-tuning: 1/3 epochs, up-sampling: even")
         plt.show()
