@@ -21,4 +21,4 @@ source activate $ANACONDA_ENV
 echo "Running script with Anaconda environment: $ANACONDA_ENV"
 
 date=$(date '+%Y-%m-%d %H:%M:%S')
-$ANACONDA_PYTHON -u train.py --run_config dp --run_version v1 --protected_attr_percent 0.5 --hidden_dims 200 250 300 400  --d "${date}" --group_name_mod "bs32-ms" --job_type_mod "msdefault"
+$ANACONDA_PYTHON -u train.py --run_config dp --run_version v1 --protected_attr_percent 0.5 --d "${date}" --group_name_mod "bs32-ms" --job_type_mod "msdefault"
