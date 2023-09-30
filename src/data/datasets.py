@@ -102,7 +102,9 @@ def get_dataloaders(dataset: str,
                     male_percent: Optional[float] = 0.5,
                     old_percent: Optional[float] = 0.5,
                     upsampling_strategy=None,
-                    effective_dataset_size=1.0) -> Tuple[DataLoader, DataLoader, DataLoader, int]:
+                    effective_dataset_size=1.0,
+                    random_state = 42
+                    ) -> Tuple[DataLoader, DataLoader, DataLoader, int]:
     """
     Returns dataloaders for the RSNA dataset.
     """
@@ -116,14 +118,16 @@ def get_dataloaders(dataset: str,
                 RSNA_DIR,
                 old_percent=old_percent,
                 upsampling_strategy=upsampling_strategy,
-                effective_dataset_size=effective_dataset_size
+                effective_dataset_size=effective_dataset_size,
+                random_state=random_state
             )
         elif protected_attr == 'sex':
             data, labels, meta = load_rsna_gender_split(
                 RSNA_DIR,
                 male_percent=male_percent,
                 upsampling_strategy=upsampling_strategy,
-                effective_dataset_size=effective_dataset_size
+                effective_dataset_size=effective_dataset_size,
+                random_state=random_state
             )
         else:
             raise ValueError(f'Unknown protected attribute: {protected_attr} for dataset {dataset}')

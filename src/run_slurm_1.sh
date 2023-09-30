@@ -21,5 +21,26 @@ source activate $ANACONDA_ENV
 echo "Running script with Anaconda environment: $ANACONDA_ENV"
 
 date=$(date '+%Y-%m-%d %H:%M:%S')
-$ANACONDA_PYTHON -u train.py --run_config dp --run_version v1 --protected_attr_percent 0.5 --hidden_dims 25 50 75 100     --d "${date}" --group_name_mod "bs32-ms" --job_type_mod "ms25-50-75-100"
-$ANACONDA_PYTHON -u train.py --run_config dp --run_version v1 --protected_attr_percent 0.5 --hidden_dims 100 150          --d "${date}" --group_name_mod "bs32-ms" --job_type_mod "ms100-150"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.5 --effective_dataset_size 0.001 --dataset_random_state 42 --group_name_mod "bs32-dss" --job_type_mod "0001-rs42" --d "${date}"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.5 --effective_dataset_size 0.005 --dataset_random_state 42 --group_name_mod "bs32-dss" --job_type_mod "0005-rs42" --d "${date}"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.5 --effective_dataset_size 0.008 --dataset_random_state 42 --group_name_mod "bs32-dss" --job_type_mod "0008-rs42" --d "${date}"
+
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.5 --effective_dataset_size 0.001 --dataset_random_state 43 --group_name_mod "bs32-dss" --job_type_mod "0001-rs43" --d "${date}"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.5 --effective_dataset_size 0.005 --dataset_random_state 43 --group_name_mod "bs32-dss" --job_type_mod "0005-rs43" --d "${date}"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.5 --effective_dataset_size 0.008 --dataset_random_state 43 --group_name_mod "bs32-dss" --job_type_mod "0008-rs43" --d "${date}"
+
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.5 --effective_dataset_size 0.001 --dataset_random_state 44 --group_name_mod "bs32-dss" --job_type_mod "0001-rs44" --d "${date}"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.5 --effective_dataset_size 0.005 --dataset_random_state 44 --group_name_mod "bs32-dss" --job_type_mod "0005-rs44" --d "${date}"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.5 --effective_dataset_size 0.008 --dataset_random_state 44 --group_name_mod "bs32-dss" --job_type_mod "0008-rs44" --d "${date}"
+
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.5 --effective_dataset_size 0.001 --dataset_random_state 45 --group_name_mod "bs32-dss" --job_type_mod "0001-rs45" --d "${date}"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.5 --effective_dataset_size 0.005 --dataset_random_state 45 --group_name_mod "bs32-dss" --job_type_mod "0005-rs45" --d "${date}"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.5 --effective_dataset_size 0.008 --dataset_random_state 45 --group_name_mod "bs32-dss" --job_type_mod "0008-rs45" --d "${date}"
+
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.5 --effective_dataset_size 0.001 --dataset_random_state 46 --group_name_mod "bs32-dss" --job_type_mod "0001-rs46" --d "${date}"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.5 --effective_dataset_size 0.005 --dataset_random_state 46 --group_name_mod "bs32-dss" --job_type_mod "0005-rs46" --d "${date}"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.5 --effective_dataset_size 0.008 --dataset_random_state 46 --group_name_mod "bs32-dss" --job_type_mod "0008-rs46" --d "${date}"
+
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.5 --effective_dataset_size 0.001 --dataset_random_state 47 --group_name_mod "bs32-dss" --job_type_mod "0001-rs47" --d "${date}"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.5 --effective_dataset_size 0.005 --dataset_random_state 47 --group_name_mod "bs32-dss" --job_type_mod "0005-rs47" --d "${date}"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.5 --effective_dataset_size 0.008 --dataset_random_state 47 --group_name_mod "bs32-dss" --job_type_mod "0008-rs47" --d "${date}"

@@ -105,7 +105,8 @@ def load_rsna_gender_split(
         male_percent: float = 0.5,
         anomaly: str = 'lungOpacity',
         upsampling_strategy=None,
-        effective_dataset_size=1.0
+        effective_dataset_size=1.0,
+        random_state=42
 ):
     """Load data with age balanced val and test sets. Training is either young, avg, or old.
     lo = lung opacity
@@ -130,19 +131,19 @@ def load_rsna_gender_split(
 
     # Save 100 male and 100 female samples for every label for validation and test
     # Normal
-    val_test_normal_male = normal_male.sample(n=50, random_state=42)
-    val_test_normal_female = normal_female.sample(n=50, random_state=42)
-    val_test_male = male.sample(n=100, random_state=42)
-    val_test_female = female.sample(n=100, random_state=42)
+    val_test_normal_male = normal_male.sample(n=50, random_state=random_state)
+    val_test_normal_female = normal_female.sample(n=50, random_state=random_state)
+    val_test_male = male.sample(n=100, random_state=random_state)
+    val_test_female = female.sample(n=100, random_state=random_state)
     val_male = val_test_male.iloc[:50, :]
     val_female = val_test_female.iloc[:50, :]
     test_male = val_test_male.iloc[50:, :]
     test_female = val_test_female.iloc[50:, :]
     # Aggregate validation and test sets and shuffle
-    val_male = pd.concat([val_test_normal_male, val_male]).sample(frac=1, random_state=42).reset_index(drop=True)
-    val_female = pd.concat([val_test_normal_female, val_female]).sample(frac=1, random_state=42).reset_index(drop=True)
-    test_male = pd.concat([val_test_normal_male, test_male]).sample(frac=1, random_state=42).reset_index(drop=True)
-    test_female = pd.concat([val_test_normal_female, test_female]).sample(frac=1, random_state=42).reset_index(drop=True)
+    val_male = pd.concat([val_test_normal_male, val_male]).sample(frac=1, random_state=random_state).reset_index(drop=True)
+    val_female = pd.concat([val_test_normal_female, val_female]).sample(frac=1, random_state=random_state).reset_index(drop=True)
+    test_male = pd.concat([val_test_normal_male, test_male]).sample(frac=1, random_state=random_state).reset_index(drop=True)
+    test_female = pd.concat([val_test_normal_female, test_female]).sample(frac=1, random_state=random_state).reset_index(drop=True)
 
     # Rest for training
     rest_normal_male = normal_male[~normal_male.patientId.isin(val_test_normal_male.patientId)]
@@ -150,12 +151,12 @@ def load_rsna_gender_split(
     n_samples = min(len(rest_normal_male), len(rest_normal_female))
     n_male = int(n_samples * male_percent)
     n_female = int(n_samples * female_percent)
-    train_male = rest_normal_male.sample(n=n_male, random_state=42)
-    train_female = rest_normal_female.sample(n=n_female, random_state=42)
+    train_male = rest_normal_male.sample(n=n_male, random_state=random_state)
+    train_female = rest_normal_female.sample(n=n_female, random_state=random_state)
     if effective_dataset_size != 1.0:
         print(f"Reducing dataset size to {effective_dataset_size} ({len(train_female)} female and {len(train_male)} amle samples are available)")
-        train_female = train_female.sample(frac=effective_dataset_size, random_state=42, replace=False)
-        train_male = train_male.sample(frac=effective_dataset_size, random_state=42, replace=False)
+        train_female = train_female.sample(frac=effective_dataset_size, random_state=random_state, replace=False)
+        train_male = train_male.sample(frac=effective_dataset_size, random_state=random_state, replace=False)
     print(f"Using {len(train_female)} female and {len(train_male)} male samples for training.")
     if upsampling_strategy:
         if male_percent == 1 or female_percent == 1:
@@ -168,7 +169,7 @@ def load_rsna_gender_split(
         print(f"Using {len(train_female)} female and {len(train_male)} male samples for training.")
 
     # Aggregate training set and shuffle
-    train = pd.concat([train_male, train_female]).sample(frac=1, random_state=42).reset_index(drop=True)
+    train = pd.concat([train_male, train_female]).sample(frac=1, random_state=random_state).reset_index(drop=True)
     print("Final dataset shape: ", train.shape)
 
     # Return
@@ -195,7 +196,8 @@ def load_rsna_age_two_split(
         old_percent: float = 0.5,
         anomaly: str = 'lungOpacity',
         upsampling_strategy=None,
-        effective_dataset_size=1.0
+        effective_dataset_size=1.0,
+        random_state=42
 ):
     """Load data with age balanced val and test sets. Training fraction of old
     and young patients can be specified.
@@ -230,21 +232,19 @@ def load_rsna_age_two_split(
 
     # Save 100 young and 100 old samples for every label for validation and test
     # Normal
-    # TODO: why 50 samples from the normal dataset only?
-    # TODO: why 100 samples from the anomaly dataset?
-    val_test_normal_young = normal_young.sample(n=50, random_state=42)
-    val_test_normal_old = normal_old.sample(n=50, random_state=42)
-    val_test_young = young.sample(n=100, random_state=42)
-    val_test_old = old.sample(n=100, random_state=42)
+    val_test_normal_young = normal_young.sample(n=50, random_state=random_state)
+    val_test_normal_old = normal_old.sample(n=50, random_state=random_state)
+    val_test_young = young.sample(n=100, random_state=random_state)
+    val_test_old = old.sample(n=100, random_state=random_state)
     val_young = val_test_young.iloc[:50, :]
     val_old = val_test_old.iloc[:50, :]
     test_young = val_test_young.iloc[50:, :]
     test_old = val_test_old.iloc[50:, :]
     # Aggregate validation and test sets and shuffle
-    val_young = pd.concat([val_test_normal_young, val_young]).sample(frac=1, random_state=42).reset_index(drop=True)
-    val_old = pd.concat([val_test_normal_old, val_old]).sample(frac=1, random_state=42).reset_index(drop=True)
-    test_young = pd.concat([val_test_normal_young, test_young]).sample(frac=1, random_state=42).reset_index(drop=True)
-    test_old = pd.concat([val_test_normal_old, test_old]).sample(frac=1, random_state=42).reset_index(drop=True)
+    val_young = pd.concat([val_test_normal_young, val_young]).sample(frac=1, random_state=random_state).reset_index(drop=True)
+    val_old = pd.concat([val_test_normal_old, val_old]).sample(frac=1, random_state=random_state).reset_index(drop=True)
+    test_young = pd.concat([val_test_normal_young, test_young]).sample(frac=1, random_state=random_state).reset_index(drop=True)
+    test_old = pd.concat([val_test_normal_old, test_old]).sample(frac=1, random_state=random_state).reset_index(drop=True)
 
     # Rest for training
     rest_normal_young = normal_young[~normal_young.patientId.isin(val_test_normal_young.patientId)]
@@ -252,12 +252,12 @@ def load_rsna_age_two_split(
     n_samples = min(len(rest_normal_young), len(rest_normal_old))
     n_young = int(n_samples * young_percent)
     n_old = int(n_samples * old_percent)
-    train_young = rest_normal_young.sample(n=n_young, random_state=42)
-    train_old = rest_normal_old.sample(n=n_old, random_state=42)
+    train_young = rest_normal_young.sample(n=n_young, random_state=random_state)
+    train_old = rest_normal_old.sample(n=n_old, random_state=random_state)
     if effective_dataset_size != 1.0:
         print(f"Reducing dataset size to {effective_dataset_size} ({len(train_young)} young and {len(train_old)} old samples are available)")
-        train_young = train_young.sample(frac=effective_dataset_size, random_state=42, replace=False)
-        train_old = train_old.sample(frac=effective_dataset_size, random_state=42, replace=False)
+        train_young = train_young.sample(frac=effective_dataset_size, random_state=random_state, replace=False)
+        train_old = train_old.sample(frac=effective_dataset_size, random_state=random_state, replace=False)
     print(f"Using {len(train_young)} young and {len(train_old)} old samples for training.")
     if upsampling_strategy:
         if old_percent == 1 or young_percent == 1:
@@ -269,7 +269,7 @@ def load_rsna_age_two_split(
             train_old = upsample_dataset(train_old, upsampling_strategy, num_add_samples)
         print(f"Using {len(train_young)} young and {len(train_old)} old samples for training.")
     # Aggregate training set and shuffle
-    train = pd.concat([train_young, train_old]).sample(frac=1, random_state=42).reset_index(drop=True)
+    train = pd.concat([train_young, train_old]).sample(frac=1, random_state=random_state).reset_index(drop=True)
     print("Final dataset shape: ", train.shape)
     # Return
     filenames = {}
