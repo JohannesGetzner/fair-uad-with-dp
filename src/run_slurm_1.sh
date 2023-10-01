@@ -23,6 +23,6 @@ echo "Running script with Anaconda environment: $ANACONDA_ENV"
 date=$(date '+%Y-%m-%d %H:%M:%S')
 
 $ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.5 --effective_dataset_size 0.001 --group_name_mod "bs32-dss" --job_type_mod "0001" --d "${date}"
-$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.5 --effective_dataset_size 0.005 --group_name_mod "bs32-dss" --job_type_mod "0001" --d "${date}"
-$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.5 --effective_dataset_size 0.008 --group_name_mod "bs32-dss" --job_type_mod "0001" --d "${date}"
-$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.5 --effective_dataset_size 0.01 --group_name_mod "bs32-dss" --job_type_mod "0001" --d "${date}"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.5 --effective_dataset_size 0.005 --group_name_mod "bs32-dss" --job_type_mod "0005" --d "${date}"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.5 --effective_dataset_size 0.008 --group_name_mod "bs32-dss" --job_type_mod "0008" --d "${date}"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.5 --effective_dataset_size 0.01  --group_name_mod "bs32-dss" --job_type_mod "001" --d "${date}"
