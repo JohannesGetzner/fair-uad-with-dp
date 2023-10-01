@@ -6,7 +6,7 @@ v1:
   initial_seed: 1
   num_seeds: 5
   wandb_project: "unsupervised-fairness"
-  epochs: 187
+  epochs: 8000
   batch_size: 32
 # default sex
 v2:
