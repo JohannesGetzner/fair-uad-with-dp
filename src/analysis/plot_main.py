@@ -29,7 +29,7 @@ def plot_metric(experiment_dir: str, attr_key: str, metrics: Tuple[str], xlabel:
                 plt_name: str, dp=False):
     """Plots the given metrics as different plots"""
     # Collect data from all runs
-    data, attr_key_values = gather_data_seeds(experiment_dir, attr_key, metrics, ss=True if "ss" in experiment_dir else False)
+    data, attr_key_values = gather_data_seeds(experiment_dir, attr_key, metrics, ss=True if "-ss" in experiment_dir else False)
     plotting_args = {
         "data": data,
         "attr_key_values": attr_key_values,
@@ -295,9 +295,12 @@ if __name__ == '__main__':
         "2023-09-07 22:33:03-FAE-rsna-age-bs32-ms-noDP",
         "2023-09-16 02:37:52-FAE-rsna-sex-bs32-ms-noDP",
         "2023-09-15 21:03:45-FAE-rsna-age-bs32-ms-noDP",
-        "2023-09-16 11:14:45-FAE-rsna-age-bs32-dss-DP",
+        "2023-09-16 11:14:45-FAE-rsna-age-bs512-dss-DP",
         "2023-09-16 10:52:18-FAE-rsna-sex-bs32-dss-noDP",
         "2023-09-18 08:19:53-FAE-rsna-age-bs32-ms-noDP",
+        "2023-09-20 14:07:37-FAE-rsna-age-bs1024-ms-DP",
+        "2023-09-30 11:29:59-FAE-rsna-age-bs32-dss-noDP",
+        "2023-10-01 12:47:40-FAE-rsna-age-bs32-dss-eqsteps-noDP",
         "archive"
     ]
     dir = ""
@@ -306,7 +309,6 @@ if __name__ == '__main__':
     else:
         dirs = [dir]
     for experiment_dir in dirs:
-        break
         if experiment_dir in to_skip:
             continue
         print("\nGenerating plots for", experiment_dir, "\n")
@@ -318,7 +320,18 @@ if __name__ == '__main__':
             pv = "sex"
             g = ("male", "female")
         metrics = [
+            # fpr@0.95
+            (f"test/lungOpacity_{g[0]}_fpr@0.95", f"test/lungOpacity_{g[1]}_fpr@0.95", "fpr@0.95tpr"),
+            # tpr@0.05
+            (f"test/lungOpacity_{g[0]}_tpr@0.05", f"test/lungOpacity_{g[1]}_tpr@0.05", "tpr@0.05fpr"),
+            # anomaly score
+            (f"test/lungOpacity_{g[0]}_anomaly_score", f"test/lungOpacity_{g[1]}_anomaly_score", "anomaly score"),
+            # AUROC
+            (f"test/lungOpacity_{g[0]}_AUROC", f"test/lungOpacity_{g[1]}_AUROC", "AUROC"),
+            # subgroupAUROC
             (f"test/lungOpacity_{g[0]}_subgroupAUROC", f"test/lungOpacity_{g[1]}_subgroupAUROC", "subgroupAUROC"),
+            #  Average precision
+            (f"test/lungOpacity_{g[0]}_AP", f"test/lungOpacity_{g[1]}_AP", "AP")
         ]
 
         for metric in metrics:
@@ -334,7 +347,7 @@ if __name__ == '__main__':
                 dp="noDP" not in experiment_dir
             )
 
-    if True:
+    if False:
         dir_1 = os.path.join("../logs_persist", "2023-08-26 14:14:04-FAE-rsna-age-bs32-ss-noDP")
         dir_2 = os.path.join("../logs_persist", "2023-09-02 05:22:36-FAE-rsna-age-bs32-upsamplingeven-noDP")
         # metrics = (f"test/lungOpacity_male_subgroupAUROC", f"test/lungOpacity_female_subgroupAUROC")
