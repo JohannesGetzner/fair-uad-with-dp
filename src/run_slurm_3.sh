@@ -27,8 +27,8 @@ $ANACONDA_PYTHON -u train.py --run_config dp --run_version v1 --protected_attr_p
 $ANACONDA_PYTHON -u train.py --run_config dp --run_version v1 --protected_attr_percent 0.75	--group_name_mod "bs512" --d "${date}"
 $ANACONDA_PYTHON -u train.py --run_config dp --run_version v1 --protected_attr_percent 1.0 	--group_name_mod "bs512" --d "${date}"
 date=$(date '+%Y-%m-%d %H:%M:%S')
-$ANACONDA_PYTHON -u train.py --run_config dp --run_version v2 --protected_attr_percent 0.0 	--group_name_mod "bs512" --d "${date}"
-$ANACONDA_PYTHON -u train.py --run_config dp --run_version v2 --protected_attr_percent 0.25 --group_name_mod "bs512" --d "${date}"
-$ANACONDA_PYTHON -u train.py --run_config dp --run_version v2 --protected_attr_percent 0.5 	--group_name_mod "bs512" --d "${date}"
-$ANACONDA_PYTHON -u train.py --run_config dp --run_version v2 --protected_attr_percent 0.75	--group_name_mod "bs512" --d "${date}"
-$ANACONDA_PYTHON -u train.py --run_config dp --run_version v2 --protected_attr_percent 1.0 	--group_name_mod "bs512" --d "${date}"
+$ANACONDA_PYTHON -u train.py --run_config dp --run_version v3 --protected_attr_percent 0.0 	--group_name_mod "bs512" --d "${date}"
+$ANACONDA_PYTHON -u train.py --run_config dp --run_version v3 --protected_attr_percent 0.25 --group_name_mod "bs512" --d "${date}"
+$ANACONDA_PYTHON -u train.py --run_config dp --run_version v3 --protected_attr_percent 0.5 	--group_name_mod "bs512" --d "${date}"
+$ANACONDA_PYTHON -u train.py --run_config dp --run_version v3 --protected_attr_percent 0.75	--group_name_mod "bs512" --d "${date}"
+$ANACONDA_PYTHON -u train.py --run_config dp --run_version v3 --protected_attr_percent 1.0 	--group_name_mod "bs512" --d "${date}"
