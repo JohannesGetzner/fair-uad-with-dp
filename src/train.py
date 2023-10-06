@@ -1,5 +1,4 @@
 import os
-from typing import List
 
 os.environ["WANDB__SERVICE_WAIT"] = "300"
 import sys
