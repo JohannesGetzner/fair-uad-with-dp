@@ -47,7 +47,7 @@ DEFAULT_CONFIG = {
     # Hyperparameters
     "lr": 2e-4,
     "weight_decay": 0.0,
-    "epochs": 100,
+    "num_steps": 45000,
     # "max_steps": 8000,
     "batch_size": 32,
     # Model settings

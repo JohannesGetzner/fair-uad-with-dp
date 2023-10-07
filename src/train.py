@@ -28,7 +28,7 @@ parser.add_argument('--job_type_mod', default=None, type=str)
 parser.add_argument('--loss_weight_type', default=None, type=str)
 parser.add_argument('--weight', default=None, type=float)
 parser.add_argument('--second_stage_epsilon', default=None, type=float)
-parser.add_argument('--second_stage_epochs', default=None, type=int)
+parser.add_argument('--second_stage_steps', default=None, type=int)
 parser.add_argument('--pretrained_model_path', default=None, type=str)
 parser.add_argument('--wb_custom_run_name',  default=None, type=str)
 parser.add_argument('--upsampling_strategy', default=None, type=str)
@@ -38,6 +38,10 @@ parser.add_argument('--hidden_dims', nargs='+', default=None, type=int)
 parser.add_argument('--dataset_random_state', default=None, type=int)
 parser.add_argument('--d', type=str, default=str(datetime.strftime(datetime.now(), format="%Y-%m-%d %H:%M:%S")))
 DYNAMIC_PARAMS = parser.parse_args()
+
+
+def num_steps_to_epochs(num_steps, train_loader):
+    return num_steps // len(train_loader)
 
 
 def initialize_configuration(new_config, static_params):
@@ -56,6 +60,7 @@ def initialize_configuration(new_config, static_params):
 def run(config):
     # load data
     train_loader, val_loader, test_loader, max_sample_freq = load_data(config)
+    config.epochs = num_steps_to_epochs(config.num_steps, train_loader)
     for i in range(config.num_seeds):
         config.seed = config.initial_seed + i
         # get log dir
@@ -108,11 +113,12 @@ def run_stage_two(model, optimizer, config, log_dir, steps_done):
     modified_config = config.copy()
     modified_config.initial_stage_protected_attr_percent = modified_config.protected_attr_percent
     modified_config.protected_attr_percent = 0
-    modified_config.epochs = modified_config.second_stage_epochs
+
     if modified_config.dp:
         modified_config.epsilon = modified_config.second_stage_epsilon
         print("Second stage epsilon:", modified_config.epsilon)
     train_loader, val_loader, test_loader, max_sample_freq = load_data(modified_config)
+    modified_config.epochs = num_steps_to_epochs(modified_config.second_stage_steps, train_loader)
     if modified_config.dp:
         privacy_engine = PrivacyEngine(accountant="rdp")
         modified_config.delta = 1 / (len(train_loader) * train_loader.batch_size)

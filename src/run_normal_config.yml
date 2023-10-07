@@ -4,9 +4,9 @@ v1:
   dp: False
   protected_attr: "age"
   initial_seed: 1
-  num_seeds: 3
+  num_seeds: 5
   wandb_project: "unsupervised-fairness"
-  epochs: 187
+  num_steps: 8000
   batch_size: 32
 # default sex
 v2:
@@ -15,5 +15,5 @@ v2:
   initial_seed: 1
   num_seeds: 5
   wandb_project: "unsupervised-fairness"
-  epochs: 67
+  num_steps: 8000
   batch_size: 32
