@@ -18,18 +18,6 @@ v2:
   max_grad_norm: 0.01
   protected_attr: "sex"
   initial_seed: 1
-  num_seeds: 1
-  wandb_project: "unsupervised-fairness"
-  num_steps: 45000
-  batch_size: 512
-  max_physical_batch_size: 512
-  lr: 0.0002
-
-v3:
-  dp: True
-  max_grad_norm: 0.01
-  protected_attr: "sex"
-  initial_seed: 1
   num_seeds: 3
   wandb_project: "unsupervised-fairness"
   num_steps: 45000
