@@ -1,7 +1,7 @@
 import wandb
 api = wandb.Api()
 current = ""
-target = ""
+target =  ""
 for r in api.runs(
         "thesis-getzner/unsupervised-fairness",
         filters={

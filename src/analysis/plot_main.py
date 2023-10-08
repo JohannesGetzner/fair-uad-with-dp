@@ -297,7 +297,7 @@ if __name__ == '__main__':
         "2023-09-15 21:03:45-FAE-rsna-age-bs32-ms-noDP",
         "2023-09-16 11:14:45-FAE-rsna-age-bs512-dss-DP",
         "2023-09-16 10:52:18-FAE-rsna-sex-bs32-dss-noDP",
-        "2023-09-18 08:19:53-FAE-rsna-age-bs32-ms-noDP",
+        "2023-09-18 08:19:53-FAE-rsna-age-bs32-msdepth-noDP",
         "2023-09-20 14:07:37-FAE-rsna-age-bs1024-ms-DP",
         "2023-09-30 11:29:59-FAE-rsna-age-bs32-dss-noDP",
         "2023-10-01 12:47:40-FAE-rsna-age-bs32-dss-eqsteps-noDP",
