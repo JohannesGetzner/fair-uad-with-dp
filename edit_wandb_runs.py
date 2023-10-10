@@ -7,6 +7,7 @@ for r in api.runs(
         filters={
             "group": current
         }):
+    # protected_attr = r._attrs["config"]["protected_attr"]
     r.group = target
-    # r.tags = r.tags + ["DEPRECATED"]
+    # r.tags = r.tags + ["FINAL_RUN"]
     r.update()
