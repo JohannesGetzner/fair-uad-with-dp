@@ -20,35 +20,22 @@ source activate $ANACONDA_ENV
 # Your commands using the Anaconda environment
 echo "Running script with Anaconda environment: $ANACONDA_ENV"
 
+# ---------
+# AGE
+# ---------
 date=$(date '+%Y-%m-%d %H:%M:%S')
-$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.1  --upsampling_strategy "even_old"	--group_name_mod "bs32" --d "${date}"
-$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.2  --upsampling_strategy "even_old"	--group_name_mod "bs32" --d "${date}"
-$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.25 --upsampling_strategy "even_old"  --group_name_mod "bs32" --d "${date}"
-$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.3  --upsampling_strategy "even_old"	--group_name_mod "bs32" --d "${date}"
-$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.4  --upsampling_strategy "even_old"	--group_name_mod "bs32" --d "${date}"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.6  --upsampling_strategy "even_young"	--group_name_mod "bs32-upsamplingeven" --d "${date}"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.7  --upsampling_strategy "even_young"	--group_name_mod "bs32-upsamplingeven" --d "${date}"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.75 --upsampling_strategy "even_young"	--group_name_mod "bs32-upsamplingeven" --d "${date}"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.8  --upsampling_strategy "even_young"	--group_name_mod "bs32-upsamplingeven" --d "${date}"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.9  --upsampling_strategy "even_young"	--group_name_mod "bs32-upsamplingeven" --d "${date}"
 
-#$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.6  --upsampling_strategy "even_young"	--group_name_mod "bs32" --d "${date}"
-#$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.7  --upsampling_strategy "even_young"	--group_name_mod "bs32" --d "${date}"
-#$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.75 --upsampling_strategy "even_young"	--group_name_mod "bs32" --d "${date}"
-#$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.8  --upsampling_strategy "even_young"	--group_name_mod "bs32" --d "${date}"
-#$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1 --protected_attr_percent 0.9  --upsampling_strategy "even_young"	--group_name_mod "bs32" --d "${date}"
-
+# ---------
+# SEX
+# ---------
 date=$(date '+%Y-%m-%d %H:%M:%S')
-$ANACONDA_PYTHON -u train.py --run_config normal --run_version v2 --protected_attr_percent 0.1  --upsampling_strategy "even_male"	--group_name_mod "bs32" --d "${date}"
-$ANACONDA_PYTHON -u train.py --run_config normal --run_version v2 --protected_attr_percent 0.2  --upsampling_strategy "even_male"	--group_name_mod "bs32" --d "${date}"
-$ANACONDA_PYTHON -u train.py --run_config normal --run_version v2 --protected_attr_percent 0.25 --upsampling_strategy "even_male" --group_name_mod "bs32" --d "${date}"
-$ANACONDA_PYTHON -u train.py --run_config normal --run_version v2 --protected_attr_percent 0.3  --upsampling_strategy "even_male"	--group_name_mod "bs32" --d "${date}"
-$ANACONDA_PYTHON -u train.py --run_config normal --run_version v2 --protected_attr_percent 0.4  --upsampling_strategy "even_male"	--group_name_mod "bs32" --d "${date}"
-
-#$ANACONDA_PYTHON -u train.py --run_config normal --run_version v2 --protected_attr_percent 0.6  --upsampling_strategy "even_female"	--group_name_mod "bs32" --d "${date}"
-#$ANACONDA_PYTHON -u train.py --run_config normal --run_version v2 --protected_attr_percent 0.7  --upsampling_strategy "even_female"	--group_name_mod "bs32" --d "${date}"
-#$ANACONDA_PYTHON -u train.py --run_config normal --run_version v2 --protected_attr_percent 0.75 --upsampling_strategy "even_female"	--group_name_mod "bs32" --d "${date}"
-#$ANACONDA_PYTHON -u train.py --run_config normal --run_version v2 --protected_attr_percent 0.8  --upsampling_strategy "even_female"	--group_name_mod "bs32" --d "${date}"
-#$ANACONDA_PYTHON -u train.py --run_config normal --run_version v2 --protected_attr_percent 0.9  --upsampling_strategy "even_female"	--group_name_mod "bs32" --d "${date}"
-
-date=$(date '+%Y-%m-%d %H:%M:%S')
-$ANACONDA_PYTHON -u train.py --run_config dp --run_version v1 --protected_attr_percent 0.25 --upsampling_strategy "even_old"    --group_name_mod "bs512" --d "${date}"
-$ANACONDA_PYTHON -u train.py --run_config dp --run_version v1 --protected_attr_percent 0.75 --upsampling_strategy "even_young"	--group_name_mod "bs512" --d "${date}"
-
-$ANACONDA_PYTHON -u train.py --run_config dp --run_version v2 --protected_attr_percent 0.25 --upsampling_strategy "even_male"   --group_name_mod "bs512" --d "${date}"
-$ANACONDA_PYTHON -u train.py --run_config dp --run_version v2 --protected_attr_percent 0.75 --upsampling_strategy "even_female"	--group_name_mod "bs512" --d "${date}"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v2 --protected_attr_percent 0.6  --upsampling_strategy "even_female"	--group_name_mod "bs32-upsamplingeven" --d "${date}"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v2 --protected_attr_percent 0.7  --upsampling_strategy "even_female"	--group_name_mod "bs32-upsamplingeven" --d "${date}"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v2 --protected_attr_percent 0.75 --upsampling_strategy "even_female"	--group_name_mod "bs32-upsamplingeven" --d "${date}"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v2 --protected_attr_percent 0.8  --upsampling_strategy "even_female"	--group_name_mod "bs32-upsamplingeven" --d "${date}"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version v2 --protected_attr_percent 0.9  --upsampling_strategy "even_female"	--group_name_mod "bs32-upsamplingeven" --d "${date}"
