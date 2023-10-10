@@ -74,7 +74,7 @@ DEFAULT_CONFIG = {
     "n_adam": False,
     "wb_custom_run_name": None,
     "second_stage_epsilon": None,
-    "second_stage_epochs": None,
+    "second_stage_steps": None,
     "upsampling_strategy": None,
     "custom_sr": False,
     "effective_dataset_size": 1.0,

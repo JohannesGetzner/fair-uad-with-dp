@@ -100,7 +100,7 @@ def run(config):
             model, steps_done = train(model, optimizer, train_loader, val_loader, config, log_dir)
         test(config, model, test_loader, log_dir)
 
-        if config.second_stage_epsilon:
+        if config.second_stage_steps:
             _ = run_stage_two(model, optimizer, config, log_dir, steps_done)
         wandb.finish()
         del model
