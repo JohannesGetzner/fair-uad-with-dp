@@ -166,6 +166,9 @@ def get_subgroup_loss_weights(fraction: Tuple[float, float], config):
     elif config.loss_weight_type == "fraction_rev":
         # pull the weights in the opposite direction
         return fraction[0], 1 / fraction[1]
-    elif config.loss_weight_type.startswith("old_down_weighted"):
+    elif config.loss_weight_type.startswith("old_weight") or config.loss_weight_type.startswith("male_weight"):
         weight = config.weight
         return weight, 1
+    elif config.loss_weight_type.startswith("young_weight") or config.loss_weight_type.startswith("female_weight"):
+        weight = config.weight
+        return 1, weight
