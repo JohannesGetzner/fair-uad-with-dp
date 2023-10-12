@@ -5,8 +5,8 @@ v1:
   initial_seed: 1
   num_seeds: 1
   wandb_project: "test"
-  num_steps: 800
-  batch_size: 3
+  num_steps: 8000
+  batch_size: 32
 v2:
   dp: True
   max_grad_norm: 0.01

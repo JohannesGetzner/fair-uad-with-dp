@@ -43,6 +43,7 @@ DEFAULT_CONFIG = {
     "log_frequency": 100,
     "log_img_freq": 1000,
     "num_imgs_log": 8,
+    "no_img_log": False,
     "log_dir": os.path.join('logs', datetime.strftime(datetime.now(), format="%Y.%m.%d-%H:%M:%S")),
     # Hyperparameters
     "lr": 2e-4,
@@ -78,7 +79,8 @@ DEFAULT_CONFIG = {
     "upsampling_strategy": None,
     "custom_sr": False,
     "effective_dataset_size": 1.0,
-    "dataset_random_state": 42
+    "dataset_random_state": 42,
+    "n_training_samples": None
 }
 DEFAULT_CONFIG = DotMap(DEFAULT_CONFIG)
 DEFAULT_CONFIG.device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -88,7 +90,7 @@ print(f"Using {DEFAULT_CONFIG.device}")
 def load_data(config):
     print("Loading data...")
     t_load_data_start = time()
-    train_loader, val_loader, test_loader, max_sample_freq = get_dataloaders(
+    train_loaders, val_loader, test_loader, max_sample_freq = get_dataloaders(
         dataset=config.dataset,
         batch_size=config.batch_size,
         img_size=config.img_size, num_workers=config.num_workers,
@@ -97,10 +99,14 @@ def load_data(config):
         old_percent=config.protected_attr_percent,
         upsampling_strategy=config.upsampling_strategy,
         effective_dataset_size=config.effective_dataset_size,
-        random_state = config.dataset_random_state
+        random_state = config.dataset_random_state,
+        n_training_samples=config.n_training_samples
     )
     print(f'Loaded datasets in {time() - t_load_data_start:.2f}s')
-    return train_loader, val_loader, test_loader, max_sample_freq
+    if config.n_training_samples:
+        return train_loaders, val_loader, test_loader, max_sample_freq
+    else:
+        return train_loaders[0], val_loader, test_loader, max_sample_freq
 
 
 def init_model(config):
@@ -203,13 +209,14 @@ def train(model, optimizer, train_loader, val_loader, config, log_dir, prev_step
 
             # validation
             if i_step % config.val_frequency == 0:
-                log_imgs = i_step % config.log_img_freq == 0
+                log_imgs = (i_step % config.log_img_freq == 0) and not config.no_img_log
                 val_results = validate(config, model, optimizer, val_loader, i_step, log_dir, log_imgs)
                 # Log to w&b
                 wandb.log(val_results, step=i_step)
 
         i_epoch += 1
-        print(f'Finished epoch {i_epoch}/{config.epochs}, ({i_step} iterations)')
+        if i_epoch % 100 == 0:
+            print(f'Finished epoch {i_epoch}/{config.epochs}, ({i_step} iterations)')
         if i_epoch >= config.epochs:
             print(f'Reached {config.epochs} epochs.', 'Finished training.')
             # Final validation
@@ -275,7 +282,7 @@ def train_dp(model, optimizer, train_loader, val_loader, config, log_dir, privac
 
                 eps = privacy_engine.get_epsilon(config.delta)
                 if i_step % config.val_frequency == 0:
-                    log_imgs = i_step % config.log_img_freq == 0
+                    log_imgs = i_step % config.log_img_freq == 0 and not config.no_img_log
                     val_results = validate(config, model, optimizer, val_loader, i_step, log_dir, log_imgs, privacy_engine=privacy_engine)
                     print(f"ɛ: {eps:.2f} (target: {config.epsilon})")
                     val_results['epsilon'] = eps

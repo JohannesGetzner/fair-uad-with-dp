@@ -31,6 +31,7 @@ class NormalDataset(Dataset):
         :param gender:
         """
         self.data = data
+        self.filenames = data.copy()
         for i, d in enumerate(self.data):
             if isinstance(d, str):
                 self.data[i] = transform(load_fn(d))
@@ -103,8 +104,9 @@ def get_dataloaders(dataset: str,
                     old_percent: Optional[float] = 0.5,
                     upsampling_strategy=None,
                     effective_dataset_size=1.0,
-                    random_state = 42
-                    ) -> Tuple[DataLoader, DataLoader, DataLoader, int]:
+                    random_state=42,
+                    n_training_samples: int = None
+                    ) -> Tuple[List[DataLoader], DataLoader, DataLoader, int]:
     """
     Returns dataloaders for the RSNA dataset.
     """
@@ -137,6 +139,7 @@ def get_dataloaders(dataset: str,
     train_data = data['train']
     train_labels = labels['train']
     train_meta = meta['train']
+
     if upsampling_strategy:
         # get the max number of times a sample appears in train_data
         counts = Counter(train_data)
@@ -159,18 +162,40 @@ def get_dataloaders(dataset: str,
     ])
 
     # Create datasets
-    train_dataset = NormalDataset(train_data, train_labels, train_meta, transform=transform, load_fn=load_fn)
     anomal_ds = partial(AnomalFairnessDataset, transform=transform, load_fn=load_fn)
     val_dataset = anomal_ds(val_data, val_labels, val_meta)
     test_dataset = anomal_ds(test_data, test_labels, test_meta)
 
-    # Create dataloaders
-    train_dataloader = DataLoader(
-        train_dataset,
-        batch_size=batch_size,
-        shuffle=True,
-        num_workers=num_workers,
-        generator=Generator().manual_seed(2147483647))
+    train_dataloaders = []
+    if n_training_samples:
+        print("ATTENTION: n_training_samples is set to", n_training_samples)
+        print("splitting training set into", len(train_data) // n_training_samples, "dataloaders")
+        prev = 0
+        for i in range(n_training_samples, len(train_data), n_training_samples):
+            temp_dataset = NormalDataset(
+                train_data[prev:i],
+                train_labels[prev:i],
+                train_meta[prev:i],
+                transform=transform,
+                load_fn=load_fn
+            )
+            temp_dataloader = DataLoader(
+                temp_dataset,
+                batch_size=batch_size,
+                shuffle=True,
+                num_workers=num_workers,
+                generator=Generator().manual_seed(2147483647)
+            )
+            train_dataloaders.append(temp_dataloader)
+            prev = i
+    else:
+        train_dataset = NormalDataset(train_data, train_labels, train_meta, transform=transform, load_fn=load_fn)
+        train_dataloaders.append(DataLoader(
+            train_dataset,
+            batch_size=batch_size,
+            shuffle=True,
+            num_workers=num_workers,
+            generator=Generator().manual_seed(2147483647)))
     dl = partial(DataLoader, batch_size=batch_size, num_workers=num_workers, collate_fn=group_collate_fn)
     val_dataloader = dl(
         val_dataset,
@@ -181,6 +206,6 @@ def get_dataloaders(dataset: str,
         shuffle=False,
         generator=Generator().manual_seed(2147483647))
 
-    return (train_dataloader,
+    return (train_dataloaders,
             val_dataloader,
             test_dataloader, max_count)

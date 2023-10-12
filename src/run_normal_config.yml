@@ -8,6 +8,14 @@ v1:
   wandb_project: "unsupervised-fairness"
   num_steps: 8000
   batch_size: 32
+v1_dataset_distill:
+  dp: False
+  protected_attr: "age"
+  initial_seed: 1
+  num_seeds: 1
+  wandb_project: "unsupervised-fairness"
+  num_steps: 3000
+  batch_size: 32
 # default sex
 v2:
   dp: False

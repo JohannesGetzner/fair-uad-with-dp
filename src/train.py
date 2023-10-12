@@ -1,5 +1,5 @@
 import os
-
+import pandas as pd
 os.environ["WANDB__SERVICE_WAIT"] = "300"
 import sys
 sys.path.append('..')
@@ -33,9 +33,11 @@ parser.add_argument('--pretrained_model_path', default=None, type=str)
 parser.add_argument('--wb_custom_run_name',  default=None, type=str)
 parser.add_argument('--upsampling_strategy', default=None, type=str)
 parser.add_argument('--custom_sr', action=BooleanOptionalAction, default=None)
+parser.add_argument('--no_img_log', action=BooleanOptionalAction, default=None)
 parser.add_argument('--effective_dataset_size', default=None, type=float)
 parser.add_argument('--hidden_dims', nargs='+', default=None, type=int)
 parser.add_argument('--dataset_random_state', default=None, type=int)
+parser.add_argument('--n_training_samples', default=None, type=int)
 parser.add_argument('--d', type=str, default=str(datetime.strftime(datetime.now(), format="%Y-%m-%d %H:%M:%S")))
 DYNAMIC_PARAMS = parser.parse_args()
 
@@ -107,6 +109,35 @@ def run(config):
         torch.cuda.empty_cache()
         gc.collect()
 
+def run_dataset_distillation(config):
+    train_loaders, val_loader, test_loader, max_sample_freq = load_data(config)
+    config.epochs = num_steps_to_epochs(config.num_steps, train_loaders[0])
+    for idx, train_loader in enumerate(train_loaders):
+        config.job_type_mod = f"train_loader_{idx}"
+        for i in range(config.num_seeds):
+            config.seed = config.initial_seed + i
+            # get log dir
+            log_dir, group_name, job_type = construct_log_dir(config, current_time)
+            # create a dataframe from trainloader.dataset with the labels, meta and filenames
+            temp_df = pd.DataFrame({'meta': train_loader.dataset.meta, 'labels': train_loader.dataset.labels, 'filenames': train_loader.dataset.filenames})
+            # save
+            init_wandb(config, log_dir, group_name, job_type)
+            # reproducibility
+            print(f"Setting seed to {config.seed}...")
+            seed_everything(config.seed)
+            # create log dir
+            if not config.debug:
+                os.makedirs(log_dir, exist_ok=True)
+            temp_df.to_csv(os.path.join(log_dir, 'train_loader.csv'), index=False)
+            # init model
+            model, optimizer = init_model(config)
+            model, _ = train(model, optimizer, train_loader, val_loader, config, log_dir)
+            test(config, model, test_loader, log_dir)
+            wandb.finish()
+            del model
+            torch.cuda.empty_cache()
+            gc.collect()
+
 
 def run_stage_two(model, optimizer, config, log_dir, steps_done):
     print("\nStarting second stage...")
@@ -165,4 +196,7 @@ if __name__ == '__main__':
     print(f"Running {DYNAMIC_PARAMS.run_config}/{DYNAMIC_PARAMS.run_version}...")
     print(f"Run config: {run_config}")
     current_config = initialize_configuration(default_config.copy(), run_config)
-    run(current_config)
+    if current_config.n_training_samples:
+        run_dataset_distillation(current_config)
+    else:
+        run(current_config)
