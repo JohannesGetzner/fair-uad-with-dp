@@ -1,7 +1,7 @@
 from ._experiment import Experiment
 from ._experiment import DEFAULT_DATASET_CONFIG, DEFAULT_RUN_CONFIG, DEFAULT_DP_CONFIG
 from typing import Dict
-from src_refactored.datasets.DataManager import ATTRIBUTE_MAPPINGS
+from src_refactored.datasets.data_manager import ATTRIBUTE_MAPPINGS
 
 class DataSetSizeExperiment(Experiment):
     def __init__(self, run_config: Dict = DEFAULT_RUN_CONFIG, dp_config: Dict = DEFAULT_DP_CONFIG, dataset_config: Dict = DEFAULT_DATASET_CONFIG, percent_of_data_to_use=0.5):
