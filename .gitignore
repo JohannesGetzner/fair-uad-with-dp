@@ -168,3 +168,4 @@ src/analysis/**/*.png
 /src/datasets/
 /src/wandb/
 /src/logs_persist/
+/src_refactored/data/
