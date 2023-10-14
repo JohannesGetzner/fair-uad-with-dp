@@ -24,7 +24,7 @@ echo "Running script with Anaconda environment: $ANACONDA_ENV"
 # AGE
 # ---------
 date=$(date '+%Y-%m-%d %H:%M:%S')
-$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1_dataset_distill --protected_attr_percent 0.5  --group_name_mod "bs32-dataset-distillation-nsamples1"  --hidden_dims 25 75 125 175 --n_training_samples 1  --no_img_log --d "${date}"
-$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1_dataset_distill --protected_attr_percent 0.5  --group_name_mod "bs32-dataset-distillation-nsamples5"  --hidden_dims 25 75 125 175 --n_training_samples 5  --no_img_log --d "${date}"
-$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1_dataset_distill --protected_attr_percent 0.5  --group_name_mod "bs32-dataset-distillation-nsamples10" --hidden_dims 25 75 125 175 --n_training_samples 10 --no_img_log --d "${date}"
+#$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1_dataset_distill --protected_attr_percent 0.5  --group_name_mod "bs32-dataset-distillation-nsamples1"  --hidden_dims 25 75 125 175 --n_training_samples 1  --no_img_log --d "${date}"
+#$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1_dataset_distill --protected_attr_percent 0.5  --group_name_mod "bs32-dataset-distillation-nsamples5"  --hidden_dims 25 75 125 175 --n_training_samples 5  --no_img_log --d "${date}"
+#$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1_dataset_distill --protected_attr_percent 0.5  --group_name_mod "bs32-dataset-distillation-nsamples10" --hidden_dims 25 75 125 175 --n_training_samples 10 --no_img_log --d "${date}"
 $ANACONDA_PYTHON -u train.py --run_config normal --run_version v1_dataset_distill --protected_attr_percent 0.5  --group_name_mod "bs32-dataset-distillation-nsamples15" --hidden_dims 25 75 125 175 --n_training_samples 15 --no_img_log --d "${date}"
