@@ -388,12 +388,13 @@ def validate(config, model, optimizer, loader, step, log_dir, log_imgs=False, pr
 
     # Save checkpoint
     if not config.debug:
-        ckpt_name = os.path.join(log_dir, 'ckpt_last.pth')
-        print(f'Saving checkpoint to {ckpt_name}')
-        if config.dp:
-            save_checkpoint_dp(ckpt_name, model, optimizer, privacy_engine, step, dict(config))
-        else:
-            save_checkpoint(ckpt_name, model, optimizer, step, dict(config))
+        pass
+        #ckpt_name = os.path.join(log_dir, 'ckpt_last.pth')
+        #print(f'Saving checkpoint to {ckpt_name}')
+        #if config.dp:
+        #    save_checkpoint_dp(ckpt_name, model, optimizer, privacy_engine, step, dict(config))
+        #else:
+        #    save_checkpoint(ckpt_name, model, optimizer, step, dict(config))
     return results
 
 
