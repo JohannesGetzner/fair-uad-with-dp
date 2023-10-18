@@ -1,7 +1,9 @@
-from src_refactored.datasets.data_manager import DataManager
-from src_refactored.experiments.dataset_size_experiment import DataSetSizeExperiment
+from datasets.data_manager import DataManager
+from experiments.default_experiment import DefaultExperiment
+import os
 
 if __name__ == '__main__':
-    experiment = DataSetSizeExperiment()
+    experiment = DefaultExperiment()
     datamanager = DataManager(experiment.dataset_config)
-    datamanager.get_dataloaders(experiment)
+    train_dataloader, val_dataloader, test_dataloader = datamanager.get_dataloaders(experiment)
+    experiment.run(train_dataloader, val_dataloader, test_dataloader)
