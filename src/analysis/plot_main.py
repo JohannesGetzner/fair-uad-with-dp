@@ -180,9 +180,10 @@ def plot_metric_bar(data: Dict[str, np.ndarray], attr_key_values: np.ndarray, me
     legend_labels = [re.search(r"(old|female|male|young)", m).group(1) for m in metrics]
     plt.legend(bars,legend_labels)
     ylim_min = max(0, mini - 0.1 * (maxi - mini))
-    plt.ylim(ylim_min, plt.ylim()[1])
+    plt.ylim(0.5, 0.9)
     print(f"Saving plot to {plt_name}")
     plt.savefig(os.path.join(experiment_dir, plt_name))
+    plt.savefig(os.path.join(experiment_dir, plt_name[:-4] + ".pdf"))
     plt.close()
 
 
@@ -233,6 +234,7 @@ def plot_metric_bar_compare(df, groups, fig_size=(10, 6)):
         # set axis labels
     plt.xlabel(f"percent {groups[0]} samples in training data")
     plt.ylabel("subgroup AUROC")
+    plt.savefig("compare.pdf")
     return g
 
 def plot_metric_box_whisker(data: Dict[str, np.ndarray], attr_key_values: np.ndarray, metrics: List[str], xlabel: str,
@@ -301,7 +303,9 @@ if __name__ == '__main__':
         "2023-09-20 14:07:37-FAE-rsna-age-bs1024-ms-DP",
         "2023-09-30 11:29:59-FAE-rsna-age-bs32-dss-noDP",
         "2023-10-01 12:47:40-FAE-rsna-age-bs32-dss-eqsteps-noDP",
-        "archive"
+        "2023-10-06 14:01:34-FAE-rsna-sex-bs512-dss-DP",
+        "archive",
+        "distillation"
     ]
     dir = ""
     if dir == "":
@@ -309,6 +313,7 @@ if __name__ == '__main__':
     else:
         dirs = [dir]
     for experiment_dir in dirs:
+        break
         if experiment_dir in to_skip:
             continue
         print("\nGenerating plots for", experiment_dir, "\n")
@@ -321,17 +326,17 @@ if __name__ == '__main__':
             g = ("male", "female")
         metrics = [
             # fpr@0.95
-            (f"test/lungOpacity_{g[0]}_fpr@0.95", f"test/lungOpacity_{g[1]}_fpr@0.95", "fpr@0.95tpr"),
+            # (f"test/lungOpacity_{g[0]}_fpr@0.95", f"test/lungOpacity_{g[1]}_fpr@0.95", "fpr@0.95tpr"),
             # tpr@0.05
-            (f"test/lungOpacity_{g[0]}_tpr@0.05", f"test/lungOpacity_{g[1]}_tpr@0.05", "tpr@0.05fpr"),
+            # (f"test/lungOpacity_{g[0]}_tpr@0.05", f"test/lungOpacity_{g[1]}_tpr@0.05", "tpr@0.05fpr"),
             # anomaly score
-            (f"test/lungOpacity_{g[0]}_anomaly_score", f"test/lungOpacity_{g[1]}_anomaly_score", "anomaly score"),
+            # (f"test/lungOpacity_{g[0]}_anomaly_score", f"test/lungOpacity_{g[1]}_anomaly_score", "anomaly score"),
             # AUROC
-            (f"test/lungOpacity_{g[0]}_AUROC", f"test/lungOpacity_{g[1]}_AUROC", "AUROC"),
+            # (f"test/lungOpacity_{g[0]}_AUROC", f"test/lungOpacity_{g[1]}_AUROC", "AUROC"),
             # subgroupAUROC
             (f"test/lungOpacity_{g[0]}_subgroupAUROC", f"test/lungOpacity_{g[1]}_subgroupAUROC", "subgroupAUROC"),
             #  Average precision
-            (f"test/lungOpacity_{g[0]}_AP", f"test/lungOpacity_{g[1]}_AP", "AP")
+            # (f"test/lungOpacity_{g[0]}_AP", f"test/lungOpacity_{g[1]}_AP", "AP")
         ]
 
         for metric in metrics:
@@ -342,18 +347,18 @@ if __name__ == '__main__':
                 attr_key=f'{g[0]}_percent',
                 xlabel=f"percentage of {g[0]} subjects in training set",
                 ylabel=metric[2],
-                title=title,
+                title=title + " (DP)" if not "noDP" in experiment_dir else "",
                 plt_name=f"fae_rsna_{pv}_{metric[2]}",
                 dp="noDP" not in experiment_dir
             )
 
-    if False:
-        dir_1 = os.path.join("../logs_persist", "2023-08-26 14:14:04-FAE-rsna-age-bs32-ss-noDP")
+    if True:
+        dir_1 = os.path.join("../logs_persist", "2023-09-02 22:38:35-FAE-rsna-age-bs32-noDP")
         dir_2 = os.path.join("../logs_persist", "2023-09-02 05:22:36-FAE-rsna-age-bs32-upsamplingeven-noDP")
         # metrics = (f"test/lungOpacity_male_subgroupAUROC", f"test/lungOpacity_female_subgroupAUROC")
         metrics = (f"test/lungOpacity_old_subgroupAUROC", f"test/lungOpacity_young_subgroupAUROC")
         # groups = ["male", "female", "male (up-sampled)", "female (up-sampled)"]
-        groups = ["old", "young", "old (up-sampled)", "young (up-sampled)"]
+        groups = ["old", "young", "old (with young up-sampling)", "young (with young up-sampling)"]
         df = compare_two_runs(
             dir_1,
             dir_2,
@@ -364,5 +369,5 @@ if __name__ == '__main__':
         )
         g = plot_metric_bar_compare(df, groups)
         # set title
-        g.set_title("batch-size: 32, lr: 0.0002, mgn: 0.01, epochs: 67, fine-tuning: 1/3 epochs, up-sampling: even")
+        g.set_title("batch-size: 32, lr: 0.0002, epochs: 67, up-sampling: even")
         plt.show()

@@ -35,7 +35,9 @@ def gather_data_seeds(experiment_dir: str, attr_key: str, metric_names, ss=False
     """Gather the data of multiple random seeds
     For every metric, it returns a matrix of shape (num_runs, num_seeds)
     """
-    run_dirs = [os.path.join(experiment_dir, run_dir) for run_dir in os.listdir(experiment_dir) if not run_dir.endswith('.png') and not run_dir.endswith('.json') and not run_dir.endswith('.ipynb')]
+    run_dirs = [os.path.join(experiment_dir, run_dir) for run_dir in os.listdir(experiment_dir) if not run_dir.endswith('.png') and not run_dir.endswith('.json') and not run_dir.endswith('.ipynb') and not run_dir.endswith('.pdf')]
+    # only accept run_dirs that end with 0, 025, 05, 075, 1
+    # run_dirs = [run_dir for run_dir in run_dirs if (run_dir.endswith('0') or run_dir.endswith('025') or run_dir.endswith('05') or run_dir.endswith('075') or run_dir.endswith('1')) and not run_dir.endswith('.png') and not run_dir.endswith('.json') and not run_dir.endswith('01')]
     run_dfs = []
     if len(run_dirs) == 0:
         return None, None
