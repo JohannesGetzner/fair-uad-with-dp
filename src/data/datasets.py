@@ -105,7 +105,8 @@ def get_dataloaders(dataset: str,
                     upsampling_strategy=None,
                     effective_dataset_size=1.0,
                     random_state=42,
-                    n_training_samples: int = None
+                    n_training_samples: int = None,
+                    best_and_worst_subsets: bool = False
                     ) -> Tuple[List[DataLoader], DataLoader, DataLoader, int]:
     """
     Returns dataloaders for the RSNA dataset.
@@ -188,6 +189,29 @@ def get_dataloaders(dataset: str,
             )
             train_dataloaders.append(temp_dataloader)
             prev = i
+    elif best_and_worst_subsets:
+        # load subsets.json
+        import json
+        with open('logs_persist/distillation/subsets.json', 'r') as f:
+            subsets = json.load(f)
+            for subset in subsets:
+                # get indices of filenames in subset from train_data
+                indices = [train_data.index(filename) for filename in subset["filenames"]]
+                temp_dataset = NormalDataset(
+                    [train_data[i] for i in indices],
+                    [train_labels[i] for i in indices],
+                    [train_meta[i] for i in indices],
+                    transform=transform,
+                    load_fn=load_fn
+                )
+                temp_dataloader = DataLoader(
+                    temp_dataset,
+                    batch_size=batch_size,
+                    shuffle=True,
+                    num_workers=num_workers,
+                    generator=Generator().manual_seed(2147483647)
+                )
+                train_dataloaders.append(temp_dataloader)
     else:
         train_dataset = NormalDataset(train_data, train_labels, train_meta, transform=transform, load_fn=load_fn)
         train_dataloaders.append(DataLoader(

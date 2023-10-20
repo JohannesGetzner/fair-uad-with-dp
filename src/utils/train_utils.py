@@ -80,7 +80,8 @@ DEFAULT_CONFIG = {
     "custom_sr": False,
     "effective_dataset_size": 1.0,
     "dataset_random_state": 42,
-    "n_training_samples": None
+    "n_training_samples": None,
+    "best_and_worst_subsets":None
 }
 DEFAULT_CONFIG = DotMap(DEFAULT_CONFIG)
 DEFAULT_CONFIG.device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -100,10 +101,11 @@ def load_data(config):
         upsampling_strategy=config.upsampling_strategy,
         effective_dataset_size=config.effective_dataset_size,
         random_state = config.dataset_random_state,
-        n_training_samples=config.n_training_samples
+        n_training_samples=config.n_training_samples,
+        best_and_worst_subsets=config.best_and_worst_subsets
     )
     print(f'Loaded datasets in {time() - t_load_data_start:.2f}s')
-    if config.n_training_samples:
+    if config.n_training_samples or config.best_and_worst_subsets:
         return train_loaders, val_loader, test_loader, max_sample_freq
     else:
         return train_loaders[0], val_loader, test_loader, max_sample_freq

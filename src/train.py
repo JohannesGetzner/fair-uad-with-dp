@@ -34,6 +34,7 @@ parser.add_argument('--wb_custom_run_name',  default=None, type=str)
 parser.add_argument('--upsampling_strategy', default=None, type=str)
 parser.add_argument('--custom_sr', action=BooleanOptionalAction, default=None)
 parser.add_argument('--no_img_log', action=BooleanOptionalAction, default=None)
+parser.add_argument('--best_and_worst_subsets', action=BooleanOptionalAction, default=None)
 parser.add_argument('--effective_dataset_size', default=None, type=float)
 parser.add_argument('--hidden_dims', nargs='+', default=None, type=int)
 parser.add_argument('--dataset_random_state', default=None, type=int)
@@ -139,6 +140,45 @@ def run_dataset_distillation(config):
             gc.collect()
 
 
+def run_best_and_worst_subsets(config):
+    train_loaders, val_loader, test_loader, max_sample_freq = load_data(config)
+    import json
+    with open('logs_persist/distillation/subsets.json', 'r') as f:
+        subsets = json.load(f)
+    config.epochs = num_steps_to_epochs(config.num_steps, train_loaders[0])
+    for idx, train_loader in enumerate(train_loaders):
+        subset = subsets[idx]
+        assert subset["filenames"] == train_loader.dataset.filenames
+
+        tags = ["worst" if subset["mode"] == "min" else "best", "young" if subset["score_var"] == "test/lungOpacity_young_subgroupAUROC" else "old", str(subset["size"])]
+        config.job_type_mod = f"train_loader_{idx}_" + "_".join(tags)
+        tags = ["distill_" + tag for tag in tags]
+        for i in range(config.num_seeds):
+            config.seed = config.initial_seed + i
+            # get log dir
+            log_dir, group_name, job_type = construct_log_dir(config, current_time)
+            # create a dataframe from trainloader.dataset with the labels, meta and filenames
+            temp_df = pd.DataFrame({'meta': train_loader.dataset.meta, 'labels': train_loader.dataset.labels, 'filenames': train_loader.dataset.filenames})
+            # save
+            run = init_wandb(config, log_dir, group_name, job_type)
+            run.tags = run.tags + tuple(tags)
+            # reproducibility
+            print(f"Setting seed to {config.seed}...")
+            seed_everything(config.seed)
+            # create log dir
+            if not config.debug:
+                os.makedirs(log_dir, exist_ok=True)
+            temp_df.to_csv(os.path.join(log_dir, 'train_loader.csv'), index=False)
+            # init model
+            model, optimizer = init_model(config)
+            model, _ = train(model, optimizer, train_loader, val_loader, config, log_dir)
+            test(config, model, test_loader, log_dir)
+            wandb.finish()
+            del model
+            torch.cuda.empty_cache()
+            gc.collect()
+
+
 def run_stage_two(model, optimizer, config, log_dir, steps_done):
     print("\nStarting second stage...")
     modified_config = config.copy()
@@ -198,5 +238,7 @@ if __name__ == '__main__':
     current_config = initialize_configuration(default_config.copy(), run_config)
     if current_config.n_training_samples:
         run_dataset_distillation(current_config)
+    elif current_config.best_and_worst_subsets:
+        run_best_and_worst_subsets(current_config)
     else:
         run(current_config)
