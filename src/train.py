@@ -15,6 +15,7 @@ from models.FAE.fae import FeatureReconstructor
 from argparse import ArgumentParser, BooleanOptionalAction
 from utils.utils import init_wandb, construct_log_dir, seed_everything
 from utils.train_utils import train, train_dp, test, DEFAULT_CONFIG, load_data, init_model
+import json
 
 
 parser = ArgumentParser()
@@ -142,15 +143,16 @@ def run_dataset_distillation(config):
 
 def run_best_and_worst_subsets(config):
     train_loaders, val_loader, test_loader, max_sample_freq = load_data(config)
-    import json
-    with open('logs_persist/distillation/subsets.json', 'r') as f:
+    v2 = True
+    with open('logs_persist/distillation/subsets.json' if not v2 else "logs_persist/distillation/subsets_combined.json", 'r') as f:
         subsets = json.load(f)
     config.epochs = num_steps_to_epochs(config.num_steps, train_loaders[0])
     for idx, train_loader in enumerate(train_loaders):
         subset = subsets[idx]
-        assert subset["filenames"] == train_loader.dataset.filenames
+        if not v2: assert subset["filenames"] == train_loader.dataset.filenames
 
-        tags = ["worst" if subset["mode"] == "min" else "best", "young" if subset["score_var"] == "test/lungOpacity_young_subgroupAUROC" else "old", str(subset["size"])]
+        tags = ["worst" if subset["mode"] == "min" else "best", str(subset["size"])]
+        if not v2: tags += ["young" if subset["score_var"] == "test/lungOpacity_young_subgroupAUROC" else "old"]
         config.job_type_mod = f"train_loader_{idx}_" + "_".join(tags)
         tags = ["distill_" + tag for tag in tags]
         for i in range(config.num_seeds):

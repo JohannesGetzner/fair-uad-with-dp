@@ -5,7 +5,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 from torch import Tensor, Generator
 from torch.utils.data import DataLoader, Dataset, default_collate
 from torchvision import transforms
-
+import json
 from src import RSNA_DIR
 from src.data.data_utils import load_dicom_img
 from src.data.rsna_pneumonia_detection import (load_rsna_age_two_split,
@@ -191,27 +191,50 @@ def get_dataloaders(dataset: str,
             prev = i
     elif best_and_worst_subsets:
         # load subsets.json
-        import json
-        with open('logs_persist/distillation/subsets.json', 'r') as f:
-            subsets = json.load(f)
-            for subset in subsets:
-                # get indices of filenames in subset from train_data
-                indices = [train_data.index(filename) for filename in subset["filenames"]]
-                temp_dataset = NormalDataset(
-                    [train_data[i] for i in indices],
-                    [train_labels[i] for i in indices],
-                    [train_meta[i] for i in indices],
-                    transform=transform,
-                    load_fn=load_fn
-                )
-                temp_dataloader = DataLoader(
-                    temp_dataset,
-                    batch_size=batch_size,
-                    shuffle=True,
-                    num_workers=num_workers,
-                    generator=Generator().manual_seed(2147483647)
-                )
-                train_dataloaders.append(temp_dataloader)
+        v2 = True
+        if not v2:
+            with open('logs_persist/distillation/subsets.json', 'r') as f:
+                subsets = json.load(f)
+                for subset in subsets:
+                    # get indices of filenames in subset from train_data
+                    indices = [train_data.index(filename) for filename in subset["filenames"]]
+                    temp_dataset = NormalDataset(
+                        [train_data[i] for i in indices],
+                        [train_labels[i] for i in indices],
+                        [train_meta[i] for i in indices],
+                        transform=transform,
+                        load_fn=load_fn
+                    )
+                    temp_dataloader = DataLoader(
+                        temp_dataset,
+                        batch_size=batch_size,
+                        shuffle=True,
+                        num_workers=num_workers,
+                        generator=Generator().manual_seed(2147483647)
+                    )
+                    train_dataloaders.append(temp_dataloader)
+        else:
+            with open('logs_persist/distillation/subsets_combined.json', 'r') as f:
+                subsets = json.load(f)
+                for subset in subsets:
+                    # get indices of filenames in subset from train_data
+                    filenames = subset["filenames"]["test/lungOpacity_old_subgroupAUROC"] + subset["filenames"]["test/lungOpacity_young_subgroupAUROC"]
+                    indices = [train_data.index(filename) for filename in filenames]
+                    temp_dataset = NormalDataset(
+                        [train_data[i] for i in indices],
+                        [train_labels[i] for i in indices],
+                        [train_meta[i] for i in indices],
+                        transform=transform,
+                        load_fn=load_fn
+                    )
+                    temp_dataloader = DataLoader(
+                        temp_dataset,
+                        batch_size=batch_size,
+                        shuffle=True,
+                        num_workers=num_workers,
+                        generator=Generator().manual_seed(2147483647)
+                    )
+                    train_dataloaders.append(temp_dataloader)
     else:
         train_dataset = NormalDataset(train_data, train_labels, train_meta, transform=transform, load_fn=load_fn)
         train_dataloaders.append(DataLoader(
