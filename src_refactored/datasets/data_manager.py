@@ -3,11 +3,10 @@ import numpy as np
 import pandas as pd
 from torch import Generator
 from functools import partial
-from torchvision import transforms
+
 from torch.utils.data import DataLoader
-from src_refactored.experiments._experiment import Experiment
 from src_refactored.datasets.datasets import NormalDataset, AnomalFairnessDataset
-from src_refactored.datasets.data_utils import load_rsna_files, group_collate_fn, load_dicom_img
+from src_refactored.datasets.data_utils import load_rsna_files, group_collate_fn, get_load_fn, get_transforms
 
 
 ATTRIBUTE_MAPPINGS = {
@@ -106,13 +105,10 @@ class DataManager:
         test_meta = {k: v for k, v in meta.items() if 'test' in k}
 
         # Define transforms
-        transform = transforms.Compose([
-            transforms.Resize((self.config["img_size"], self.config["img_size"]), antialias=False),
-            transforms.Normalize([0.5], [0.5])
-        ])
+        transform = get_transforms(self.config["dataset"], self.config["img_size"])
 
         # Create datasets
-        load_fn = load_dicom_img
+        load_fn = get_load_fn(self.config["dataset"])
         anomal_ds = partial(AnomalFairnessDataset, transform=transform, load_fn=load_fn)
         val_dataset = anomal_ds(val_data, val_labels, val_meta)
         test_dataset = anomal_ds(test_data, test_labels, test_meta)
@@ -130,11 +126,11 @@ class DataManager:
         test_dataloader = dl(test_dataset, shuffle=False, generator=Generator().manual_seed(2147483647))
         return train_dataloader, val_dataloader, test_dataloader
 
-    def get_dataloaders(self, experiment: Experiment):
+    def get_dataloaders(self, custom_data_loading_hook):
         normal_data, anomalous_data = self.load_data()
         normal_A, normal_B, anomalous_A, anomalous_B = self.establish_split(normal_data, anomalous_data)
         train_A, train_B, val_A, val_B, test_A, test_B = self.to_train_val_and_test(normal_A, normal_B, anomalous_A, anomalous_B)
-        train = pd.concat([*experiment.custom_data_loading_hook(train_A, train_B)]).sample(frac=1, random_state=self.config["random_state"]).reset_index(drop=True)
+        train = pd.concat([*custom_data_loading_hook(train_A, train_B)]).sample(frac=1, random_state=self.config["random_state"]).reset_index(drop=True)
         filenames = {}
         labels = {}
         meta = {}

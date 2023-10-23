@@ -5,6 +5,7 @@ import os
 from torch import Tensor
 import pydicom as dicom
 import torch
+from torchvision import transforms
 
 def group_collate_fn(batch: List[Tuple[Any, ...]]):
     assert len(batch[0]) == 3
@@ -30,3 +31,16 @@ def load_rsna_files(anomaly = 'lungOpacity'):
     else:
         anomalous_data = metadata[metadata.label == 2]
     return normal_data, anomalous_data
+
+def get_load_fn(dataset: str):
+    if dataset == 'rsna':
+        return load_dicom_img
+    else:
+        raise ValueError(f"Dataset {dataset} not supported.")
+
+def get_transforms(dataset:str, img_size: int):
+    if dataset == 'rsna':
+        return transforms.Compose([
+            transforms.Resize((img_size, img_size), antialias=False),
+            transforms.Normalize([0.5], [0.5])
+        ])

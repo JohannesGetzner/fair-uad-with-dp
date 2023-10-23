@@ -1,9 +1,8 @@
 from datasets.data_manager import DataManager
-from experiments.default_experiment import DefaultExperiment
+from experiments._experiment import Experiment
 import os
 
 if __name__ == '__main__':
-    experiment = DefaultExperiment()
+    experiment = Experiment()
     datamanager = DataManager(experiment.dataset_config)
-    train_dataloader, val_dataloader, test_dataloader = datamanager.get_dataloaders(experiment)
-    experiment.run(train_dataloader, val_dataloader, test_dataloader)
+    experiment.run(datamanager)
