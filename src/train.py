@@ -21,6 +21,7 @@ import json
 parser = ArgumentParser()
 parser.add_argument('--run_config', default="dp", type=str)
 parser.add_argument('--run_version', default="v1", type=str)
+parser.add_argument('--model_type', default="FAE", type=str)
 parser.add_argument('--protected_attr_percent', default=None, type=float)
 parser.add_argument('--lr', default=None, type=float)
 parser.add_argument('--n_adam', action=BooleanOptionalAction, default=None)
@@ -194,7 +195,7 @@ def run_stage_two(model, optimizer, config, log_dir, steps_done):
     modified_config.epochs = num_steps_to_epochs(modified_config.second_stage_steps, train_loader)
     if modified_config.dp:
         privacy_engine = PrivacyEngine(accountant="rdp")
-        modified_config.delta = 1 / (len(train_loader) * train_loader.batch_size)
+        modified_config.delta = 1 / len(train_loader.dataset)
         model.train()
         model, optimizer, dp_train_loader = privacy_engine.make_private_with_epsilon(
             module=model,
