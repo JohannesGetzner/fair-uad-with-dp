@@ -252,6 +252,8 @@ def get_dataloaders(dataset: str,
             )
             train_dataloaders.append(temp_dataloader)
             prev = i
+            if len(train_dataloaders) >= 1355:
+                break
     elif best_and_worst_subsets:
         # load subsets.json
         v2 = True
