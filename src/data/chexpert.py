@@ -25,7 +25,7 @@ import numpy as np
 import pandas as pd
 from PIL import Image
 from torchvision import transforms
-
+import sys
 sys.path.append('../')
 from src import CHEXPERT_DIR, SEED
 from src.data.data_utils import read_memmap, write_memmap
