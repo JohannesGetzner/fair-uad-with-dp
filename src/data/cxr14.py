@@ -6,6 +6,11 @@ val_cls: 10% of the remaining samples from train_val_list.txt
 test_cls: all samples from test_list.txt
 """
 import os
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))  # root dir
+
+
 from functools import partial
 from typing import Optional, Tuple
 
@@ -337,5 +342,6 @@ def load_cxr14_age_split(cxr14_dir: str = CXR14_DIR,
 
 
 if __name__ == '__main__':
+
     prepare_cxr14()
     pass
