@@ -169,3 +169,4 @@ src/analysis/**/*.png
 /src/wandb/
 /src/logs_persist/
 /src_refactored/data/
+/src/data/csvs/
