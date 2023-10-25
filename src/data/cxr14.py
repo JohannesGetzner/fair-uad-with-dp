@@ -19,7 +19,9 @@ import pandas as pd
 from PIL import Image
 from torchvision import transforms
 
-from src import CXR14_DIR, SEED
+#from src import CXR14_DIR, SEED
+CXR14_DIR = os.environ.get('CXR14_DIR', '/datasets/CXR8')
+SEED=42
 from src.data.data_utils import read_memmap, write_memmap
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
