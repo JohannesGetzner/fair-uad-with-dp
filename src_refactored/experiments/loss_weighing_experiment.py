@@ -1,5 +1,4 @@
 from ._experiment import Experiment
-from ._experiment import DEFAULT_DATASET_CONFIG, DEFAULT_RUN_CONFIG, DEFAULT_DP_CONFIG, DEFAULT_MODEL_CONFIG, DEFAULT_WANDB_CONFIG
 from typing import Dict, Tuple
 import wandb
 from src_refactored.datasets.data_manager import DataManager
@@ -7,15 +6,15 @@ from src_refactored.datasets.data_manager import DataManager
 
 class LossWeighingExperiment(Experiment):
     def __init__(self,
-                 run_config: Dict = DEFAULT_RUN_CONFIG,
-                 dp_config: Dict = DEFAULT_DP_CONFIG,
-                 dataset_config: Dict = DEFAULT_DATASET_CONFIG,
-                 model_config: Dict = DEFAULT_MODEL_CONFIG,
-                 wandb_config: Dict = DEFAULT_WANDB_CONFIG,
+                 run_config: Dict,
+                 dp_config: Dict,
+                 dataset_config: Dict,
+                 model_config: Dict,
+                 wandb_config: Dict,
                  loss_weight: float = 1.0,
                  pv_to_weigh: Tuple[str, str] = ("age", "old")
                  ):
-        super().__init__(run_config, dp_config, dataset_config)
+        super().__init__(run_config, dp_config, dataset_config, model_config, wandb_config)
         self.loss_weight = loss_weight
         self.pv_to_weigh = pv_to_weigh
 

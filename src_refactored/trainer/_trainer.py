@@ -4,9 +4,9 @@ import wandb
 import os
 from collections import defaultdict
 import pandas as pd
-from src.utils.metrics import AvgDictMeter, build_metrics
+from src_refactored.utils.metrics import AvgDictMeter, build_metrics
 from time import time
-from src.utils.utils import log_time
+from src_refactored.utils.utils import get_remaining_time_as_str
 from datetime import datetime
 from torch import nn
 
@@ -178,7 +178,7 @@ class Trainer(ABC):
         # Estimate remaining time
         time_per_epoch = ((time() - t_start) / i_epoch) if i_epoch > 0 else time() - t_start
         remaining_time = (self.config["epochs"] - i_epoch) * time_per_epoch
-        log_msg += f" - remaining time: {log_time(remaining_time)}"
+        log_msg += f" - remaining time: {get_remaining_time_as_str(remaining_time)}"
         print(log_msg)
         # Log to w&b or tensorboard
         wandb.log({f'train/{k}': v for k, v in train_results.items()}, step=i_step)

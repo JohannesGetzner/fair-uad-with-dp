@@ -1,5 +1,4 @@
 from ._experiment import Experiment
-from ._experiment import DEFAULT_DATASET_CONFIG, DEFAULT_RUN_CONFIG, DEFAULT_DP_CONFIG, DEFAULT_MODEL_CONFIG, DEFAULT_WANDB_CONFIG
 from typing import Dict, Tuple, List
 import wandb
 import pandas as pd
@@ -9,11 +8,11 @@ from src_refactored.datasets.data_manager import DataManager, ATTRIBUTE_MAPPINGS
 
 class UpsamplingExperiment(Experiment):
     def __init__(self,
-                 run_config: Dict = DEFAULT_RUN_CONFIG,
-                 dp_config: Dict = DEFAULT_DP_CONFIG,
-                 dataset_config: Dict = DEFAULT_DATASET_CONFIG,
-                 model_config: Dict = DEFAULT_MODEL_CONFIG,
-                 wandb_config: Dict = DEFAULT_WANDB_CONFIG,
+                 run_config: Dict,
+                 dp_config: Dict,
+                 dataset_config: Dict,
+                 model_config: Dict,
+                 wandb_config: Dict,
                  upsampling_strategy: Tuple[str, str, str] = ("even", "age")
                  ):
         super().__init__(run_config, dp_config, dataset_config, model_config, wandb_config)

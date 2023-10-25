@@ -1,5 +1,4 @@
 from ._experiment import Experiment
-from ._experiment import DEFAULT_DATASET_CONFIG, DEFAULT_RUN_CONFIG, DEFAULT_DP_CONFIG, DEFAULT_MODEL_CONFIG, DEFAULT_WANDB_CONFIG
 from typing import Dict, Tuple, List
 import wandb
 from torch import Tensor, Generator
@@ -11,11 +10,11 @@ from torch.utils.data import DataLoader
 
 class DatasetDistillationNSamplesExperiment(Experiment):
     def __init__(self,
-                 run_config: Dict = DEFAULT_RUN_CONFIG,
-                 dp_config: Dict = DEFAULT_DP_CONFIG,
-                 dataset_config: Dict = DEFAULT_DATASET_CONFIG,
-                 model_config: Dict = DEFAULT_MODEL_CONFIG,
-                 wandb_config: Dict = DEFAULT_WANDB_CONFIG,
+                 run_config: Dict,
+                 dp_config: Dict,
+                 dataset_config: Dict,
+                 model_config: Dict,
+                 wandb_config: Dict,
                  num_training_samples: int = 1,
                  ):
         super().__init__(run_config, dp_config, dataset_config, model_config, wandb_config)
@@ -46,6 +45,7 @@ class DatasetDistillationNSamplesExperiment(Experiment):
             prev = i
         for n_samples_train_loader in n_samples_train_loaders:
             for seed in range(self.run_config["num_seeds"]):
+
                 if self.run_config["dp"]:
                     self._run_DP(n_samples_train_loader, val_loader, test_loader)
                 else:

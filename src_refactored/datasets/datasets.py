@@ -1,7 +1,7 @@
 from typing import Callable, Dict, List, Tuple
 from torch import Tensor
 from torch.utils.data import Dataset
-from src.data.data_utils import load_dicom_img
+from src_refactored.datasets.data_utils import load_dicom_img
 
 
 class NormalDataset(Dataset):

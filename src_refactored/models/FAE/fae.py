@@ -6,7 +6,7 @@ import torch.nn.functional as F
 from torch import Tensor
 from torchvision import models as tv_models
 
-from src.models.pytorch_ssim import SSIMLoss
+from src_refactored.models.pytorch_ssim import SSIMLoss
 
 """"""""""""""""""""""" Feature Extractor """""""""""""""""""""""""""
 

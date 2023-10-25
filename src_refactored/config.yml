@@ -1,0 +1,19 @@
+---
+normal:
+  num_seeds: 5
+  wandb_project: "unsupervised-fairness"
+  num_steps: 8000
+  batch_size: 32
+dp:
+  max_grad_norm: 0.01
+  num_seeds: 3
+  wandb_project: "unsupervised-fairness"
+  num_steps: 45000
+  batch_size: 512
+  max_physical_batch_size: 512
+debug:
+  num_seeds: 1
+  wandb_project: "test"
+  num_steps: 800
+  batch_size: 16
+  max_physical_batch_size: 16

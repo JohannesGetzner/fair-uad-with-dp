@@ -3,108 +3,80 @@ import os
 import wandb
 from abc import ABC, abstractmethod
 from opacus.validators import ModuleValidator
-from src.models.DeepSVDD.deepsvdd import DeepSVDD
-from src_refactored.models.fae import FeatureReconstructor
+from src_refactored.models.DeepSVDD.deepsvdd import DeepSVDD
+from src_refactored.models.FAE.fae import FeatureReconstructor
 from src_refactored.trainer import StandardTrainer, DPTrainer
 from opacus import PrivacyEngine
 from datetime import datetime
 from src_refactored.datasets.data_manager import DataManager
+from src_refactored.utils.utils import seed_everything
+from . import DEFAULT_DICTS
 CURRENT_TIMESTAMP = str(datetime.strftime(datetime.now(), format="%Y-%m-%d %H:%M:%S"))
-
-DEFAULT_RUN_CONFIG = {
-    "initial_seed": 1,
-    "num_seeds": 5,
-    "debug": False,
-    # training loop
-    "val_steps": 50,
-    "num_steps": 8000,
-    "val_frequency": 200,
-    # logging
-    "log_dir": "logs",
-    "log_frequency": 100,
-    "log_img_freq": 1000,
-    "num_imgs_log": 8,
-    # dp
-    "dp": False
-}
-
-DEFAULT_DATASET_CONFIG = {
-    "dataset": "rsna",
-    "protected_attr": "age",
-    "protected_attr_percent": 0.9,
-    "batch_size": 5,
-    "img_size": 128,
-    "random_state": 42
-}
-
-DEFAULT_DP_CONFIG = {
-    "epsilon": 8,
-    "delta": None,
-    "max_grad_norm": 0.01,
-    "num_steps": 45000,
-    "batch_size": 32,
-}
-
-DEFAULT_MODEL_CONFIG = {
-    "lr": 2e-4,
-    "model_type": "FAE",
-    "weight_decay": 0.0,
-    "hidden_dims": [100, 150, 200, 300],
-    "dropout": 0.1,
-    "loss_fn": "ssim",
-    "keep_feature_prop": 1.0,
-    "extractor_cnn_layers": ["layer0", "layer1", "layer2"],
-    "repr_dim": 256
-}
-
-DEFAULT_WANDB_CONFIG = {
-    "project": "test"
-}
 
 
 class Experiment(ABC):
     def __init__(self, run_config=None, dp_config=None, dataset_config=None, model_config=None, wandb_config=None):
-        self.run_config = DEFAULT_RUN_CONFIG.copy()
-        run_config.update(run_config)
-        self.dp_config = DEFAULT_DP_CONFIG.copy()
-        self.dp_config.update(dp_config)
-        self.dataset_config = DEFAULT_DATASET_CONFIG.copy()
-        self.dataset_config.update(dataset_config)
-        self.model_config = DEFAULT_MODEL_CONFIG.copy()
-        # self.model_config.update(model_config)
+        self.run_config = run_config
+        self.dp_config = dp_config
+        self.dataset_config = dataset_config
+        self.model_config = model_config
+        self.wandb_config = wandb_config
         self.model_config["img_size"] = self.dataset_config["img_size"]
-        self.wandb_config = DEFAULT_WANDB_CONFIG.copy()
-        # self.wandb_config.update(wandb_config)
         if self.run_config["dp"]:
             self.run_config["num_steps"] = self.dp_config["num_steps"]
             self.run_config["batch_size"] = self.dp_config["batch_size"]
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+
     def _run(self, train_loader, val_loader, test_loader, **kwargs):
+        seed_everything(self.run_config["seed"])
         self.run_config["epochs"] = self.steps_to_epochs(train_loader)
         model, optimizer, log_dir = self.prep_run()
-        trainer = StandardTrainer(optimizer=optimizer, train_loader=train_loader, val_loader=val_loader,
-            test_loader=test_loader, config=self.run_config, log_dir=log_dir)
+        trainer = StandardTrainer(
+            optimizer=optimizer,
+            train_loader=train_loader,
+            val_loader=val_loader,
+            test_loader=test_loader,
+            config=self.run_config,
+            log_dir=log_dir
+        )
         model = trainer.train(model, **kwargs)
         trainer.test(model)
 
     def _run_DP(self, train_loader, val_loader, test_loader, **kwargs):
+        seed_everything(self.run_config["seed"])
         self.dp_config["delta"] = 1 / len(train_loader.dataset)
         self.run_config["epochs"] = self.steps_to_epochs(train_loader)
         privacy_engine = PrivacyEngine(accountant="rdp")
         model, optimizer, log_dir = self.prep_run()
-        model, optimizer, dp_train_loader = privacy_engine.make_private_with_epsilon(module=model,
-            optimizer=optimizer, data_loader=train_loader, target_epsilon=self.dp_config["epsilon"],
-            target_delta=self.dp_config["delta"], max_grad_norm=self.dp_config["max_grad_norm"],
+        model, optimizer, dp_train_loader = privacy_engine.make_private_with_epsilon(
+            module=model,
+            optimizer=optimizer,
+            data_loader=train_loader,
+            target_epsilon=self.dp_config["epsilon"],
+            target_delta=self.dp_config["delta"],
+            max_grad_norm=self.dp_config["max_grad_norm"],
             epochs=self.run_config["epochs"])
-        trainer = DPTrainer(optimizer=optimizer, train_loader=train_loader, val_loader=val_loader,
-            test_loader=test_loader, config=self.run_config, log_dir=log_dir, privacy_engine=privacy_engine)
+        trainer = DPTrainer(
+            optimizer=optimizer,
+            train_loader=train_loader,
+            val_loader=val_loader,
+            test_loader=test_loader,
+            config=self.run_config,
+            log_dir=log_dir,
+            privacy_engine=privacy_engine
+        )
         model = trainer.train(model, **kwargs)
         trainer.test(model)
 
-    @abstractmethod
     def start_experiment(self, data_manager: DataManager, *args, **kwargs):
-        pass
+        train_loader, val_loader, test_loader = data_manager.get_dataloaders(self.custom_data_loading_hook)
+        for seed in range(self.run_config["num_seeds"]):
+            if self.run_config["dp"]:
+                self._run_DP(train_loader, val_loader, test_loader)
+            else:
+                self._run(train_loader, val_loader, test_loader)
+            wandb.finish()
 
     def custom_data_loading_hook(self, train_A, train_B, *args, **kwargs):
         return train_A, train_B
