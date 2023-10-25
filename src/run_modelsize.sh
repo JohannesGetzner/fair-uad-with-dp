@@ -24,8 +24,8 @@ echo "Running script with Anaconda environment: $ANACONDA_ENV"
 # AGE
 # ---------
 date=$(date '+%Y-%m-%d %H:%M:%S')
-$ANACONDA_PYTHON    -u train.py --run_config normal --run_version v1 --protected_attr_percent 1.00 --hidden_dims 300 350 400 550      --group_name_mod  "bs32-ms" --job_type_mod "ms-300-350-400-550"   --d "${date}"
-$ANACONDA_PYTHON    -u train.py --run_config normal --run_version v1 --protected_attr_percent 1.00 --hidden_dims 200 250 300 450      --group_name_mod  "bs32-ms" --job_type_mod "ms-200-250-300-450"   --d "${date}"
+#$ANACONDA_PYTHON    -u train.py --run_config normal --run_version v1 --protected_attr_percent 1.00 --hidden_dims 300 350 400 550      --group_name_mod  "bs32-ms" --job_type_mod "ms-300-350-400-550"   --d "${date}"
+#$ANACONDA_PYTHON    -u train.py --run_config normal --run_version v1 --protected_attr_percent 1.00 --hidden_dims 200 250 300 450      --group_name_mod  "bs32-ms" --job_type_mod "ms-200-250-300-450"   --d "${date}"
 $ANACONDA_PYTHON    -u train.py --run_config normal --run_version v1 --protected_attr_percent 1.00 --hidden_dims 150 200 250 350      --group_name_mod  "bs32-ms" --job_type_mod "ms-150-200-250-350"   --d "${date}"
 $ANACONDA_PYTHON    -u train.py --run_config normal --run_version v1 --protected_attr_percent 1.00 --hidden_dims 100 150 200 300 400  --group_name_mod  "bs32-ms" --job_type_mod "ms-100-150-200-300-400"   --d "${date}"
 #$ANACONDA_PYTHON   -u train.py --run_config normal --run_version v1 --protected_attr_percent 1.00 --hidden_dims 100 150 200 300      --group_name_mod  "bs32-ms" --job_type_mod "ms-default"   --d "${date}"

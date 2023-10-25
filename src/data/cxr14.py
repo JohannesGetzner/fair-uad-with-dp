@@ -20,8 +20,8 @@ from PIL import Image
 from torchvision import transforms
 
 sys.path.append('../')
-from thesis.src import CXR14_DIR, SEED
-from thesis.src.data.data_utils import read_memmap, write_memmap
+from src import CXR14_DIR, SEED
+from src.data.data_utils import read_memmap, write_memmap
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 
