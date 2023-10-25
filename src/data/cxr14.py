@@ -8,7 +8,7 @@ test_cls: all samples from test_list.txt
 import os
 import sys
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).parent.parent))  # root dir
+#sys.path.insert(0, str(Path(__file__).parent.parent))  # root dir
 
 
 from functools import partial
@@ -19,10 +19,9 @@ import pandas as pd
 from PIL import Image
 from torchvision import transforms
 
-#from src import CXR14_DIR, SEED
-CXR14_DIR = os.environ.get('CXR14_DIR', '/datasets/CXR8')
-SEED=42
-from src.data.data_utils import read_memmap, write_memmap
+sys.path.append('../')
+from thesis.src import CXR14_DIR, SEED
+from thesis.src.data.data_utils import read_memmap, write_memmap
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 
