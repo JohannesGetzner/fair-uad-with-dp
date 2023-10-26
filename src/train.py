@@ -117,6 +117,8 @@ def run_dataset_distillation(config):
     train_loaders, val_loader, test_loader, max_sample_freq = load_data(config)
     config.epochs = num_steps_to_epochs(config.num_steps, train_loaders[0])
     for idx, train_loader in enumerate(train_loaders):
+        if idx <= 1253:
+            continue
         config.job_type_mod = f"train_loader_{idx}"
         for i in range(config.num_seeds):
             config.seed = config.initial_seed + i
@@ -238,8 +240,8 @@ if __name__ == '__main__':
         run_configs = yaml.safe_load(f)
     run_config = run_configs[DYNAMIC_PARAMS.run_version]
     print(f"Running {DYNAMIC_PARAMS.run_config}/{DYNAMIC_PARAMS.run_version}...")
-    print(f"Run config: {run_config}")
     current_config = initialize_configuration(default_config.copy(), run_config)
+    print(f"Run config: {run_config}")
     if current_config.n_training_samples:
         run_dataset_distillation(current_config)
     elif current_config.best_and_worst_subsets:
