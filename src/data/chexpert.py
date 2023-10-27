@@ -79,7 +79,7 @@ def prepare_chexpert(chexpert_dir: str = CHEXPERT_DIR):
     print(f"Total number of images: {len(metadata)}")
 
     # Add race information
-    df_demo = pd.DataFrame(pd.read_excel(os.path.join(chexpert_dir, 'CHEXPERT_DEMO.xlsx'), engine='openpyxl'))
+    df_demo = pd.DataFrame(pd.read_excel(os.path.join(chexpert_dir, 'CHEXPERT DEMO.xlsx'), engine='openpyxl'))
     df_demo = df_demo.rename(columns={'PATIENT': 'subject_id'})
     df_demo = df_demo.rename(columns={'PRIMARY_RACE': 'race'})
     df_demo = df_demo.rename(columns={'ETHNICITY': 'ethnicity'})
