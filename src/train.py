@@ -146,7 +146,7 @@ def run_dataset_distillation(config):
 def run_best_and_worst_subsets(config):
     train_loaders, val_loader, test_loader, max_sample_freq = load_data(config)
     v2 = True
-    with open('logs_persist/distillation/subsets.json' if not v2 else "logs_persist/distillation/subsets_combined.json", 'r') as f:
+    with open(f'logs_persist/distillation/subsets_{config.model_type}_{config.dataset}.json' if not v2 else f"logs_persist/distillation/subsets_combined_{config.model_type}_{config.dataset}.json", 'r') as f:
         subsets = json.load(f)
     config.epochs = num_steps_to_epochs(config.num_steps, train_loaders[0])
     for idx, train_loader in enumerate(train_loaders):
