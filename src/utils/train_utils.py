@@ -12,7 +12,7 @@ from src.utils.utils import log_time, get_subgroup_loss_weights
 from opacus.validators import ModuleValidator
 from time import time
 from datetime import datetime
-from src.data.datasets import get_dataloaders
+from src.data.datasets import get_dataloaders_rsna, get_dataloaders_other
 from dotmap import DotMap
 from opacus.validators.utils import register_module_fixer
 from torch import nn
@@ -92,19 +92,31 @@ print(f"Using {DEFAULT_CONFIG.device}")
 def load_data(config):
     print("Loading data...")
     t_load_data_start = time()
-    train_loaders, val_loader, test_loader, max_sample_freq = get_dataloaders(
-        dataset=config.dataset,
-        batch_size=config.batch_size,
-        img_size=config.img_size, num_workers=config.num_workers,
-        protected_attr=config.protected_attr,
-        male_percent=config.protected_attr_percent,
-        old_percent=config.protected_attr_percent,
-        upsampling_strategy=config.upsampling_strategy,
-        effective_dataset_size=config.effective_dataset_size,
-        random_state = config.dataset_random_state,
-        n_training_samples=config.n_training_samples,
-        best_and_worst_subsets=config.best_and_worst_subsets
-    )
+    if config.dataset == "rsna":
+        train_loaders, val_loader, test_loader, max_sample_freq = get_dataloaders_rsna(
+            dataset=config.dataset,
+            batch_size=config.batch_size,
+            img_size=config.img_size, num_workers=config.num_workers,
+            protected_attr=config.protected_attr,
+            male_percent=config.protected_attr_percent,
+            old_percent=config.protected_attr_percent,
+            upsampling_strategy=config.upsampling_strategy,
+            effective_dataset_size=config.effective_dataset_size,
+            random_state = config.dataset_random_state,
+            n_training_samples=config.n_training_samples,
+            best_and_worst_subsets=config.best_and_worst_subsets
+        )
+    else:
+        train_loaders, val_loader, test_loader = get_dataloaders_other(
+            dataset=config.dataset,
+            batch_size=config.batch_size,
+            img_size=config.img_size,
+            num_workers=config.num_workers,
+            protected_attr=config.protected_attr,
+            n_training_samples=config.n_training_samples,
+        )
+        max_sample_freq = 1
+
     print(f'Loaded datasets in {time() - t_load_data_start:.2f}s')
     if config.n_training_samples or config.best_and_worst_subsets:
         return train_loaders, val_loader, test_loader, max_sample_freq

@@ -275,6 +275,7 @@ class FeatureReconstructor(nn.Module):
             print(f"Using weighted loss: {config.loss_weight_type}")
         else:
             print("Using normal loss")
+        self.config = config
 
     def forward(self, x: Tensor):
         feats = self.get_feats(x)
@@ -326,7 +327,10 @@ class FeatureReconstructor(nn.Module):
         # iterate over all samples in batch
         for i in range(x.shape[0]):
             # roi are those regions where x has "content"
-            roi = anomaly_map[i][x[i] > 0]
+            if self.config.dataset == "rsna":
+                roi = anomaly_map[i][x[i] > 0]
+            else:
+                roi = anomaly_map[i]
             # only take the top 10% of the values to compute the mean
             roi = roi[roi > torch.quantile(roi, 0.9)]
             anomaly_score.append(roi.mean())

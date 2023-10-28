@@ -324,10 +324,11 @@ def load_cxr14_age_split(cxr14_dir: str = CXR14_DIR,
     )
 
     # Return
-    filenames = {}
+    images = {}
     labels = {}
     meta = {}
     index_mapping = {}
+    filenames = {}
     sets = {
         'train': train,
         'val/old': val_old,
@@ -336,11 +337,13 @@ def load_cxr14_age_split(cxr14_dir: str = CXR14_DIR,
         'test/young': test_young,
     }
     for mode, data in sets.items():
-        filenames[mode] = memmap_file
+        images[mode] = memmap_file
+        filenames[mode] = data.path.values
         labels[mode] = [min(1, label) for label in data.label.values]
-        meta[mode] = np.zeros(len(data), dtype=np.float32)
+        meta[mode] = np.where(data['Patient Age'] <= MAX_YOUNG, 1, np.where(data['Patient Age'] >= MIN_OLD, 0, None))
+        #meta[mode] = np.zeros(len(data), dtype=np.float32)
         index_mapping[mode] = data.memmap_idx.values
-    return filenames, labels, meta, index_mapping
+    return images, labels, meta, index_mapping, filenames
 
 
 if __name__ == '__main__':
