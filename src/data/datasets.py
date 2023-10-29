@@ -140,8 +140,8 @@ class NormalDataset_other(Dataset):
         return len(self.labels)
 
     def __getitem__(self, idx: int) -> Tensor:
-        if len(self.data) == 1:
-            data_idx = 0
+        if len(self.data) <= 1000:
+            data_idx = idx
         else:
             data_idx = self.index_mapping[idx]
         img = self.transform(self.load_fn(self.data[data_idx]))
