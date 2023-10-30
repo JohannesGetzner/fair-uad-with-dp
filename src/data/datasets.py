@@ -140,10 +140,7 @@ class NormalDataset_other(Dataset):
         return len(self.labels)
 
     def __getitem__(self, idx: int) -> Tensor:
-        if len(self.data) <= 1000:
-            data_idx = idx
-        else:
-            data_idx = self.index_mapping[idx]
+        data_idx = self.index_mapping[idx]
         img = self.transform(self.load_fn(self.data[data_idx]))
         label = self.labels[idx]
         meta = self.meta[idx]
@@ -321,7 +318,7 @@ def get_dataloaders_other(dataset: str,
                 train_labels[prev:i],
                 train_meta[prev:i],
                 transform=transform,
-                index_mapping=train_idx_map[prev:i],
+                index_mapping=None,
                 load_fn=load_fn,
                 filenames=train_filenames[prev:i]
             )
@@ -334,8 +331,8 @@ def get_dataloaders_other(dataset: str,
             )
             train_dataloaders.append(temp_dataloader)
             prev = i
-            if len(train_dataloaders) >= 1355:
-                print("Stopping at 1355 dataloaders")
+            if len(train_dataloaders) >= 1355/n_training_samples:
+                print(f"Stopping at {1355/n_training_samples} dataloaders")
                 break
     else:
         train_dataset = NormalDataset_other(
