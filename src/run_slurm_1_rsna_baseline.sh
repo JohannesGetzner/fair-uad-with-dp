@@ -21,7 +21,6 @@ source activate $ANACONDA_ENV
 echo "Running script with Anaconda environment: $ANACONDA_ENV"
 
 date=$(date '+%Y-%m-%d %H:%M:%S')
-$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1_dataset_distill --protected_attr_percent 0.5 --no_img_log --n_training_samples 10 --dataset "cxr14"    --group_name_mod "bs32-dataset-distillation-nsamples10" --d "${date}"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version "balanced_baseline"  --group_name_mod "bs32-balanced-baseline"                     --d "${date}"
 date=$(date '+%Y-%m-%d %H:%M:%S')
-$ANACONDA_PYTHON -u train.py --run_config normal --run_version v1_dataset_distill --protected_attr_percent 0.5 --no_img_log --n_training_samples 15 --dataset "cxr14"    --group_name_mod "bs32-dataset-distillation-nsamples15" --d "${date}"
-
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version "balanced_baseline"  --group_name_mod "bs32-balanced-baseline" --model_type "RD"   --d "${date}"

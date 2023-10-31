@@ -10,7 +10,9 @@ from src import RSNA_DIR
 from src.data.data_utils import load_dicom_img
 from src.data.rsna_pneumonia_detection import (load_rsna_age_two_split,
                                                load_rsna_gender_split,
-                                               load_rsna_naive_split)
+                                               load_rsna_naive_split,
+                                               load_rsna_intersectional_age_sex_split
+                                               )
 from src import CHEXPERT_DIR, CXR14_DIR, MIMIC_CXR_DIR
 from src.data.chexpert import (load_chexpert_age_split,
                                load_chexpert_naive_split,
@@ -127,7 +129,8 @@ class NormalDataset_other(Dataset):
         self.index_mapping = index_mapping
         self.filenames = filenames
 
-        if self.index_mapping is None:
+        if self.index_mapping is None or (len(index_mapping) == len(self.data)):
+            self.index_mapping_cpy = index_mapping
             self.index_mapping = torch.arange(len(self.data))
 
         for i, d in enumerate(self.data):
@@ -279,6 +282,13 @@ def get_dataloaders_other(dataset: str,
                 max_train_samples=max_train_samples)
         else:
             raise ValueError(f'Unknown protected attribute: {protected_attr} for dataset {dataset}')
+    elif dataset == 'rsna':
+        def load_fn(x):
+            return torch.tensor(x)
+        if protected_attr == 'balanced':
+            data, labels, meta, idx_map, filenames = load_rsna_intersectional_age_sex_split(
+                RSNA_DIR
+            )
     else:
         raise ValueError(f'Unknown dataset: {dataset}')
 
@@ -318,7 +328,7 @@ def get_dataloaders_other(dataset: str,
                 train_labels[prev:i],
                 train_meta[prev:i],
                 transform=transform,
-                index_mapping=None,
+                index_mapping=train_idx_map[prev:i],
                 load_fn=load_fn,
                 filenames=train_filenames[prev:i]
             )
@@ -331,9 +341,9 @@ def get_dataloaders_other(dataset: str,
             )
             train_dataloaders.append(temp_dataloader)
             prev = i
-            if len(train_dataloaders) >= 1355/n_training_samples:
-                print(f"Stopping at {1355/n_training_samples} dataloaders")
-                break
+            #if len(train_dataloaders) >= 1355/n_training_samples:
+            #    print(f"Stopping at {1355/n_training_samples} dataloaders")
+            #    break
     else:
         train_dataset = NormalDataset_other(
             train_data,

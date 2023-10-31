@@ -118,12 +118,19 @@ def run_dataset_distillation(config):
     config.epochs = num_steps_to_epochs(config.num_steps, train_loaders[0])
     for idx, train_loader in enumerate(train_loaders):
         config.job_type_mod = f"train_loader_{idx}"
+        config.disable_wandb = True
+        time_start = datetime.now()
         for i in range(config.num_seeds):
             config.seed = config.initial_seed + i
             # get log dir
             log_dir, group_name, job_type = construct_log_dir(config, current_time)
             # create a dataframe from trainloader.dataset with the labels, meta and filenames
-            temp_df = pd.DataFrame({'meta': train_loader.dataset.meta, 'labels': train_loader.dataset.labels, 'filenames': train_loader.dataset.filenames})
+            temp_df = pd.DataFrame({
+                'meta': train_loader.dataset.meta,
+                'labels': train_loader.dataset.labels,
+                'filenames': train_loader.dataset.filenames,
+                'index_mapping': train_loader.dataset.index_mapping_cpy,
+            })
             # save
             init_wandb(config, log_dir, group_name, job_type)
             # reproducibility
@@ -138,9 +145,7 @@ def run_dataset_distillation(config):
             model, _ = train(model, optimizer, train_loader, val_loader, config, log_dir)
             test(config, model, test_loader, log_dir)
             wandb.finish()
-            del model
-            torch.cuda.empty_cache()
-            gc.collect()
+        print(f"Time taken for train_loader_{idx}: {(datetime.now() - time_start).total_seconds()}s")
 
 
 def run_best_and_worst_subsets(config):

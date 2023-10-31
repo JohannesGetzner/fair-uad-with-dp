@@ -92,7 +92,7 @@ print(f"Using {DEFAULT_CONFIG.device}")
 def load_data(config):
     print("Loading data...")
     t_load_data_start = time()
-    if config.dataset == "rsna":
+    if config.dataset == "rsna-old":
         train_loaders, val_loader, test_loader, max_sample_freq = get_dataloaders_rsna(
             dataset=config.dataset,
             batch_size=config.batch_size,
