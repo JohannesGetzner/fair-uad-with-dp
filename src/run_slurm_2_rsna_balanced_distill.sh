@@ -21,11 +21,7 @@ source activate $ANACONDA_ENV
 echo "Running script with Anaconda environment: $ANACONDA_ENV"
 
 date=$(date '+%Y-%m-%d %H:%M:%S')
-$ANACONDA_PYTHON -u train.py --run_config normal --run_version "balanced_baseline"               --hidden_dims 25 27 125 175                        --group_name_mod "bs32-balanced-ms25-27-125-175-baseline"        --d "${date}"
-date=$(date '+%Y-%m-%d %H:%M:%S')
-$ANACONDA_PYTHON -u train.py --run_config normal --run_version "distill_baseline"   --no_img_log --hidden_dims 25 27 125 175 --n_training_samples 1 --group_name_mod "bs32-balanced-dataset-distillation-nsamples1"  --d "${date}"
-
-date=$(date '+%Y-%m-%d %H:%M:%S')
-$ANACONDA_PYTHON -u train.py --run_config normal --run_version "balanced_baseline"               --hidden_dims 25 27 125 175                        --model_type "RD" --group_name_mod "bs32-balanced-ms25-27-125-175-baseline"         --d "${date}"
-date=$(date '+%Y-%m-%d %H:%M:%S')
-$ANACONDA_PYTHON -u train.py --run_config normal --run_version "distill_baseline"   --no_img_log --hidden_dims 25 27 125 175 --n_training_samples 1 --model_type "RD" --group_name_mod "bs32-balanced-dataset-distillation-nsamples1"   --d "${date}"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version "distill_baseline"  --no_img_log --n_training_samples 5 --group_name_mod  "bs32-balanced-dataset-distillation-fullmodel-nsamples5"    --d "${date}"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version "distill_baseline"  --no_img_log --n_training_samples 10 --group_name_mod "bs32-balanced-dataset-distillation-fullmodel-nsamples10"   --d "${date}"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version "distill_baseline"  --no_img_log --n_training_samples 20 --group_name_mod "bs32-balanced-dataset-distillation-fullmodel-nsamples20"   --d "${date}"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version "distill_baseline"  --no_img_log --n_training_samples 30 --group_name_mod "bs32-balanced-dataset-distillation-fullmodel-nsamples30"   --d "${date}"
