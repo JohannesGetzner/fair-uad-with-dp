@@ -6,6 +6,8 @@ from torch import Tensor, Generator
 from torch.utils.data import DataLoader, Dataset, default_collate
 from torchvision import transforms
 import json
+import sys
+sys.path.append("..")
 from src import RSNA_DIR
 from src.data.data_utils import load_dicom_img
 from src.data.rsna_pneumonia_detection import (load_rsna_age_two_split,
