@@ -8,9 +8,8 @@ from src_refactored.models.FAE.fae import FeatureReconstructor
 from src_refactored.trainer import StandardTrainer, DPTrainer
 from opacus import PrivacyEngine
 from datetime import datetime
-from src_refactored.datasets.data_manager import DataManager
 from src_refactored.utils.utils import seed_everything
-from . import DEFAULT_DICTS
+from src_refactored.datasets.anomaly_dataset import AnomalyDataset
 CURRENT_TIMESTAMP = str(datetime.strftime(datetime.now(), format="%Y-%m-%d %H:%M:%S"))
 
 
@@ -40,7 +39,7 @@ class Experiment(ABC):
             config=self.run_config,
             log_dir=log_dir
         )
-        model = trainer.train(model, **kwargs)
+        model, _ = trainer.train(model, **kwargs)
         trainer.test(model)
 
     def _run_DP(self, train_loader, val_loader, test_loader, **kwargs):
@@ -66,12 +65,13 @@ class Experiment(ABC):
             log_dir=log_dir,
             privacy_engine=privacy_engine
         )
-        model = trainer.train(model, **kwargs)
+        model, _ = trainer.train(model, **kwargs)
         trainer.test(model)
 
-    def start_experiment(self, data_manager: DataManager, *args, **kwargs):
+    def start_experiment(self, data_manager: AnomalyDataset, *args, **kwargs):
         train_loader, val_loader, test_loader = data_manager.get_dataloaders(self.custom_data_loading_hook)
         for seed in range(self.run_config["num_seeds"]):
+            self.run_config["seed"] = self.run_config["initial_seed"] + seed
             if self.run_config["dp"]:
                 self._run_DP(train_loader, val_loader, test_loader)
             else:

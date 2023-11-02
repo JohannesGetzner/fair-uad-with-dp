@@ -103,10 +103,7 @@ class MEMMAP_NormalDataset(Dataset):
         return len(self.labels)
 
     def __getitem__(self, idx: int) -> tuple[Any, int, int]:
-        if len(self.data) == 1:
-            data_idx = 0
-        else:
-            data_idx = self.index_mapping[idx]
+        data_idx = self.index_mapping[idx]
         img = self.transform(self.load_fn(self.data[data_idx]))
         label = self.labels[idx]
         meta = self.meta[idx]

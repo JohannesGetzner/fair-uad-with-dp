@@ -2,7 +2,8 @@ import os
 import sys
 import yaml
 from argparse import ArgumentParser, BooleanOptionalAction
-from datasets.data_manager import DataManager
+from datasets.cxr14 import CXR14AnomalyDataset
+from datasets.rsna import RsnaAnomalyDataset
 from experiments import DEFAULT_DICTS
 import experiments
 
@@ -88,6 +89,8 @@ if __name__ == '__main__':
         base_config = base_config['normal']
     override_params = get_args_from_arg_group(override_args)
     base_config.update(override_params)
+    if RUN_PARAMS.dataset: base_config['dataset'] = RUN_PARAMS.dataset
+    if RUN_PARAMS.protected_attr: base_config['protected_attr'] = RUN_PARAMS.protected_attr
 
     config_dicts = DEFAULT_DICTS.copy()
     for dict_name, default_config in config_dicts.items():
@@ -97,8 +100,8 @@ if __name__ == '__main__':
 
     # TODO: shitty dependencies
     experiment = EXPERIMENT_MAP[exp_key](**config_dicts, **exp_args)
-    datamanager = DataManager(experiment.dataset_config)
-    experiment.start_experiment(datamanager)
+    dataset = CXR14AnomalyDataset(experiment.dataset_config)
+    experiment.start_experiment(dataset)
 
 
 

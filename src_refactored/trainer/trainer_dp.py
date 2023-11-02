@@ -62,7 +62,7 @@ class DPTrainer(Trainer):
                 if i_epoch % 100 == 0:
                     print(f"Finished epoch {i_epoch}/{self.config['epochs']}, ({i_step} iterations)")
                 if i_epoch >= self.config["epochs"]:
-                    print(f"Reached {self.config['epochs']} epochs.', 'Finished training.")
+                    print(f"Reached {self.config['epochs']} epoch(s). Finished training.")
                     print(f"ɛ: {eps:.2f} (target: {self.config['epsilon']})")
                     # Final validation
                     print("Final validation...")

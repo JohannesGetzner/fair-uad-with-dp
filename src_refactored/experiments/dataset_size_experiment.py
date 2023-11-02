@@ -1,6 +1,6 @@
 from ._experiment import Experiment
 from typing import Dict
-from src_refactored.datasets.data_manager import ATTRIBUTE_MAPPINGS, DataManager
+from src_refactored.datasets.anomaly_dataset import ATTRIBUTE_MAPPINGS, AnomalyDataset
 import wandb
 
 class DataSetSizeExperiment(Experiment):
@@ -15,9 +15,10 @@ class DataSetSizeExperiment(Experiment):
         super().__init__(run_config, dp_config, dataset_config, model_config, wandb_config)
         self.percent_of_data_to_use = percent_of_data_to_use
 
-    def start_experiment(self, data_manager: DataManager, *args, **kwargs):
+    def start_experiment(self, data_manager: AnomalyDataset, *args, **kwargs):
         train_loader, val_loader, test_loader = data_manager.get_dataloaders(self.custom_data_loading_hook)
         for seed in range(self.run_config["num_seeds"]):
+            self.run_config["seed"] = self.run_config["initial_seed"] + seed
             if self.run_config["dp"]:
                 self._run_DP(train_loader, val_loader, test_loader)
             else:

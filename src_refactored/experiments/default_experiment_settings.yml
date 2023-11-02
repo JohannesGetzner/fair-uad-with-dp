@@ -34,7 +34,7 @@ dp_config:
 
 
 model_config:
-    lr: 2e-4
+    lr: 0.0002
     model_type: "FAE"
     weight_decay: 0.0
     hidden_dims: [100, 150, 200, 300]

@@ -92,13 +92,12 @@ class Trainer(ABC):
         y = y.to(self.device)
         with torch.no_grad():
             if self.config["dp"]:
-                loss_dict = model._module.loss(x, y=y)
+                loss_dict = model._module.loss(x)
                 anomaly_map, anomaly_score = model._module.predict_anomaly(x)
             else:
-                loss_dict = model.loss(x, y=y)
+                loss_dict = model.loss(x)
                 anomaly_map, anomaly_score = model.predict_anomaly(x)
         x = x.cpu()
-        y = y.cpu()
         anomaly_score = anomaly_score.cpu() if anomaly_score is not None else None
         anomaly_map = anomaly_map.cpu() if anomaly_map is not None else None
         return loss_dict, anomaly_map, anomaly_score
@@ -171,7 +170,7 @@ class Trainer(ABC):
         train_results = train_losses.compute()
         # Print training loss
         log_msg = " - ".join([f'{k}: {v:.4f}' for k, v in train_results.items()])
-        log_msg = f"Iteration {i_step} - " + log_msg
+        log_msg = f"Iteration {i_step} from {self.config['num_steps']} - " + log_msg
         # Elapsed time
         elapsed_time = datetime.utcfromtimestamp(time() - t_start)
         log_msg += f" - time: {elapsed_time.strftime('%d-%H:%M:%S')}s"

@@ -47,7 +47,7 @@ class StandardTrainer(Trainer):
             if i_epoch % 100 == 0:
                 print(f"Finished epoch {i_epoch}/{self.config['epochs']}, ({i_step} iterations)")
             if i_epoch >= self.config["epochs"]:
-                print(f"Reached {self.config['epochs']} epochs.', 'Finished training.")
+                print(f"Reached {self.config['epochs']} epoch(s).Finished training.")
                 # Final validation
                 print("Final validation...")
                 self.validate(model, i_step, log_imgs)
