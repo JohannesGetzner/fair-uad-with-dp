@@ -11,6 +11,7 @@ import json
 import sys
 sys.path.append("..")
 from src import RSNA_DIR
+import numpy as np
 from src.data.data_utils import load_dicom_img
 from src.data.rsna_pneumonia_detection import (load_rsna_age_two_split,
                                                load_rsna_gender_split,
@@ -214,7 +215,7 @@ def get_dataloaders_other(dataset: str,
                           white_percent: Optional[float] = 0.5,
                           n_training_samples: int = None,
                           max_train_samples: Optional[int] = None,
-                          use_best_samples = "") -> Tuple[DataLoader, DataLoader, DataLoader]:
+                          train_dataset_mode = "") -> Tuple[DataLoader, DataLoader, DataLoader]:
     """
     Returns dataloaders for the desired dataset.
     """
@@ -345,18 +346,13 @@ def get_dataloaders_other(dataset: str,
             )
             train_dataloaders.append(temp_dataloader)
             prev = i
-    elif use_best_samples != "":
+    elif train_dataset_mode == "best":
         file_path = 'subsets.json'
         with open(file_path, 'r') as f:
             best_samples = json.load(f)[dataset]["test/AUROC"]
             for subset_size in [1, 5, 10, 15, 20, 30, 40, 50, 60, 70, 80, 90, 100, 150, 200, 250, 300, 350, 400, 500]:
-                # get indices of filenames in subset from train_data
-                # create pandas df from lists in best_samples, one list is one column
                 temp_df = pd.DataFrame.from_dict(best_samples)
-                if use_best_samples == "best":
-                    temp_df = temp_df.sort_values(by=['scores'], ascending=False)
-                elif use_best_samples == "best-random":
-                    temp_df = temp_df.sample(frac=1, random_state=42)
+                temp_df = temp_df.sort_values(by=['scores'], ascending=False)
                 subset_idx_map = temp_df["idx_map"].iloc[:subset_size].to_list()
                 subset_labels = temp_df["labels"].iloc[:subset_size].to_list()
                 subset_meta = temp_df["meta"].iloc[:subset_size].to_list()
@@ -379,6 +375,34 @@ def get_dataloaders_other(dataset: str,
                     generator=Generator().manual_seed(2147483647)
                     )
                 train_dataloaders.append(temp_dataloader)
+    elif train_dataset_mode == "random":
+        for subset_size in [1, 5, 10, 15, 20, 30, 40, 50, 60, 70, 80, 90, 100, 150, 200, 250, 300, 350, 400, 500]:
+            # get random subset of train_idx_map list
+            random_indices = np.random.choice(len(train_idx_map), subset_size, replace=False)
+            subset_labels = [train_labels[i] for i in random_indices]
+            subset_meta = [train_meta[i] for i in random_indices]
+            subset_filenames = [train_filenames[i] for i in random_indices]
+            subset_idx_map = [train_idx_map[i] for i in random_indices]
+
+            train_dataset = NormalDataset_other(
+                train_data,
+                subset_labels,
+                subset_meta,
+                transform=transform,
+                index_mapping=subset_idx_map,
+                load_fn=load_fn,
+                filenames=subset_filenames
+            )
+            train_dataloaders.append(
+                DataLoader(
+                    train_dataset,
+                    batch_size=batch_size,
+                    shuffle=True,
+                    num_workers=num_workers,
+                    generator=Generator().manual_seed(2147483647),
+                    pin_memory=True)
+            )
+
     else:
         train_dataset = NormalDataset_other(
             train_data,

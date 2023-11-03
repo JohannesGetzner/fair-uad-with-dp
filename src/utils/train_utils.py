@@ -114,7 +114,7 @@ def load_data(config):
             num_workers=config.num_workers,
             protected_attr=config.protected_attr,
             n_training_samples=config.n_training_samples,
-            use_best_samples=config.use_best_samples
+            train_dataset_mode=config.train_dataset_mode
         )
         max_sample_freq = 1
 

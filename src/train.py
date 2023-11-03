@@ -226,18 +226,12 @@ def run_stage_two(model, optimizer, config, log_dir, steps_done):
 def train_on_one_but_test_val_on_other(config):
     config.group_name_mod = f"testOn-{config.test_dataset}-mode-{config.train_dataset_mode}"
     train_dataset = config.dataset
-    if config.train_dataset_mode == "full":
-        config.use_best_samples = ""
-    elif config.train_dataset_mode == "best-random":
-        config.use_best_samples = "best-random"
-    else:
-        config.use_best_samples = "best"
     train_loaders, val_loader, _, max_sample_freq = load_data(config)
     config.epochs = num_steps_to_epochs(config.num_steps, train_loaders[0])
     if type(train_loaders) != list:
         train_loaders = [train_loaders]
     config.dataset = config.test_dataset
-    config.use_best_samples = ""
+    config.train_dataset_mode = ""
     _, _, test_loader, max_sample_freq = load_data(config)
     config.dataset = train_dataset
     for idx, train_loader in enumerate(train_loaders):
