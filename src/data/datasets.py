@@ -1,7 +1,9 @@
+import os
 from collections import Counter
 from functools import partial
 from typing import Any, Callable, Dict, List, Optional, Tuple
 import torch
+import pandas as pd
 from torch import Tensor, Generator
 from torch.utils.data import DataLoader, Dataset, default_collate
 from torchvision import transforms
@@ -211,7 +213,8 @@ def get_dataloaders_other(dataset: str,
                           old_percent: Optional[float] = 0.5,
                           white_percent: Optional[float] = 0.5,
                           n_training_samples: int = None,
-                          max_train_samples: Optional[int] = None) -> Tuple[DataLoader, DataLoader, DataLoader]:
+                          max_train_samples: Optional[int] = None,
+                          use_best_samples = "") -> Tuple[DataLoader, DataLoader, DataLoader]:
     """
     Returns dataloaders for the desired dataset.
     """
@@ -287,10 +290,9 @@ def get_dataloaders_other(dataset: str,
     elif dataset == 'rsna':
         def load_fn(x):
             return torch.tensor(x)
-        if protected_attr == 'balanced':
-            data, labels, meta, idx_map, filenames = load_rsna_intersectional_age_sex_split(
-                RSNA_DIR
-            )
+        data, labels, meta, idx_map, filenames = load_rsna_intersectional_age_sex_split(
+            RSNA_DIR
+        )
     else:
         raise ValueError(f'Unknown dataset: {dataset}')
 
@@ -343,9 +345,40 @@ def get_dataloaders_other(dataset: str,
             )
             train_dataloaders.append(temp_dataloader)
             prev = i
-            #if len(train_dataloaders) >= 1355/n_training_samples:
-            #    print(f"Stopping at {1355/n_training_samples} dataloaders")
-            #    break
+    elif use_best_samples != "":
+        file_path = 'subsets.json'
+        with open(file_path, 'r') as f:
+            best_samples = json.load(f)[dataset]["test/AUROC"]
+            for subset_size in [1, 5, 10, 15, 20, 30, 40, 50, 60, 70, 80, 90, 100, 150, 200, 250, 300, 350, 400, 500]:
+                # get indices of filenames in subset from train_data
+                # create pandas df from lists in best_samples, one list is one column
+                temp_df = pd.DataFrame.from_dict(best_samples)
+                if use_best_samples == "best":
+                    temp_df = temp_df.sort_values(by=['scores'], ascending=False)
+                elif use_best_samples == "best-random":
+                    temp_df = temp_df.sample(frac=1, random_state=42)
+                subset_idx_map = temp_df["idx_map"].iloc[:subset_size].to_list()
+                subset_labels = temp_df["labels"].iloc[:subset_size].to_list()
+                subset_meta = temp_df["meta"].iloc[:subset_size].to_list()
+                subset_filenames = temp_df["filenames"].iloc[:subset_size].to_list()
+
+                temp_dataset = NormalDataset_other(
+                    train_data[subset_idx_map],
+                    subset_labels,
+                    subset_meta,
+                    transform=transform,
+                    index_mapping=train_idx_map[subset_idx_map],
+                    load_fn=load_fn,
+                    filenames=subset_filenames
+                )
+                temp_dataloader = DataLoader(
+                    temp_dataset,
+                    batch_size=batch_size,
+                    shuffle=True,
+                    num_workers=num_workers,
+                    generator=Generator().manual_seed(2147483647)
+                    )
+                train_dataloaders.append(temp_dataloader)
     else:
         train_dataset = NormalDataset_other(
             train_data,
@@ -399,7 +432,6 @@ def get_dataloaders_rsna(dataset: str,
     Returns dataloaders for the RSNA dataset.
     """
     # Load filenames and labels
-    max_train_samples = 500
     if dataset == 'rsna':
         load_fn = load_dicom_img
         if protected_attr == 'none':

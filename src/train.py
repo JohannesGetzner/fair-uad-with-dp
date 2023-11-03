@@ -28,6 +28,8 @@ parser.add_argument('--n_adam', action=BooleanOptionalAction, default=None)
 parser.add_argument('--group_name_mod', default=None, type=str)
 parser.add_argument('--job_type_mod', default=None, type=str)
 parser.add_argument('--dataset', default=None, type=str)
+parser.add_argument('--test_dataset', default=None, type=str)
+parser.add_argument('--train_dataset_mode', default=None, type=str)
 parser.add_argument('--loss_weight_type', default=None, type=str)
 parser.add_argument('--weight', default=None, type=float)
 parser.add_argument('--second_stage_epsilon', default=None, type=float)
@@ -117,8 +119,10 @@ def run_dataset_distillation(config):
     train_loaders, val_loader, test_loader, max_sample_freq = load_data(config)
     config.epochs = num_steps_to_epochs(config.num_steps, train_loaders[0])
     for idx, train_loader in enumerate(train_loaders):
+        if idx < 3839:
+            continue
         config.job_type_mod = f"train_loader_{idx}"
-        config.disable_wandb = True
+        # config.disable_wandb = True
         time_start = datetime.now()
         for i in range(config.num_seeds):
             config.seed = config.initial_seed + i
@@ -186,7 +190,7 @@ def run_best_and_worst_subsets(config):
             del model
             torch.cuda.empty_cache()
             gc.collect()
-
+    train_loaders, val_loader, test_loader, max_sample_freq = load_data(config)
 
 def run_stage_two(model, optimizer, config, log_dir, steps_done):
     print("\nStarting second stage...")
@@ -219,18 +223,41 @@ def run_stage_two(model, optimizer, config, log_dir, steps_done):
     return model
 
 
-def load_pretrained_model(path):
-    # load model from logs
-    path = os.path.join(os.getcwd(), 'logs', path)
-    checkpoint = torch.load(path)
-    old_config = DotMap(checkpoint["config"])
-    model = FeatureReconstructor(old_config)
-    model = ModuleValidator.fix(model)
-    state_dict = checkpoint["model"]
-    new_state_dict = {key.replace('_module.', ''): value for key, value in state_dict.items()}
-    model.load_state_dict(new_state_dict)
-    # accountant still needs to be loaded and optimizer needs to be initialized
-    return model, checkpoint["optimizer"], checkpoint["accountant"], checkpoint["step"], old_config
+def train_on_one_but_test_val_on_other(config):
+    config.group_name_mod = f"testOn-{config.test_dataset}-mode-{config.train_dataset_mode}"
+    train_dataset = config.dataset
+    if config.train_dataset_mode == "full":
+        config.use_best_samples = ""
+    elif config.train_dataset_mode == "best-random":
+        config.use_best_samples = "best-random"
+    else:
+        config.use_best_samples = "best"
+    train_loaders, val_loader, _, max_sample_freq = load_data(config)
+    config.epochs = num_steps_to_epochs(config.num_steps, train_loaders[0])
+    if type(train_loaders) != list:
+        train_loaders = [train_loaders]
+    config.dataset = config.test_dataset
+    config.use_best_samples = ""
+    _, _, test_loader, max_sample_freq = load_data(config)
+    config.dataset = train_dataset
+    for idx, train_loader in enumerate(train_loaders):
+        config.job_type_mod = f"nsamples-{len(train_loader.dataset)}"
+        for i in range(config.num_seeds):
+            config.seed = config.initial_seed + i
+            # get log dir
+            log_dir, group_name, job_type = construct_log_dir(config, current_time)
+            init_wandb(config, log_dir, group_name, job_type)
+            # reproducibility
+            print(f"Setting seed to {config.seed}...")
+            seed_everything(config.seed)
+            # create log dir
+            if not config.debug:
+                os.makedirs(log_dir, exist_ok=True)
+            # init model
+            model, optimizer = init_model(config)
+            model, _ = train(model, optimizer, train_loader, val_loader, config, log_dir)
+            test(config, model, test_loader, log_dir)
+            wandb.finish()
 
 
 if __name__ == '__main__':
@@ -249,5 +276,7 @@ if __name__ == '__main__':
         run_dataset_distillation(current_config)
     elif current_config.best_and_worst_subsets:
         run_best_and_worst_subsets(current_config)
+    elif current_config.test_dataset:
+        train_on_one_but_test_val_on_other(current_config)
     else:
         run(current_config)
