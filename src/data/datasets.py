@@ -376,7 +376,7 @@ def get_dataloaders_other(dataset: str,
                     )
                 train_dataloaders.append(temp_dataloader)
     elif train_dataset_mode == "random":
-        for subset_size in [1, 5, 10, 15, 20, 30, 40, 50, 60, 70, 80, 90, 100, 150, 200, 250, 300, 350, 400, 500]:
+        for subset_size in [1, 5, 10, 25, 50, 100, 250, 500]:
             # get random subset of train_idx_map list
             random_indices = np.random.choice(len(train_idx_map), subset_size, replace=False)
             subset_labels = [train_labels[i] for i in random_indices]

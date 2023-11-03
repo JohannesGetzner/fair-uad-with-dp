@@ -419,7 +419,7 @@ def validate(config, model, optimizer, loader, step, log_dir, log_imgs=False, pr
 """"""""""""""""""""""""""""""""" Testing """""""""""""""""""""""""""""""""
 
 
-def test(config, model, loader, log_dir, stage_two=False):
+def test(config, model, loader, log_dir, stage_two=False, file_name_mod = ""):
     print("Testing...")
 
     device = next(model.parameters()).device
@@ -469,7 +469,7 @@ def test(config, model, loader, log_dir, stage_two=False):
 
     # Save test results to csv
     if not config.debug:
-        csv_path = os.path.join(log_dir, 'test_results.csv' if not stage_two else 'test_results_stage_two.csv')
+        csv_path = os.path.join(log_dir, f'test_results_{file_name_mod}.csv' if not stage_two else f'test_results_stage_two_{file_name_mod}.csv')
         # create dataframe from dict, keys are the columns and values are single row
         metrics_c = {k: v.item() for k, v in metrics_c.items()}
         df = pd.DataFrame.from_dict(metrics_c, orient='index').T

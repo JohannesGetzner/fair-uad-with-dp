@@ -226,13 +226,13 @@ def run_stage_two(model, optimizer, config, log_dir, steps_done):
 def train_on_one_but_test_val_on_other(config):
     config.group_name_mod = f"testOn-{config.test_dataset}-mode-{config.train_dataset_mode}"
     train_dataset = config.dataset
-    train_loaders, val_loader, _, max_sample_freq = load_data(config)
+    train_loaders, val_loader, test_loader_A, max_sample_freq = load_data(config)
     config.epochs = num_steps_to_epochs(config.num_steps, train_loaders[0])
     if type(train_loaders) != list:
         train_loaders = [train_loaders]
     config.dataset = config.test_dataset
     config.train_dataset_mode = ""
-    _, _, test_loader, max_sample_freq = load_data(config)
+    _, _, test_loader_B, max_sample_freq = load_data(config)
     config.dataset = train_dataset
     for idx, train_loader in enumerate(train_loaders):
         config.job_type_mod = f"nsamples-{len(train_loader.dataset)}"
@@ -250,7 +250,8 @@ def train_on_one_but_test_val_on_other(config):
             # init model
             model, optimizer = init_model(config)
             model, _ = train(model, optimizer, train_loader, val_loader, config, log_dir)
-            test(config, model, test_loader, log_dir)
+            test(config, model, test_loader_A, log_dir, file_name_mod=train_dataset)
+            test(config, model, test_loader_B, log_dir, file_name_mod=config.test_dataset)
             wandb.finish()
 
 

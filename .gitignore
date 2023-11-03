@@ -171,3 +171,70 @@ src/analysis/**/*.png
 /src_refactored/data/
 /src/data/csvs/
 /remote_data/
+/src_refactored/datasets/csvs/.gitkeep
+/src_refactored/datasets/csvs/chexpert_frontal/abnormal.csv
+/src_refactored/datasets/csvs/cxr14_ap_pa/abnormal.csv
+/src_refactored/datasets/csvs/mimic-cxr_ap_pa/abnormal.csv
+/src_refactored/datasets/csvs/rsna/abnormal.csv
+/src_refactored/datasets/csvs/cxr14_ap_only/Atelectasis.csv
+/src_refactored/datasets/csvs/cxr14_ap_pa/Atelectasis.csv
+/src_refactored/datasets/csvs/mimic-cxr_ap/Atelectasis.csv
+/src_refactored/datasets/csvs/mimic-cxr_ap_pa/Atelectasis.csv
+/src_refactored/datasets/csvs/cxr14_ap_only/Cardiomegaly.csv
+/src_refactored/datasets/csvs/cxr14_ap_pa/Cardiomegaly.csv
+/src_refactored/datasets/csvs/mimic-cxr_ap/Cardiomegaly.csv
+/src_refactored/datasets/csvs/mimic-cxr_ap_pa/Cardiomegaly.csv
+/src_refactored/datasets/csvs/cxr14_ap_only/Consolidation.csv
+/src_refactored/datasets/csvs/cxr14_ap_pa/Consolidation.csv
+/src_refactored/datasets/csvs/mimic-cxr_ap/Consolidation.csv
+/src_refactored/datasets/csvs/mimic-cxr_ap_pa/Consolidation.csv
+/src_refactored/datasets/csvs/cxr14_ap_only/Edema.csv
+/src_refactored/datasets/csvs/cxr14_ap_pa/Edema.csv
+/src_refactored/datasets/csvs/mimic-cxr_ap/Edema.csv
+/src_refactored/datasets/csvs/mimic-cxr_ap_pa/Edema.csv
+/src_refactored/datasets/csvs/cxr14_ap_only/Effusion.csv
+/src_refactored/datasets/csvs/cxr14_ap_pa/Effusion.csv
+/src_refactored/datasets/csvs/cxr14_ap_only/Emphysema.csv
+/src_refactored/datasets/csvs/cxr14_ap_pa/Emphysema.csv
+/src_refactored/datasets/csvs/mimic-cxr_ap/Enlarged Cardiomediastinum.csv
+/src_refactored/datasets/csvs/mimic-cxr_ap_pa/Enlarged Cardiomediastinum.csv
+/src_refactored/datasets/csvs/cxr14_ap_only/Fibrosis.csv
+/src_refactored/datasets/csvs/cxr14_ap_pa/Fibrosis.csv
+/src_refactored/datasets/csvs/mimic-cxr_ap/Fracture.csv
+/src_refactored/datasets/csvs/mimic-cxr_ap_pa/Fracture.csv
+/src_refactored/datasets/csvs/cxr14_ap_only/Hernia.csv
+/src_refactored/datasets/csvs/cxr14_ap_pa/Hernia.csv
+/src_refactored/datasets/csvs/cxr14_ap_only/Infiltration.csv
+/src_refactored/datasets/csvs/cxr14_ap_pa/Infiltration.csv
+/src_refactored/datasets/csvs/mimic-cxr_ap/Lung Lesion.csv
+/src_refactored/datasets/csvs/mimic-cxr_ap_pa/Lung Lesion.csv
+/src_refactored/datasets/csvs/mimic-cxr_ap/Lung Opacity.csv
+/src_refactored/datasets/csvs/mimic-cxr_ap_pa/Lung Opacity.csv
+/src_refactored/datasets/csvs/cxr14_ap_only/Mass.csv
+/src_refactored/datasets/csvs/cxr14_ap_pa/Mass.csv
+/src_refactored/datasets/csvs/cxr14_ap_only/No Finding.csv
+/src_refactored/datasets/csvs/cxr14_ap_pa/No Finding.csv
+/src_refactored/datasets/csvs/mimic-cxr_ap/No Finding.csv
+/src_refactored/datasets/csvs/mimic-cxr_ap_pa/No Finding.csv
+/src_refactored/datasets/csvs/cxr14_ap_only/Nodule.csv
+/src_refactored/datasets/csvs/cxr14_ap_pa/Nodule.csv
+/src_refactored/datasets/csvs/chexpert_frontal/normal.csv
+/src_refactored/datasets/csvs/cxr14_ap_pa/normal.csv
+/src_refactored/datasets/csvs/mimic-cxr_ap_pa/normal.csv
+/src_refactored/datasets/csvs/rsna/normal.csv
+/src_refactored/datasets/csvs/mimic-cxr_ap/Pleural Effusion.csv
+/src_refactored/datasets/csvs/mimic-cxr_ap_pa/Pleural Effusion.csv
+/src_refactored/datasets/csvs/mimic-cxr_ap/Pleural Other.csv
+/src_refactored/datasets/csvs/mimic-cxr_ap_pa/Pleural Other.csv
+/src_refactored/datasets/csvs/cxr14_ap_only/Pleural_Thickening.csv
+/src_refactored/datasets/csvs/cxr14_ap_pa/Pleural_Thickening.csv
+/src_refactored/datasets/csvs/cxr14_ap_only/Pneumonia.csv
+/src_refactored/datasets/csvs/cxr14_ap_pa/Pneumonia.csv
+/src_refactored/datasets/csvs/mimic-cxr_ap/Pneumonia.csv
+/src_refactored/datasets/csvs/mimic-cxr_ap_pa/Pneumonia.csv
+/src_refactored/datasets/csvs/cxr14_ap_only/Pneumothorax.csv
+/src_refactored/datasets/csvs/cxr14_ap_pa/Pneumothorax.csv
+/src_refactored/datasets/csvs/mimic-cxr_ap/Pneumothorax.csv
+/src_refactored/datasets/csvs/mimic-cxr_ap_pa/Pneumothorax.csv
+/src_refactored/datasets/csvs/rsna_metadata.csv
+/src/subsets.json
