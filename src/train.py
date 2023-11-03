@@ -119,10 +119,10 @@ def run_dataset_distillation(config):
     train_loaders, val_loader, test_loader, max_sample_freq = load_data(config)
     config.epochs = num_steps_to_epochs(config.num_steps, train_loaders[0])
     for idx, train_loader in enumerate(train_loaders):
-        if idx < 3839:
+        if idx < 3844:
             continue
         config.job_type_mod = f"train_loader_{idx}"
-        # config.disable_wandb = True
+        config.disable_wandb = True
         time_start = datetime.now()
         for i in range(config.num_seeds):
             config.seed = config.initial_seed + i
