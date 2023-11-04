@@ -250,8 +250,10 @@ def train_on_one_but_test_val_on_other(config):
             # init model
             model, optimizer = init_model(config)
             model, _ = train(model, optimizer, train_loader, val_loader, config, log_dir)
-            test(config, model, test_loader_A, log_dir, file_name_mod=train_dataset)
-            test(config, model, test_loader_B, log_dir, file_name_mod=config.test_dataset)
+            test(config, model, test_loader_A, log_dir, file_name_mod=config.dataset)
+            config.dataset = config.test_dataset
+            test(config, model, test_loader_B, log_dir, file_name_mod=config.dataset)
+            config.dataset = train_dataset
             wandb.finish()
 
 

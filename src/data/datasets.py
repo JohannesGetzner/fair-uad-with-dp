@@ -226,8 +226,9 @@ def get_dataloaders_other(dataset: str,
     if dataset == 'cxr14':
         def load_fn(x):
             return torch.tensor(x)
-        if protected_attr == 'none':
+        if protected_attr == 'none' or 'balanced':
             data, labels, meta, idx_map = load_cxr14_naive_split()
+            filenames = None
         elif protected_attr == 'sex':
             data, labels, meta, idx_map = load_cxr14_sex_split(
                 cxr14_dir=CXR14_DIR,
@@ -301,7 +302,10 @@ def get_dataloaders_other(dataset: str,
     train_labels = labels['train']
     train_meta = meta['train']
     train_idx_map = idx_map['train']
-    train_filenames = filenames['train']
+    if filenames is not None:
+        train_filenames = filenames['train']
+    else:
+        train_filenames = None
     val_data = {k: v for k, v in data.items() if 'val' in k}
     val_labels = {k: v for k, v in labels.items() if 'val' in k}
     val_meta = {k: v for k, v in meta.items() if 'val' in k}
@@ -350,7 +354,7 @@ def get_dataloaders_other(dataset: str,
         file_path = 'subsets.json'
         with open(file_path, 'r') as f:
             best_samples = json.load(f)[dataset]["test/AUROC"]
-            for subset_size in [1, 5, 10, 15, 20, 30, 40, 50, 60, 70, 80, 90, 100, 150, 200, 250, 300, 350, 400, 500]:
+            for subset_size in [1, 5, 10, 25, 50, 100, 250, 500]:
                 temp_df = pd.DataFrame.from_dict(best_samples)
                 temp_df = temp_df.sort_values(by=['scores'], ascending=False)
                 subset_idx_map = temp_df["idx_map"].iloc[:subset_size].to_list()
@@ -363,7 +367,7 @@ def get_dataloaders_other(dataset: str,
                     subset_labels,
                     subset_meta,
                     transform=transform,
-                    index_mapping=train_idx_map[subset_idx_map],
+                    index_mapping=subset_idx_map,
                     load_fn=load_fn,
                     filenames=subset_filenames
                 )

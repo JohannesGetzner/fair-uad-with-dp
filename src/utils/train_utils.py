@@ -465,7 +465,8 @@ def test(config, model, loader, log_dir, stage_two=False, file_name_mod = ""):
 
     # Write test results to wandb summary
     for k, v in results.items():
-        wandb.run.summary[k] = v
+        k_with_mod = f"{file_name_mod}/" + k
+        wandb.run.summary[k_with_mod] = v
 
     # Save test results to csv
     if not config.debug:

@@ -21,7 +21,7 @@ source activate $ANACONDA_ENV
 echo "Running script with Anaconda environment: $ANACONDA_ENV"
 
 date=$(date '+%Y-%m-%d %H:%M:%S')
-$ANACONDA_PYTHON -u train.py --run_config normal --run_version "distill_baseline"  --no_img_log --n_training_samples 5 --group_name_mod  "bs32-balanced-dataset-distillation-fullmodel-nsamples5"    --d "${date}"
-$ANACONDA_PYTHON -u train.py --run_config normal --run_version "distill_baseline"  --no_img_log --n_training_samples 10 --group_name_mod "bs32-balanced-dataset-distillation-fullmodel-nsamples10"   --d "${date}"
+#$ANACONDA_PYTHON -u train.py --run_config normal --run_version "distill_baseline"  --no_img_log --n_training_samples 5 --group_name_mod  "bs32-balanced-dataset-distillation-fullmodel-nsamples5"    --d "${date}"
+#$ANACONDA_PYTHON -u train.py --run_config normal --run_version "distill_baseline"  --no_img_log --n_training_samples 10 --group_name_mod "bs32-balanced-dataset-distillation-fullmodel-nsamples10"   --d "${date}"
 $ANACONDA_PYTHON -u train.py --run_config normal --run_version "distill_baseline"  --no_img_log --n_training_samples 20 --group_name_mod "bs32-balanced-dataset-distillation-fullmodel-nsamples20"   --d "${date}"
 $ANACONDA_PYTHON -u train.py --run_config normal --run_version "distill_baseline"  --no_img_log --n_training_samples 30 --group_name_mod "bs32-balanced-dataset-distillation-fullmodel-nsamples30"   --d "${date}"
