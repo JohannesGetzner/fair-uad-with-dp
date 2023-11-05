@@ -225,7 +225,6 @@ def train_on_one_but_test_val_on_other(config):
     config.group_name_mod = f"testOn-{config.test_dataset}-mode-{config.train_dataset_mode}"
     train_dataset = config.dataset
     train_loaders, val_loader, test_loader_A, max_sample_freq = load_data(config)
-    config.epochs = num_steps_to_epochs(config.num_steps, train_loaders[0])
     if type(train_loaders) != list:
         train_loaders = [train_loaders]
     config.dataset = config.test_dataset
@@ -233,6 +232,7 @@ def train_on_one_but_test_val_on_other(config):
     _, _, test_loader_B, max_sample_freq = load_data(config)
     config.dataset = train_dataset
     for idx, train_loader in enumerate(train_loaders):
+        config.epochs = num_steps_to_epochs(config.num_steps, train_loaders[0])
         config.job_type_mod = f"nsamples-{len(train_loader.dataset)}"
         for i in range(config.num_seeds):
             config.seed = config.initial_seed + i
