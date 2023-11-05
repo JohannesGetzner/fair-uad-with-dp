@@ -232,7 +232,7 @@ def train_on_one_but_test_val_on_other(config):
     _, _, test_loader_B, max_sample_freq = load_data(config)
     config.dataset = train_dataset
     for idx, train_loader in enumerate(train_loaders):
-        config.epochs = num_steps_to_epochs(config.num_steps, train_loaders)
+        config.epochs = num_steps_to_epochs(config.num_steps, train_loader)
         config.job_type_mod = f"nsamples-{len(train_loader.dataset)}"
         for i in range(config.num_seeds):
             config.seed = config.initial_seed + i
