@@ -508,7 +508,7 @@ def load_chexpert_intersectional_age_sex_split(chexpert_dir: str = CHEXPERT_DIR)
         'test/old': test_old,
     }
     def get_meta_num(data):
-        # young old combinations
+        # old/young male/female
         combos = {
             (True, True): 0,
             (True, False): 1,

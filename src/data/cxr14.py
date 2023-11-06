@@ -462,7 +462,7 @@ def load_cxr14_intersectional_age_sex_split(cxr14_dir: str = CXR14_DIR):
         'test/old': test_old,
     }
     def get_meta_num(data):
-        # young old combinations
+        # old/young male/female
         combos = {
             (True, True): 0,
             (True, False): 1,

@@ -21,6 +21,6 @@ source activate $ANACONDA_ENV
 echo "Running script with Anaconda environment: $ANACONDA_ENV"
 
 date=$(date '+%Y-%m-%d %H:%M:%S')
-#$ANACONDA_PYTHON -u train.py --run_config normal --run_version "balanced_baseline" --test_dataset "cxr14" --no_img_log --train_dataset_mode "full" --d "${date}"
-$ANACONDA_PYTHON -u train.py --run_config normal --run_version "balanced_baseline" --test_dataset "cxr14" --no_img_log --train_dataset_mode "best" --d "${date}"
-$ANACONDA_PYTHON -u train.py --run_config normal --run_version "balanced_baseline" --test_dataset "cxr14" --no_img_log --train_dataset_mode "random" --d "${date}"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version "balanced_baseline" --test_dataset "cxr14" --no_img_log --train_dataset_mode "full"   --group_name_mod "pneumoniaOnly" --d "${date}"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version "balanced_baseline" --test_dataset "cxr14" --no_img_log --train_dataset_mode "best"   --group_name_mod "pneumoniaOnly" --d "${date}"
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version "balanced_baseline" --test_dataset "cxr14" --no_img_log --train_dataset_mode "random" --group_name_mod "pneumoniaOnly" --d "${date}"
