@@ -119,7 +119,7 @@ def load_data(config):
         max_sample_freq = 1
 
     print(f'Loaded datasets in {time() - t_load_data_start:.2f}s')
-    if config.n_training_samples or config.best_and_worst_subsets or config.use_best_samples != "":
+    if config.n_training_samples or config.best_and_worst_subsets:
         return train_loaders, val_loader, test_loader, max_sample_freq
     else:
         return train_loaders[0], val_loader, test_loader, max_sample_freq

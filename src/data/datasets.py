@@ -22,10 +22,14 @@ from src import CHEXPERT_DIR, CXR14_DIR, MIMIC_CXR_DIR
 from src.data.chexpert import (load_chexpert_age_split,
                                load_chexpert_naive_split,
                                load_chexpert_race_split,
-                               load_chexpert_sex_split)
+                               load_chexpert_sex_split,
+                               load_chexpert_intersectional_age_sex_split
+                               )
 from src.data.cxr14 import (load_cxr14_age_split,
                             load_cxr14_naive_split,
-                            load_cxr14_sex_split)
+                            load_cxr14_sex_split,
+                            load_cxr14_intersectional_age_sex_split
+                            )
 from src.data.mimic_cxr import (load_mimic_cxr_age_split,
                                 load_mimic_cxr_intersectional_age_sex_race_split,
                                 load_mimic_cxr_naive_split,
@@ -226,7 +230,7 @@ def get_dataloaders_other(dataset: str,
     if dataset == 'cxr14':
         def load_fn(x):
             return torch.tensor(x)
-        if protected_attr == 'none' or 'balanced':
+        if protected_attr == 'none':
             data, labels, meta, idx_map = load_cxr14_naive_split()
             filenames = None
         elif protected_attr == 'sex':
@@ -237,6 +241,10 @@ def get_dataloaders_other(dataset: str,
             data, labels, meta, idx_map, filenames = load_cxr14_age_split(
                 cxr14_dir=CXR14_DIR,
                 old_percent=old_percent)
+        elif protected_attr == 'balanced':
+            data, labels, meta, idx_map, filenames = load_cxr14_intersectional_age_sex_split(
+                cxr14_dir = CXR14_DIR
+            )
         else:
             raise NotImplementedError
     elif dataset == 'mimic-cxr':
@@ -287,6 +295,10 @@ def get_dataloaders_other(dataset: str,
                 chexpert_dir=CHEXPERT_DIR,
                 white_percent=white_percent,
                 max_train_samples=max_train_samples)
+        elif protected_attr == 'balanced':
+            data, labels, meta, idx_map = load_chexpert_intersectional_age_sex_split(
+                chexpert_dir=CHEXPERT_DIR
+            )
         else:
             raise ValueError(f'Unknown protected attribute: {protected_attr} for dataset {dataset}')
     elif dataset == 'rsna':
