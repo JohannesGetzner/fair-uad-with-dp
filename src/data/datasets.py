@@ -296,7 +296,7 @@ def get_dataloaders_other(dataset: str,
                 white_percent=white_percent,
                 max_train_samples=max_train_samples)
         elif protected_attr == 'balanced':
-            data, labels, meta, idx_map = load_chexpert_intersectional_age_sex_split(
+            data, labels, meta, idx_map, filenames = load_chexpert_intersectional_age_sex_split(
                 chexpert_dir=CHEXPERT_DIR
             )
         else:

@@ -524,7 +524,7 @@ def load_chexpert_intersectional_age_sex_split(chexpert_dir: str = CHEXPERT_DIR)
         labels[mode] = [min(1, label) for label in data.label.values]
         meta[mode] = get_meta_num(data)
         index_mapping[mode] = data.memmap_idx.values
-        file_names[mode] = data.path.values
+        file_names[mode] = data.Path.values
     return actual_data, labels, meta, index_mapping, file_names
 
 
