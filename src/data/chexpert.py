@@ -400,7 +400,7 @@ def load_chexpert_intersectional_age_sex_split(chexpert_dir: str = CHEXPERT_DIR)
     normal.rename({"Age":"PatientAge", "Sex":"PatientSex", "subject_id": "patientId"}, axis=1, inplace=True)
     abnormal.rename({"Age":"PatientAge", "Sex":"PatientSex", "subject_id": "patientId"}, axis=1, inplace=True)
     # UNCOMMENT TO ONLY USE PNEUMONIA IMAGES
-    # abnormal = abnormal.loc[abnormal['Pneumonia'] == 1.0]
+    abnormal = abnormal.loc[abnormal['Pneumonia'] == 1.0]
     # Split normal images into sets
     normal_male_young = normal[(normal.PatientSex == 'Male') & (normal.PatientAge <= MAX_YOUNG)]
     normal_female_young = normal[(normal.PatientSex == 'Female') & (normal.PatientAge <= MAX_YOUNG)]
