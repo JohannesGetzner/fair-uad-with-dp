@@ -362,35 +362,41 @@ def get_dataloaders_other(dataset: str,
             )
             train_dataloaders.append(temp_dataloader)
             prev = i
-    elif train_dataset_mode == "best":
-        file_path = 'subsets.json'
-        with open(file_path, 'r') as f:
-            best_samples = json.load(f)[dataset]["test/AUROC"]
-            for subset_size in [1, 5, 10, 25, 50, 100, 250, 500]:
-                temp_df = pd.DataFrame.from_dict(best_samples)
-                temp_df = temp_df.sort_values(by=['scores'], ascending=False)
-                subset_idx_map = temp_df["idx_map"].iloc[:subset_size].to_list()
-                subset_labels = temp_df["labels"].iloc[:subset_size].to_list()
-                subset_meta = temp_df["meta"].iloc[:subset_size].to_list()
-                subset_filenames = temp_df["filenames"].iloc[:subset_size].to_list()
+    elif train_dataset_mode.startswith("best"):
+        with open('subsets.json', 'r') as f:
+            best_samples = json.load(f)
+        if "-" in train_dataset_mode:
+            scoring_metric = train_dataset_mode.split("-")[1]
+            subset_sizes = [1, 5, 10, 25, 50]
+        else:
+            scoring_metric = "test/AUROC"
+            subset_sizes = [1, 5, 10, 25, 50, 100, 250, 500]
+        best_samples = best_samples[scoring_metric]
+        for subset_size in subset_sizes:
+            temp_df = pd.DataFrame.from_dict(best_samples)
+            temp_df = temp_df.sort_values(by=['scores'], ascending=False)
+            subset_idx_map = temp_df["idx_map"].iloc[:subset_size].to_list()
+            subset_labels = temp_df["labels"].iloc[:subset_size].to_list()
+            subset_meta = temp_df["meta"].iloc[:subset_size].to_list()
+            subset_filenames = temp_df["filenames"].iloc[:subset_size].to_list()
 
-                temp_dataset = NormalDataset_other(
-                    train_data[subset_idx_map],
-                    subset_labels,
-                    subset_meta,
-                    transform=transform,
-                    index_mapping=subset_idx_map,
-                    load_fn=load_fn,
-                    filenames=subset_filenames
+            temp_dataset = NormalDataset_other(
+                train_data[subset_idx_map],
+                subset_labels,
+                subset_meta,
+                transform=transform,
+                index_mapping=subset_idx_map,
+                load_fn=load_fn,
+                filenames=subset_filenames
+            )
+            temp_dataloader = DataLoader(
+                temp_dataset,
+                batch_size=batch_size,
+                shuffle=True,
+                num_workers=num_workers,
+                generator=Generator().manual_seed(2147483647)
                 )
-                temp_dataloader = DataLoader(
-                    temp_dataset,
-                    batch_size=batch_size,
-                    shuffle=True,
-                    num_workers=num_workers,
-                    generator=Generator().manual_seed(2147483647)
-                    )
-                train_dataloaders.append(temp_dataloader)
+            train_dataloaders.append(temp_dataloader)
     elif train_dataset_mode == "random":
         for subset_size in [1, 5, 10, 25, 50, 100, 250, 500]:
             # get random subset of train_idx_map list
@@ -418,7 +424,6 @@ def get_dataloaders_other(dataset: str,
                     generator=Generator().manual_seed(2147483647),
                     pin_memory=True)
             )
-
     else:
         train_dataset = NormalDataset_other(
             train_data,
@@ -466,7 +471,6 @@ def get_dataloaders_rsna(dataset: str,
                          effective_dataset_size=1.0,
                          random_state=42,
                          n_training_samples: int = None,
-                         best_and_worst_subsets: bool = False
                          ) -> Tuple[List[DataLoader], DataLoader, DataLoader, int]:
     """
     Returns dataloaders for the RSNA dataset.
@@ -527,84 +531,13 @@ def get_dataloaders_rsna(dataset: str,
     val_dataset = anomal_ds(val_data, val_labels, val_meta)
     test_dataset = anomal_ds(test_data, test_labels, test_meta)
 
-    train_dataloaders = []
-    if n_training_samples:
-        print("ATTENTION: n_training_samples is set to", n_training_samples)
-        print("splitting training set into", len(train_data) // n_training_samples, "dataloaders")
-        prev = 0
-        for i in range(n_training_samples, len(train_data), n_training_samples):
-            temp_dataset = NormalDataset_rsna(
-                train_data[prev:i],
-                train_labels[prev:i],
-                train_meta[prev:i],
-                transform=transform,
-                load_fn=load_fn
-            )
-            temp_dataloader = DataLoader(
-                temp_dataset,
-                batch_size=batch_size,
-                shuffle=True,
-                num_workers=num_workers,
-                generator=Generator().manual_seed(2147483647)
-            )
-            train_dataloaders.append(temp_dataloader)
-            prev = i
-            if len(train_dataloaders) >= 1355:
-                break
-    elif best_and_worst_subsets:
-        # load subsets.json
-        v2 = True
-        if not v2:
-            with open('logs_persist/distillation/subsets.json', 'r') as f:
-                subsets = json.load(f)
-                for subset in subsets:
-                    # get indices of filenames in subset from train_data
-                    indices = [train_data.index(filename) for filename in subset["filenames"]]
-                    temp_dataset = NormalDataset_rsna(
-                        [train_data[i] for i in indices],
-                        [train_labels[i] for i in indices],
-                        [train_meta[i] for i in indices],
-                        transform=transform,
-                        load_fn=load_fn
-                    )
-                    temp_dataloader = DataLoader(
-                        temp_dataset,
-                        batch_size=batch_size,
-                        shuffle=True,
-                        num_workers=num_workers,
-                        generator=Generator().manual_seed(2147483647)
-                    )
-                    train_dataloaders.append(temp_dataloader)
-        else:
-            with open('logs_persist/distillation/subsets_combined.json', 'r') as f:
-                subsets = json.load(f)
-                for subset in subsets:
-                    # get indices of filenames in subset from train_data
-                    filenames = subset["filenames"]["test/lungOpacity_old_subgroupAUROC"] + subset["filenames"]["test/lungOpacity_young_subgroupAUROC"]
-                    indices = [train_data.index(filename) for filename in filenames]
-                    temp_dataset = NormalDataset_rsna(
-                        [train_data[i] for i in indices],
-                        [train_labels[i] for i in indices],
-                        [train_meta[i] for i in indices],
-                        transform=transform,
-                        load_fn=load_fn
-                    )
-                    temp_dataloader = DataLoader(
-                        temp_dataset,
-                        batch_size=batch_size,
-                        shuffle=True,
-                        num_workers=num_workers,
-                        generator=Generator().manual_seed(2147483647)
-                    )
-                    train_dataloaders.append(temp_dataloader)
-    else:
-        train_dataset = NormalDataset_rsna(train_data, train_labels, train_meta, transform=transform, load_fn=load_fn)
-        train_dataloaders.append(DataLoader(
-            train_dataset,
-            batch_size=batch_size,
-            shuffle=True,
-            num_workers=num_workers,
-            generator=Generator().manual_seed(2147483647)))
+    train_dataset = NormalDataset_rsna(train_data, train_labels, train_meta, transform=transform, load_fn=load_fn)
+    train_dataloader = DataLoader(
+        train_dataset,
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=num_workers,
+        generator=Generator().manual_seed(2147483647))
     dl = partial(DataLoader, batch_size=batch_size, num_workers=num_workers, collate_fn=group_collate_fn)
     val_dataloader = dl(
         val_dataset,
@@ -615,6 +548,6 @@ def get_dataloaders_rsna(dataset: str,
         shuffle=False,
         generator=Generator().manual_seed(2147483647))
 
-    return (train_dataloaders,
+    return (train_dataloader,
             val_dataloader,
             test_dataloader, max_count)
