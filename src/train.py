@@ -209,8 +209,11 @@ def train_on_best_subsets(config):
                 model, optimizer = init_model(config)
                 model, _ = train(model, optimizer, train_loader, val_loader, config, log_dir)
                 test(config, model, test_loader_rsna, log_dir, file_name_mod="rsna")
+                config.dataset = "cxr14"
                 test(config, model, test_loader_cxr14, log_dir, file_name_mod="cxr14")
+                config.dataset = "chexpert"
                 test(config, model, test_loader_chexpert, log_dir, file_name_mod="chexpert")
+                config.dataset = "rsna"
                 wandb.finish()
 
 
