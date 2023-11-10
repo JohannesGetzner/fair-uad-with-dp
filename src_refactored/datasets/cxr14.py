@@ -36,9 +36,13 @@ class CXR14AnomalyDataset(AnomalyDataset):
         self.split_info = None
 
     def load_data(self, anomaly="lungOpacity"):
-        csv_dir = os.path.join('./', 'csvs', 'cxr14_ap_pa')
+        import os
+        test = os.getcwd()
+        csv_dir = os.path.join('datasets', 'csvs', 'cxr14_ap_pa')
         normal_data = pd.read_csv(os.path.join(csv_dir, 'normal.csv'))
         anomalous_data = pd.read_csv(os.path.join(csv_dir, 'abnormal.csv'))
+        normal_data["id"] = normal_data["Patient ID"]
+        anomalous_data["id"] = anomalous_data["Patient ID"]
         return normal_data, anomalous_data
 
     def split_by_protected_attr(self, normal_data, anomalous_data):
@@ -91,7 +95,7 @@ class CXR14AnomalyDataset(AnomalyDataset):
             labels[mode] = [min(1, label) for label in data.label.values]
             meta[mode] = self.encode_metadata(data)
             index_mapping[mode] = data.memmap_idx.values
-        return self.construct_dataloaders(images, labels, meta, index_mapping, filenames)
+        return self.construct_dataloaders(images, labels, meta, filenames, index_mapping)
 
     def encode_metadata(self, data):
         if self.config["protected_attr"] == "age":

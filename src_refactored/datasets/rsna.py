@@ -17,6 +17,8 @@ class RsnaAnomalyDataset(AnomalyDataset):
             anomalous_data = metadata[metadata.label == 1]
         else:
             anomalous_data = metadata[metadata.label == 2]
+        normal_data["id"] = normal_data[""]
+        anomalous_data["id"] = anomalous_data[""]
         return normal_data, anomalous_data
 
     def split_by_protected_attr(self, normal_data, anomalous_data):
@@ -76,3 +78,7 @@ class RsnaAnomalyDataset(AnomalyDataset):
             labels[mode] = [min(1, label) for label in data.label.values]
             meta[mode] = self.encode_metadata(data)
         return self.construct_dataloaders(filenames, labels, meta)
+
+    def prepare_dataset(self):
+        # TODO: implement
+        pass

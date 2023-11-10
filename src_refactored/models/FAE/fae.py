@@ -286,18 +286,18 @@ class FeatureReconstructor(nn.Module):
         rec = self.dec(z)
         return rec
 
-    def loss(self, x: Tensor, **kwargs):
-        if "per_sample_loss_weights" in kwargs.keys():
-            return self.weighted_loss(x, **kwargs)
+    def loss(self, x: Tensor, per_sample_loss_weights=None):
+        if per_sample_loss_weights:
+            return self.weighted_loss(x, per_sample_loss_weights)
         feats, rec = self(x)
         loss = self.loss_fn(rec, feats).mean()
         return {'loss': loss, 'rec_loss': loss}
 
-    def weighted_loss(self, x: Tensor, **kwargs):
+    def weighted_loss(self, x: Tensor, per_sample_loss_weights):
         print("ATTENTION: Using weighted loss")
         feats, rec = self(x)
         loss = self.loss_fn(rec, feats)
-        expanded_loss_weights = kwargs["per_sample_loss_weights"].view(-1, 1, 1, 1)
+        expanded_loss_weights = per_sample_loss_weights.view(-1, 1, 1, 1)
         weighted_loss = (loss * expanded_loss_weights)
         min_loss = torch.min(weighted_loss)
         max_loss = torch.max(weighted_loss)
@@ -322,9 +322,15 @@ class FeatureReconstructor(nn.Module):
         # iterate over all samples in batch
         for i in range(x.shape[0]):
             # roi are those regions where x has "content"
-            roi = anomaly_map[i][x[i] > 0]
+            try:
+                # rsna TODO: bad solution
+                roi = anomaly_map[i][x[i] > 0]
+                roi = roi[roi > torch.quantile(roi, 0.9)]
+            except:
+                # rest
+                roi = anomaly_map[i]
+                roi = roi[roi > torch.quantile(roi, 0.9)]
             # only take the top 10% of the values to compute the mean
-            roi = roi[roi > torch.quantile(roi, 0.9)]
             anomaly_score.append(roi.mean())
         anomaly_score = torch.stack(anomaly_score)
         # the training loss, the anomaly map and the anomaly score are all derived from the loss function

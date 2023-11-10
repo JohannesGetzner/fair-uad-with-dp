@@ -2,7 +2,7 @@ from ._experiment import Experiment
 from typing import Dict, Tuple, List
 import wandb
 from torch import Tensor, Generator
-from src_refactored.datasets.data_manager import DataManager
+from src_refactored.datasets.anomaly_dataset import AnomalyDataset
 from src_refactored.datasets.datasets import NormalDataset
 from src_refactored.datasets.data_utils import get_load_fn, get_transforms
 from torch.utils.data import DataLoader
@@ -20,7 +20,7 @@ class DatasetDistillationNSamplesExperiment(Experiment):
         super().__init__(run_config, dp_config, dataset_config, model_config, wandb_config)
         self.num_training_samples = num_training_samples
 
-    def start_experiment(self, data_manager: DataManager, *args, **kwargs):
+    def start_experiment(self, data_manager: AnomalyDataset, *args, **kwargs):
         train_loader, val_loader, test_loader = data_manager.get_dataloaders(self.custom_data_loading_hook)
         train_data = train_loader.dataset.data
         train_labels = train_loader.dataset.labels
@@ -45,7 +45,7 @@ class DatasetDistillationNSamplesExperiment(Experiment):
             prev = i
         for n_samples_train_loader in n_samples_train_loaders:
             for seed in range(self.run_config["num_seeds"]):
-
+                self.run_config["seed"] = self.run_config["initial_seed"] + seed
                 if self.run_config["dp"]:
                     self._run_DP(n_samples_train_loader, val_loader, test_loader)
                 else:

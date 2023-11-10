@@ -52,9 +52,8 @@ class AnomalyDataset(ABC):
         val_B = pd.concat([val_test_normal_B, val_B]).sample(frac=1, random_state=random_state).reset_index(drop=True)
         test_A = pd.concat([val_test_normal_A, test_A]).sample(frac=1, random_state=random_state).reset_index( drop=True)
         test_B = pd.concat([val_test_normal_B, test_B]).sample(frac=1, random_state=random_state).reset_index(drop=True)
-        # TODO: this might not work for all datasets because patientId might have different spellings
-        rest_normal_A = normal_A[~normal_A.patientId.isin(val_test_normal_A.patientId)]
-        rest_normal_B = normal_B[~normal_B.patientId.isin(val_test_normal_B.patientId)]
+        rest_normal_A = normal_A[~normal_A.id.isin(val_test_normal_A.id)]
+        rest_normal_B = normal_B[~normal_B.id.isin(val_test_normal_B.id)]
         print(f"Dataset Composition: {self.config['protected_attr_percent']*100}% {ATTRIBUTE_MAPPINGS[self.config['protected_attr']]['A']}")
 
         n_samples = min(len(rest_normal_A), len(rest_normal_B))

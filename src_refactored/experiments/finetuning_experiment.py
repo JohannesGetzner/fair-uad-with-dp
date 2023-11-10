@@ -1,7 +1,7 @@
 from ._experiment import Experiment
 from typing import Dict
 import wandb
-from src_refactored.datasets.data_manager import DataManager
+from src_refactored.datasets.anomaly_dataset import AnomalyDataset
 
 
 class FineTuningExperiment(Experiment):
@@ -23,7 +23,7 @@ class FineTuningExperiment(Experiment):
         # also add here because this is what gets logged
         self.dataset_config["fine_tuning_protected_attr_percent"] = fine_tuning_protected_attr_percent
 
-    def start_experiment(self, data_manager: DataManager, *args, **kwargs):
+    def start_experiment(self, data_manager: AnomalyDataset, *args, **kwargs):
         train_loader, val_loader, test_loader = data_manager.get_dataloaders(self.custom_data_loading_hook)
         # save normal steps
         self.run_config["initial_steps"] = self.run_config["num_steps"]
@@ -38,6 +38,7 @@ class FineTuningExperiment(Experiment):
             # run fine-tuning
             print("Starting fine-tuning...")
             self.run_config["num_steps"] = self.fine_tuning_steps
+            # TODO: fix
             fine_tuning_data_manager = DataManager(self.fine_tuning_dataset_config)
             fine_tuning_train_loader, _, _ = fine_tuning_data_manager.get_dataloaders(self.custom_data_loading_hook)
             if self.run_config["dp"]:
