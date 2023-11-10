@@ -65,12 +65,8 @@ CHEXPERT_LABELS = [
 
 
 def prepare_mimic_cxr(mimic_dir: str = MIMIC_CXR_DIR):
-    # mimic_dir = "/vol/aimspace/projects/mimic_cxr/mimic-cxr-jpg_2-0-0"
-    # metadata = pd.read_csv("/vol/aimspace/projects/mimic_cxr/mimic-cxr-jpg_2-0-0/mimic-cxr-2.0.0-metadata.csv.gz")
-    # chexpert = pd.read_csv("/vol/aimspace/projects/mimic_cxr/mimic-cxr-jpg_2-0-0/mimic-cxr-2.0.0-chexpert.csv.gz")
-    # mimic_sex = pd.read_csv("/vol/aimspace/users/meissen/patients.csv")  # From MIMIC-IV, v2.2
-    metadata = pd.read_csv(os.path.join(mimic_dir, 'mimic-cxr-2.0.0-metadata.csv'))
-    chexpert = pd.read_csv(os.path.join(mimic_dir, 'mimic-cxr-2.0.0-chexpert.csv'))
+    metadata = pd.read_csv(os.path.join(mimic_dir, 'mimic-cxr-2.0.0-metadata.csv.gz'))
+    chexpert = pd.read_csv(os.path.join(mimic_dir, 'mimic-cxr-2.0.0-chexpert.csv.gz'))
     mimic_sex = pd.read_csv(os.path.join(mimic_dir, 'patients.csv'))  # From MIMIC-IV, v2.2
     print(f"Total number of images: {len(metadata)}")
 
@@ -113,7 +109,6 @@ def prepare_mimic_cxr(mimic_dir: str = MIMIC_CXR_DIR):
     metadata['memmap_idx'] = np.arange(len(metadata))
 
     memmap_dir = os.path.join("~/thesis/src/datasets/mimic_cxr/mimic-cxr-jpg_2-0-0", 'memmap')
-    # memmap_dir = '/vol/aimspace/users/meissen/datasets/MIMIC-CXR/memmap'
     os.makedirs(memmap_dir, exist_ok=True)
 
     # csv_dir = os.path.join(THIS_DIR, 'csvs', 'mimic-cxr_ap')
