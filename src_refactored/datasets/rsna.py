@@ -1,9 +1,22 @@
 import os
 import numpy as np
 import pandas as pd
+from glob import glob
+import pydicom as dicom
+from tqdm import tqdm
+from typing import Tuple
+from .data_utils import write_memmap, read_memmap
 from .anomaly_dataset import AnomalyDataset, ATTRIBUTE_MAPPINGS
 from . import RSNA_DIR
+from functools import partial
+import torch
+from torchvision import transforms as T
 
+CLASS_MAPPING = {
+    'Normal': 0,  # 8851, female: 2905, male: 4946, age mean: 44.94, std: 16.39, min: 2, max: 155
+    'Lung Opacity': 1,  # 6012, female: 2502, male: 3510, age mean: 45.58, std: 17.46, min: 1, max: 92
+    'No Lung Opacity / Not Normal': 2  # 11821, female: 5111, male: 6710, age mean: 49.33, std: 16.49, min: 1, max: 153
+}
 
 class RsnaAnomalyDataset(AnomalyDataset):
     def __init__(self, dataset_config):
@@ -11,14 +24,12 @@ class RsnaAnomalyDataset(AnomalyDataset):
         self.split_info = None
 
     def load_data(self, anomaly="lungOpacity"):
-        metadata = pd.read_csv(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'csvs', 'rsna_metadata.csv'))
-        normal_data = metadata[metadata.label == 0]
-        if anomaly == 'lungOpacity':
-            anomalous_data = metadata[metadata.label == 1]
-        else:
-            anomalous_data = metadata[metadata.label == 2]
-        normal_data["id"] = normal_data[""]
-        anomalous_data["id"] = anomalous_data[""]
+        csv_dir = os.path.join('./', 'csvs', 'rsna')
+        normal_data = pd.read_csv(os.path.join(csv_dir, 'normal.csv'))
+        anomalous_data = pd.read_csv(os.path.join(csv_dir, 'abnormal.csv'))
+
+        normal_data["id"] = normal_data["patientId"]
+        anomalous_data["id"] = anomalous_data["patientId"]
         return normal_data, anomalous_data
 
     def split_by_protected_attr(self, normal_data, anomalous_data):
@@ -63,22 +74,70 @@ class RsnaAnomalyDataset(AnomalyDataset):
         train = pd.concat(
             [*custom_data_loading_hook(train_A, train_B)]
         ).sample(frac=1, random_state=self.config["random_state"]).reset_index(drop=True)
-        filenames = {}
+
+        memmap_file = read_memmap(os.path.join(RSNA_DIR, 'memmap', 'data'), )
+        images = {}
         labels = {}
         meta = {}
+        index_mapping = {}
+        filenames = {}
+        # TODO: this lungOpacity should not be part of the key
         sets = {
             f'train': train,
             f'val/{"lungOpacity"}_{ATTRIBUTE_MAPPINGS[self.config["protected_attr"]]["A"]}': val_A,
             f'val/{"lungOpacity"}_{ATTRIBUTE_MAPPINGS[self.config["protected_attr"]]["B"]}': val_B,
             f'test/{"lungOpacity"}_{ATTRIBUTE_MAPPINGS[self.config["protected_attr"]]["A"]}': test_A,
             f'test/{"lungOpacity"}_{ATTRIBUTE_MAPPINGS[self.config["protected_attr"]]["B"]}': test_B}
-        img_dir = os.path.join(RSNA_DIR, 'stage_2_train_images')
         for mode, data in sets.items():
-            filenames[mode] = [f'{img_dir}/{patient_id}.dcm' for patient_id in data.patientId]
+            images[mode] = memmap_file
+            filenames[mode] = data.path.values
             labels[mode] = [min(1, label) for label in data.label.values]
             meta[mode] = self.encode_metadata(data)
-        return self.construct_dataloaders(filenames, labels, meta)
+            index_mapping[mode] = data.memmap_idx.values
+        return self.construct_dataloaders(images, labels, meta, filenames, index_mapping)
 
-    def prepare_dataset(self):
-        # TODO: implement
-        pass
+    def prepare_dataset(self, rsna_dir: str = RSNA_DIR):
+        """Extracts metadata (labels, age, gender) from each sample of the RSNA
+        dataset."""
+        class_info = pd.read_csv(os.path.join(rsna_dir, 'stage_2_detailed_class_info.csv'))
+        class_info.drop_duplicates(subset='patientId', inplace=True)
+
+        metadata = []
+        files = glob(f"{rsna_dir}/stage_2_train_images/*.dcm")
+        for file in tqdm(files):
+            ds = dicom.dcmread(file)
+            patient_id = ds.PatientID
+            label = class_info[class_info.patientId == patient_id]['class'].values[0]
+            metadata.append(
+                {'Path': file, 'patientId': patient_id, 'label': CLASS_MAPPING[label], 'PatientAge': int(ds.PatientAge),
+                    'PatientSex': ds.PatientSex})
+
+        metadata = pd.DataFrame.from_dict(metadata)
+
+        # Save ordering of files in a new column 'memmap_idx'
+        metadata['memmap_idx'] = np.arange(len(metadata))
+
+        # Save csv for normal and abnormal images
+        csv_dir = os.path.join('./', 'csvs', 'rsna')
+        os.makedirs(csv_dir, exist_ok=True)
+        normal = metadata[metadata.label == 0]
+        print(f"Number of normal images: {len(normal)}")
+        normal.to_csv(os.path.join(csv_dir, 'normal.csv'), index=True)
+
+        abnormal = metadata[metadata.label != 0]
+        print(f"Number of abnormal images: {len(abnormal)}")
+        abnormal.to_csv(os.path.join(csv_dir, 'abnormal.csv'), index=True)
+
+        # Write memmap files for whole dataset
+        memmap_file = os.path.join(rsna_dir, 'memmap', 'data')
+        os.makedirs(memmap_file, exist_ok=True)
+        print(f"Writing memmap file '{memmap_file}'...")
+        write_memmap(metadata.Path.values.tolist(), memmap_file,
+            load_fn=partial(self.load_and_resize, target_size=(256, 256)), target_size=(256, 256))
+
+    def load_and_resize(self, path: str, target_size: Tuple[int, int]):
+        ds = dicom.dcmread(path)
+        img = torch.tensor(ds.pixel_array, dtype=torch.float32)[None] / 255.
+        img = T.CenterCrop(min(img.shape[1:]))(img)
+        img = T.Resize(target_size, antialias=True)(img)
+        return img
