@@ -112,7 +112,7 @@ def prepare_mimic_cxr(mimic_dir: str = MIMIC_CXR_DIR):
     # Save ordering of files in a new column 'memmap_idx'
     metadata['memmap_idx'] = np.arange(len(metadata))
 
-    memmap_dir = os.path.join(mimic_dir, 'memmap')
+    memmap_dir = os.path.join("~/thesis/src/datasets/mimic_cxr/mimic-cxr-jpg_2-0-0", 'memmap')
     # memmap_dir = '/vol/aimspace/users/meissen/datasets/MIMIC-CXR/memmap'
     os.makedirs(memmap_dir, exist_ok=True)
 
