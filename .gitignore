@@ -171,3 +171,4 @@ src/analysis/**/*.png
 /src_refactored/data/
 /src/data/csvs/
 /remote_data/
+/src_refactored/datasets/csvs/
