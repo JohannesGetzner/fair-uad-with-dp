@@ -20,6 +20,8 @@ mimic-cxr-2.0.0-metadata.csv
 mimic-cxr-2.0.0-chexpert.csv
 """
 import os
+import sys
+sys.path.append('../')
 from functools import partial
 from typing import Optional, Tuple
 
