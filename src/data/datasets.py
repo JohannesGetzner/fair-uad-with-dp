@@ -197,7 +197,6 @@ class AnomalFairnessDataset_other(Dataset):
         return img, label, meta
 
 
-
 # default_collate does not work with Lists of dictionaries
 def group_collate_fn(batch: List[Tuple[Any, ...]]):
     assert len(batch[0]) == 3
@@ -268,7 +267,7 @@ def get_dataloaders_other(dataset: str,
                 mimic_cxr_dir=MIMIC_CXR_DIR,
                 white_percent=white_percent,
                 max_train_samples=max_train_samples)
-        elif protected_attr == 'intersectional_age_sex_race':
+        elif protected_attr == 'balanced':
             data, labels, meta, idx_map = load_mimic_cxr_intersectional_age_sex_race_split(
                 mimic_cxr_dir=MIMIC_CXR_DIR)
         else:
