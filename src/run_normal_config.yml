@@ -25,6 +25,14 @@ balanced_baseline:
   wandb_project: "unsupervised-fairness"
   num_steps: 10000
   batch_size: 32
+balanced_baseline_2:
+  dp: False
+  protected_attr: "balanced"
+  initial_seed: 1
+  num_seeds: 10
+  wandb_project: "unsupervised-fairness"
+  num_steps: 3000
+  batch_size: 32
 distill_baseline:
   dp: False
   protected_attr: "balanced"
