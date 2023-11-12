@@ -1083,7 +1083,7 @@ def load_mimic_cxr_intersectional_age_sex_split(mimic_cxr_dir: str = MIMIC_CXR_D
 
     img_data = read_memmap(
         os.path.join(
-            mimic_cxr_dir,
+            "/vol/aimspace/users/getzner/mimic_cxr/mimic-cxr-jpg_2-0-0",
             'memmap',
             'ap_pa_no_support_devices_no_uncertain'),
     )

@@ -31,7 +31,7 @@ from src.data.cxr14 import (load_cxr14_age_split,
                             load_cxr14_intersectional_age_sex_split
                             )
 from src.data.mimic_cxr import (load_mimic_cxr_age_split,
-                                load_mimic_cxr_intersectional_age_sex_race_split,
+                                load_mimic_cxr_intersectional_age_sex_split,
                                 load_mimic_cxr_naive_split,
                                 load_mimic_cxr_race_split,
                                 load_mimic_cxr_sex_split)
@@ -268,7 +268,7 @@ def get_dataloaders_other(dataset: str,
                 white_percent=white_percent,
                 max_train_samples=max_train_samples)
         elif protected_attr == 'balanced':
-            data, labels, meta, idx_map = load_mimic_cxr_intersectional_age_sex_race_split(
+            data, labels, meta, idx_map = load_mimic_cxr_intersectional_age_sex_split(
                 mimic_cxr_dir=MIMIC_CXR_DIR)
         else:
             raise ValueError(f'Unknown protected attribute: {protected_attr} for dataset {dataset}')
