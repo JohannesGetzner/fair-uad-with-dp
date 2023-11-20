@@ -4,6 +4,7 @@ v1:
   dp: True
   max_grad_norm: 0.01
   protected_attr: "age"
+  dataset: 'rsna-old'
   initial_seed: 1
   num_seeds: 3
   wandb_project: "unsupervised-fairness"
@@ -14,6 +15,7 @@ v1:
 # best_subsets
 v1_best:
   dp: True
+  dataset: 'rsna-old'
   max_grad_norm: 0.01
   protected_attr: "age"
   initial_seed: 1
@@ -23,26 +25,14 @@ v1_best:
   batch_size: 512
   max_physical_batch_size: 512
   lr: 0.0002
-
 # default sex
 v2:
   dp: True
   max_grad_norm: 0.01
+  dataset: 'rsna-old'
   protected_attr: "sex"
   initial_seed: 1
   num_seeds: 3
-  wandb_project: "unsupervised-fairness"
-  num_steps: 45000
-  batch_size: 512
-  max_physical_batch_size: 512
-  lr: 0.0002
-
-v2_fix:
-  dp: True
-  max_grad_norm: 0.01
-  protected_attr: "sex"
-  initial_seed: 3
-  num_seeds: 1
   wandb_project: "unsupervised-fairness"
   num_steps: 45000
   batch_size: 512

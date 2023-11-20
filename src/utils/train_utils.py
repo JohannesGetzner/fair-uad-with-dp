@@ -82,6 +82,7 @@ DEFAULT_CONFIG = {
     "effective_dataset_size": 1.0,
     "dataset_random_state": 42,
     "n_training_samples": None,
+    "train_dataset_mode": "",
 }
 DEFAULT_CONFIG = DotMap(DEFAULT_CONFIG)
 DEFAULT_CONFIG.device = 'cuda' if torch.cuda.is_available() else 'cpu'
