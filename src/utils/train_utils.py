@@ -103,6 +103,7 @@ def load_data(config):
             effective_dataset_size=config.effective_dataset_size,
             random_state = config.dataset_random_state,
             n_training_samples=config.n_training_samples,
+            train_dataset_mode=config.train_dataset_mode
         )
     else:
         train_loaders, val_loader, test_loader = get_dataloaders_other(
@@ -272,9 +273,13 @@ def train_dp(model, optimizer, train_loader, val_loader, config, log_dir, privac
                 # forward
                 loss_dict, accumulated_per_sample_norms = train_step_dp(model, optimizer, x, y, per_sample_loss_weights)
                 # accumulate mean gradient norms per class
-                for g_norm, pv_label in zip(torch.squeeze(accumulated_per_sample_norms).tolist(), meta.tolist()):
-                    mean_gradient_per_class[pv_label] += g_norm
-                    count_samples_per_class[pv_label] += 1
+                if accumulated_per_sample_norms.shape[0] == 1:
+                    mean_gradient_per_class[meta.item()] += torch.squeeze(accumulated_per_sample_norms)
+                    count_samples_per_class[meta.item()] += 1
+                else:
+                    for g_norm, pv_label in zip(torch.squeeze(accumulated_per_sample_norms).tolist(), meta.tolist()):
+                        mean_gradient_per_class[pv_label] += g_norm
+                        count_samples_per_class[pv_label] += 1
                 # add loss
                 train_losses.add(loss_dict)
 
@@ -313,8 +318,11 @@ def train_dp(model, optimizer, train_loader, val_loader, config, log_dir, privac
                     return model
 
             i_epoch += 1
-            print(f'Finished epoch {i_epoch}/{config.epochs}, ({i_step} iterations)')
-
+            if config.train_dataset_mode != "":
+                if i_epoch % 100 == 0:
+                    print(f'Finished epoch {i_epoch}/{config.epochs}, ({i_step} iterations)')
+            else:
+                print(f'Finished epoch {i_epoch}/{config.epochs}, ({i_step} iterations)')
             # log mean gradient norms per class to wandb
             mapping = {
                 1: "young" if config.protected_attr == 'age' else "female",

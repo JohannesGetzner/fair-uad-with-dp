@@ -11,6 +11,18 @@ v1:
   batch_size: 512
   max_physical_batch_size: 512
   lr: 0.0002
+# best_subsets
+v1_best:
+  dp: True
+  max_grad_norm: 0.01
+  protected_attr: "age"
+  initial_seed: 1
+  num_seeds: 5
+  wandb_project: "unsupervised-fairness"
+  num_steps: 5000
+  batch_size: 512
+  max_physical_batch_size: 512
+  lr: 0.0002
 
 # default sex
 v2:

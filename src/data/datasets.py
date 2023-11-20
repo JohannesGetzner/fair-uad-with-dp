@@ -469,13 +469,14 @@ def get_dataloaders_rsna(dataset: str,
                          upsampling_strategy=None,
                          effective_dataset_size=1.0,
                          random_state=42,
+                         train_dataset_mode = "",
                          n_training_samples: int = None,
                          ) -> Tuple[List[DataLoader], DataLoader, DataLoader, int]:
     """
     Returns dataloaders for the RSNA dataset.
     """
     # Load filenames and labels
-    if dataset == 'rsna':
+    if dataset == 'rsna-old':
         load_fn = load_dicom_img
         if protected_attr == 'none':
             data, labels, meta = load_rsna_naive_split(RSNA_DIR)
@@ -530,13 +531,39 @@ def get_dataloaders_rsna(dataset: str,
     val_dataset = anomal_ds(val_data, val_labels, val_meta)
     test_dataset = anomal_ds(test_data, test_labels, test_meta)
 
-    train_dataset = NormalDataset_rsna(train_data, train_labels, train_meta, transform=transform, load_fn=load_fn)
-    train_dataloader = DataLoader(
+    train_dataloaders = []
+    if train_dataset_mode.startswith("best"):
+        with open('subsets.json', 'r') as f:
+            best_samples = json.load(f)
+        if "-" in train_dataset_mode:
+            scoring_metric = train_dataset_mode.split("-")[1]
+            subset_sizes = [1, 5, 10, 25, 50]
+        else:
+            scoring_metric = "test/AUROC"
+            subset_sizes = [1, 5, 10, 25, 50, 100, 250, 500]
+        best_samples = best_samples[scoring_metric]
+        for subset_size in subset_sizes:
+            temp_df = pd.DataFrame.from_dict(best_samples)
+            temp_df = temp_df.sort_values(by=['scores'], ascending=False)
+            subset_filenames = temp_df["filenames"].iloc[:subset_size].to_list()
+            subset_labels = temp_df["labels"].iloc[:subset_size].to_list()
+            subset_meta = temp_df["meta"].iloc[:subset_size].to_list()
+            # map meta the following way: 0 and one to 0 and 2,3 to 1
+            subset_meta = [0 if m == 0 or m == 1 else 1 for m in subset_meta]
+            temp_dataset = NormalDataset_rsna(subset_filenames, subset_labels, subset_meta, transform=transform, load_fn=load_fn)
+            temp_dataloader = DataLoader(temp_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers,
+                generator=Generator().manual_seed(2147483647))
+            train_dataloaders.append(temp_dataloader)
+    else:
+        train_dataset = NormalDataset_rsna(train_data, train_labels, train_meta, transform=transform, load_fn=load_fn)
+        train_dataloader = DataLoader(
         train_dataset,
         batch_size=batch_size,
         shuffle=True,
         num_workers=num_workers,
-        generator=Generator().manual_seed(2147483647))
+        generator=Generator().manual_seed(2147483647)
+        )
+        train_dataloaders.append(train_dataloader)
     dl = partial(DataLoader, batch_size=batch_size, num_workers=num_workers, collate_fn=group_collate_fn)
     val_dataloader = dl(
         val_dataset,
@@ -547,6 +574,6 @@ def get_dataloaders_rsna(dataset: str,
         shuffle=False,
         generator=Generator().manual_seed(2147483647))
 
-    return (train_dataloader,
+    return (train_dataloaders,
             val_dataloader,
             test_dataloader, max_count)
