@@ -257,9 +257,9 @@ def train_on_best_subsets_DP(config):
                                              privacy_engine)
                 test(config, model, test_loader_rsna, log_dir, file_name_mod=train_dataset)
                 config.dataset = "cxr14"
-                test(config, model, test_loader_cxr14, log_dir, file_name_mod=train_dataset)
+                test(config, model, test_loader_cxr14, log_dir, file_name_mod=config.dataset)
                 config.dataset = "chexpert"
-                test(config, model, test_loader_chexpert, log_dir, file_name_mod=train_dataset)
+                test(config, model, test_loader_chexpert, log_dir, file_name_mod=config.dataset)
                 config.dataset = train_dataset
                 wandb.finish()
 
