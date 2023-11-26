@@ -12,6 +12,18 @@ v1:
   batch_size: 512
   max_physical_batch_size: 512
   lr: 0.0002
+v1_finetuning:
+  dp: True
+  max_grad_norm: 0.01
+  protected_attr: "age"
+  dataset: 'rsna-old'
+  initial_seed: 1
+  num_seeds: 3
+  wandb_project: "unsupervised-fairness"
+  num_steps: 15000
+  batch_size: 512
+  max_physical_batch_size: 512
+  lr: 0.0002
 # best_subsets
 v1_best:
   dp: True
@@ -35,6 +47,18 @@ v2:
   num_seeds: 3
   wandb_project: "unsupervised-fairness"
   num_steps: 20000
+  batch_size: 512
+  max_physical_batch_size: 512
+  lr: 0.0002
+v2_finetuning:
+  dp: True
+  max_grad_norm: 0.01
+  dataset: 'rsna-old'
+  protected_attr: "sex"
+  initial_seed: 1
+  num_seeds: 3
+  wandb_project: "unsupervised-fairness"
+  num_steps: 15000
   batch_size: 512
   max_physical_batch_size: 512
   lr: 0.0002
