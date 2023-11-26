@@ -8,7 +8,7 @@ v1:
   initial_seed: 1
   num_seeds: 3
   wandb_project: "unsupervised-fairness"
-  num_steps: 45000
+  num_steps: 20000
   batch_size: 512
   max_physical_batch_size: 512
   lr: 0.0002
@@ -34,7 +34,7 @@ v2:
   initial_seed: 1
   num_seeds: 3
   wandb_project: "unsupervised-fairness"
-  num_steps: 45000
+  num_steps: 20000
   batch_size: 512
   max_physical_batch_size: 512
   lr: 0.0002
