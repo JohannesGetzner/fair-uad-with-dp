@@ -238,3 +238,4 @@ src/analysis/**/*.png
 /src_refactored/datasets/csvs/mimic-cxr_ap_pa/Pneumothorax.csv
 /src_refactored/datasets/csvs/rsna_metadata.csv
 /src/subsets.json
+/src/logs_FINAL/
