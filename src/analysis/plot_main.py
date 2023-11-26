@@ -205,9 +205,6 @@ def plot_metric_bar_compare(df, groups, fig_size=(10, 6)):
     x_coords = sorted([patch.get_x() + patch.get_width() / 2 for patch in g.patches])
     x_coords_by_group = {g: [] for g in groups}
     idx_to_group = {idx: g for idx, g in enumerate(groups)}
-    for idx, x_coord in enumerate(x_coords):
-        x_coords_by_group[idx_to_group[idx%4]].append(x_coord)
-
     for idx, group in enumerate(df["group"].unique()):
         group_data = df[df["group"] == group]
         # create mapping between percent and x-coord
