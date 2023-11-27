@@ -15,7 +15,7 @@ PV_MAP = {
     "sex": ("male", "female")
 }
 
-def load_logs(log_dir = ""):
+def load_logs(log_dir = "", fine_tuning= False):
     run_dirs = [os.path.join(log_dir, d) for d in os.listdir(log_dir) if os.path.isdir(os.path.join(log_dir, d))]
     # each log dir contains a set of runs at a given split
     results = {}
@@ -25,9 +25,15 @@ def load_logs(log_dir = ""):
         # each run split dir contains a set of runs (different seeds)
         for run_split_dir in run_split_dirs:
             seed_dirs = [os.path.join(run_split_dir, d) for d in os.listdir(run_split_dir) if os.path.isdir(os.path.join(run_split_dir, d))]
+            protected_attr_percent = run_split_dir.split("_")[-1]
+            if len(protected_attr_percent) > 1:
+                # add a '.' after the first 0
+                protected_attr_percent = protected_attr_percent[:1] + "." + protected_attr_percent[1:]
             for seed_dir in seed_dirs:
                 # each seed contains a csv with the results of the run
-                results_seed = pd.read_csv(os.path.join(seed_dir, "test_results.csv"))
+                results_seed = pd.read_csv(os.path.join(seed_dir, "test_results.csv" if not fine_tuning else "test_results_stage_two.csv"))
+                if fine_tuning:
+                    results_seed["protected_attr_percent"] = float(protected_attr_percent)
                 results[run_dir].append(results_seed)
         # concat all seeds and replace
         results[run_dir] = pd.concat(results[run_dir])
@@ -36,15 +42,27 @@ def load_logs(log_dir = ""):
     return results
 
 
-def plot_runs(df, metrics, pv, figsize=(12, 9), secondary_color_at: int = None, secondary_color_legend_text: str = ""):
+def plot_runs(df,
+              metrics,
+              pv,
+              figsize=(12, 9),
+              secondary_color_at: float = None,
+              secondary_color_legend_text: str = "",
+              x_var="protected_attr_percent",
+              regress=True,
+              override_insignificance=False,
+              ):
     sns.set(font_scale=1.2, style="whitegrid")
-    df_melted = df.melt(id_vars=["protected_attr", "protected_attr_percent", "seed"], value_vars=metrics,
+    id_vars = ["protected_attr", "protected_attr_percent", "seed"]
+    if x_var != "protected_attr_percent":
+        id_vars.append(x_var)
+    df_melted = df.melt(id_vars=id_vars, value_vars=metrics,
                         var_name=f"subgroup by {pv}", value_name="value")
     df_melted[f"subgroup by {pv}"] = pd.Categorical(df_melted[f"subgroup by {pv}"], categories=metrics)
     df_melted.sort_values(by=[f"subgroup by {pv}"], inplace=True)
     plt.figure(figsize=figsize)
-    g = sns.barplot(x="protected_attr_percent", y="value", hue=f"subgroup by {pv}", data=df_melted, errorbar="ci", )
-    percent_values = sorted(df_melted["protected_attr_percent"].unique())
+    g = sns.barplot(x=x_var, y="value", hue=f"subgroup by {pv}", data=df_melted, errorbar="ci", )
+    percent_values = sorted(df_melted[x_var].unique())
     if secondary_color_at:
         secondary_color_at_idx = percent_values.index(secondary_color_at)
         for i in [0, len(percent_values)]:
@@ -56,8 +74,7 @@ def plot_runs(df, metrics, pv, figsize=(12, 9), secondary_color_at: int = None, 
     for idx, patch in enumerate(g.patches):
         # print bar mean below ci
         # get percent value of bar
-        print(
-            f"bar at {patch.get_x() + patch.get_width() / 2} has mean {bar_means[idx]:.3f} +- {cis[idx][1][1] - bar_means[idx]:.3f}")
+        # print(f"bar at {patch.get_x() + patch.get_width() / 2} has mean {bar_means[idx]:.3f} +- {cis[idx][1][1] - bar_means[idx]:.3f}")
         if idx < len(percent_values):
             if bar_means[idx] > bar_means[idx + len(percent_values)]:
                 y = cis[idx][1][1] + 0.011
@@ -72,24 +89,28 @@ def plot_runs(df, metrics, pv, figsize=(12, 9), secondary_color_at: int = None, 
             color='black', fontsize=11)
     x_coords = sorted([patch.get_x() + patch.get_width() / 2 for patch in g.patches])
     regression_lines = []
-    for idx, metric in enumerate(metrics):
-        df_melted_sub = df_melted[df_melted[f"subgroup by {pv}"] == metric]
-        # choose every second value starting from idx (differentiate bars corresponding to different metrics)
-        x_coords_sub = x_coords[idx::2]
-        percent_values = sorted(df_melted_sub["protected_attr_percent"].unique())
-        percent_to_x_coord = {p: x for p, x in zip(percent_values, x_coords_sub)}
-        df_melted_sub.loc[:, "x_coord"] = df_melted_sub.loc[:, "protected_attr_percent"].map(percent_to_x_coord)
-        slope, intercept, r_value, p_value, std_err = linregress(df_melted_sub["protected_attr_percent"],
-                                                                 df_melted_sub["value"])
-        if p_value < 0.05:
-            line_label = f"{metric} regressed"
-            color = sns.color_palette()[idx]
-            regression_lines.append(plt.Line2D([0], [0], color=color, linestyle='--', label=line_label))
-            g = sns.regplot(x="x_coord", y="value", data=df_melted_sub, scatter=False,
-                line_kws={"color": color, "lw": 1.7, "ls": "--"}, truncate=False, ci=95)
+    p_value = np.inf
+    if regress:
+        for idx, metric in enumerate(metrics):
+            df_melted_sub = df_melted[df_melted[f"subgroup by {pv}"] == metric]
+            # choose every second value starting from idx (differentiate bars corresponding to different metrics)
+            x_coords_sub = x_coords[idx::2]
+            percent_values = sorted(df_melted_sub["protected_attr_percent"].unique())
+            percent_to_x_coord = {p: x for p, x in zip(percent_values, x_coords_sub)}
+            df_melted_sub.loc[:, "x_coord"] = df_melted_sub.loc[:, "protected_attr_percent"].map(percent_to_x_coord)
+            slope, intercept, r_value, p_value, std_err = linregress(df_melted_sub["protected_attr_percent"],
+                                                                     df_melted_sub["value"])
+            if p_value < 0.05 or override_insignificance:
+                line_label = f"{metric} regressed"
+                color = sns.color_palette()[idx]
+                regression_lines.append(plt.Line2D([0], [0], color=color, linestyle='--', label=line_label))
+                g = sns.regplot(x="x_coord", y="value", data=df_melted_sub, scatter=False,
+                    line_kws={"color": color, "lw": 1.7, "ls": "--"}, truncate=False, ci=95)
+
     handles, labels = plt.gca().get_legend_handles_labels()
 
-    if p_value < 0.05:
+    if p_value < 0.05 or override_insignificance:
+        print("hello")
         handles += regression_lines
         labels += [line.get_label() for line in regression_lines]
 
@@ -99,8 +120,8 @@ def plot_runs(df, metrics, pv, figsize=(12, 9), secondary_color_at: int = None, 
         labels.append(secondary_color_legend_text)
 
     plt.legend(handles, labels, loc='best')
-    g.set(ylim=(0.5, 1.0))
-    plt.yticks(np.arange(0.5, 1.0, 0.05))
+    #g.set(ylim=(0.5, 1.0))
+    #plt.yticks(np.arange(0.5, 1.0, 0.05))
     plt.xlabel("Percentage of Old Samples in Training Set")
     plt.ylabel("subgroup AUROC")
     plt.show()
