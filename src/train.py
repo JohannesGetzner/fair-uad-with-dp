@@ -190,7 +190,11 @@ def train_on_best_subsets(config):
     _, _, test_loader_cxr14, _ = load_data(config)
     # set dataset back to rsna
     config.dataset = train_dataset
-    for key in best_samples.keys():
+    if config.protected_attr_percent == "age":
+        keys = ["test/young_subgroupAUROC", "test/old_subgroupAUROC", "test/AUROC"]
+    else:
+        keys = ["test/old_subgroupAUROC", "test/young_subgroupAUROC", "test/AUROC"]
+    for key in keys:
         config.train_dataset_mode = f"best-{key}"
         train_loaders, val_loader, test_loader_rsna, _ = load_data(config)
         for idx, train_loader in enumerate(train_loaders):

@@ -20,5 +20,14 @@ source activate $ANACONDA_ENV
 # Your commands using the Anaconda environment
 echo "Running script with Anaconda environment: $ANACONDA_ENV"
 
+#date=$(date '+%Y-%m-%d %H:%M:%S')
+#$ANACONDA_PYTHON -u train.py --run_config dp --run_version "v1_best" --train_dataset_mode "best" --group_name_mod "subsetperformance" --d "${date}" --no_img_log
+
 date=$(date '+%Y-%m-%d %H:%M:%S')
-$ANACONDA_PYTHON -u train.py --run_config dp --run_version "v1_best" --train_dataset_mode "best" --group_name_mod "subsetperformance" --d "${date}" --no_img_log
+$ANACONDA_PYTHON -u train.py --run_config dp --run_version "v2_best" --train_dataset_mode "best" --group_name_mod "subsetperformance" --d "${date}" --no_img_log
+
+date=$(date '+%Y-%m-%d %H:%M:%S')
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version "v1_best" --train_dataset_mode "best" --group_name_mod "subsetperformance" --d "${date}" --no_img_log
+
+date=$(date '+%Y-%m-%d %H:%M:%S')
+$ANACONDA_PYTHON -u train.py --run_config normal --run_version "v2_best" --train_dataset_mode "best" --group_name_mod "subsetperformance" --d "${date}" --no_img_log
