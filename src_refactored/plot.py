@@ -5,14 +5,38 @@ import numpy as np
 import pandas as pd
 pd.options.mode.chained_assignment = None
 import seaborn as sns
+# set whitegrid but don't modify rcParams
+sns.set_style("whitegrid")
 import matplotlib.pyplot as plt
 from typing import List
 from scipy.stats import linregress
 from matplotlib.patches import Rectangle
 
+from matplotlib.font_manager import fontManager, FontProperties
+path = "/home/getznerj/Downloads/Palatino Font Free/Palatino.ttf"
+fontManager.addfont(path)
+prop = FontProperties(fname=path)
+plt.rcParams['font.family'] = prop.get_name()
+
 PV_MAP = {
     "age": ("old","young"),
     "sex": ("male", "female")
+}
+
+TUM_colors =  {
+    "TUMBlue": "#0065BD",
+    "TUMSecondaryBlue": "#005293",
+    "TUMSecondaryBlue2": "#003359",
+    "TUMBlack": "#000000",
+    "TUMWhite": "#FFFFFF",
+    "TUMDarkGray": "#333333",
+    "TUMGray": "#808080",
+    "TUMLightGray": "#CCCCC6",
+    "TUMAccentGray": "#DAD7CB",
+    "TUMAccentOrange": "#E37222",
+    "TUMAccentGreen": "#A2AD00",
+    "TUMAccentLightBlue": "#98C6EA",
+    "TUMAccentBlue": "#64A0C8"
 }
 
 def load_logs(log_dir = "", fine_tuning= False):
@@ -31,7 +55,10 @@ def load_logs(log_dir = "", fine_tuning= False):
                 protected_attr_percent = protected_attr_percent[:1] + "." + protected_attr_percent[1:]
             for seed_dir in seed_dirs:
                 # each seed contains a csv with the results of the run
-                results_seed = pd.read_csv(os.path.join(seed_dir, "test_results.csv" if not fine_tuning else "test_results_stage_two.csv"))
+                try:
+                    results_seed = pd.read_csv(os.path.join(seed_dir, "test_results.csv" if not fine_tuning else "test_results_stage_two.csv"))
+                except:
+                    results_seed = pd.read_csv(os.path.join(seed_dir, "test_results_.csv"))
                 if fine_tuning:
                     results_seed["protected_attr_percent"] = float(protected_attr_percent)
                 results[run_dir].append(results_seed)
@@ -45,23 +72,31 @@ def load_logs(log_dir = "", fine_tuning= False):
 def plot_runs(df,
               metrics,
               pv,
-              figsize=(12, 9),
               secondary_color_at: float = None,
               secondary_color_legend_text: str = "",
               x_var="protected_attr_percent",
               regress=True,
               override_insignificance=False,
+              ax=None,
+              font_size = 11
               ):
-    sns.set(font_scale=1.2, style="whitegrid")
+    palette = {
+        "old": TUM_colors["TUMAccentBlue"], "young":TUM_colors["TUMAccentOrange"],
+        "male": TUM_colors["TUMAccentBlue"], "female": TUM_colors["TUMAccentOrange"]
+    }
+    if pv == "age":
+        metrics = metrics[::-1]
     id_vars = ["protected_attr", "protected_attr_percent", "seed"]
     if x_var != "protected_attr_percent":
         id_vars.append(x_var)
+
     df_melted = df.melt(id_vars=id_vars, value_vars=metrics,
                         var_name=f"subgroup by {pv}", value_name="value")
     df_melted[f"subgroup by {pv}"] = pd.Categorical(df_melted[f"subgroup by {pv}"], categories=metrics)
-    df_melted.sort_values(by=[f"subgroup by {pv}"], inplace=True)
-    plt.figure(figsize=figsize)
-    g = sns.barplot(x=x_var, y="value", hue=f"subgroup by {pv}", data=df_melted, errorbar="ci", )
+    df_melted["value"] = df_melted["value"] * 100
+    df_melted["value"] = df_melted["value"].astype(int)
+    g = sns.barplot(x=x_var, y="value", hue=f"subgroup by {pv}", data=df_melted, errorbar="ci", ax=ax, palette=palette)
+
     percent_values = sorted(df_melted[x_var].unique())
     if secondary_color_at:
         secondary_color_at_idx = percent_values.index(secondary_color_at)
@@ -72,21 +107,19 @@ def plot_runs(df,
     bar_means = [patch.get_height() for patch in g.patches]
     cis = [line.get_xydata() for line in g.lines]
     for idx, patch in enumerate(g.patches):
-        # print bar mean below ci
-        # get percent value of bar
-        # print(f"bar at {patch.get_x() + patch.get_width() / 2} has mean {bar_means[idx]:.3f} +- {cis[idx][1][1] - bar_means[idx]:.3f}")
+        #print(f"bar at {patch.get_x() + patch.get_width() / 2} has mean {bar_means[idx]:.3f} +- {cis[idx][1][1] - bar_means[idx]:.3f}")
         if idx < len(percent_values):
             if bar_means[idx] > bar_means[idx + len(percent_values)]:
-                y = cis[idx][1][1] + 0.011
+                y = cis[idx][1][1] + 0.03*100
             else:
-                y = cis[idx][0][1]  # - 0.008
+                y = cis[idx][0][1]  - 0.02*100
         else:
             if bar_means[idx] > bar_means[idx - len(percent_values)]:
-                y = cis[idx][1][1] + 0.011
+                y = cis[idx][1][1] + 0.03*100
             else:
-                y = cis[idx][0][1]  # - 0.008
-        plt.text(x=patch.get_x() + patch.get_width() / 2, y=y, s=f"{bar_means[idx]:.2f}", ha='center', va='top',
-            color='black', fontsize=11)
+                y = cis[idx][0][1]  - 0.02*100
+        ax.text(x=patch.get_x() + patch.get_width() / 2, y=y, s=f"{bar_means[idx]:.0f}", ha='center', va='top',
+            color='black', fontsize=font_size*0.8)
     x_coords = sorted([patch.get_x() + patch.get_width() / 2 for patch in g.patches])
     regression_lines = []
     p_value = np.inf
@@ -102,33 +135,37 @@ def plot_runs(df,
                                                                      df_melted_sub["value"])
             if p_value < 0.05 or override_insignificance:
                 line_label = f"{metric} regressed"
-                color = sns.color_palette()[idx]
+                color = palette[metric]
                 regression_lines.append(plt.Line2D([0], [0], color=color, linestyle='--', label=line_label))
-                g = sns.regplot(x="x_coord", y="value", data=df_melted_sub, scatter=False,
-                    line_kws={"color": color, "lw": 1.7, "ls": "--"}, truncate=False, ci=95)
+                sns.regplot(x="x_coord", y="value", data=df_melted_sub, scatter=False,
+                    line_kws={"color": color, "lw": 1.7, "ls": "--"}, truncate=False, ci=95, ax=ax)
 
-    handles, labels = plt.gca().get_legend_handles_labels()
+    handles, labels = ax.get_legend_handles_labels()
 
-    if p_value < 0.05 or override_insignificance:
-        print("hello")
-        handles += regression_lines
-        labels += [line.get_label() for line in regression_lines]
+    #if p_value < 0.05 or override_insignificance:
+    #    handles += regression_lines
+    #    labels += [line.get_label() for line in regression_lines]
 
     # add a Rectangle to the legend not Line2D
     if secondary_color_at:
         handles.append(Rectangle((0, 0), 1, 1, fc='none', ec='red', linestyle='--', label='Legend Box'))
         labels.append(secondary_color_legend_text)
 
-    plt.legend(handles, labels, loc='best')
-    #g.set(ylim=(0.5, 1.0))
-    #plt.yticks(np.arange(0.5, 1.0, 0.05))
-    plt.xlabel("Percentage of Old Samples in Training Set")
-    plt.ylabel("subgroup AUROC")
-    plt.show()
-    return g
+    ax.legend(handles, labels, bbox_to_anchor=(1.01, 1), loc='upper left')
+    ax.set(ylim=(0, 100))
+    if x_var == "protected_attr_percen":
+        ax.set_xlabel(f"Percentage of {'Old' if pv == 'age' else 'Male'} Samples in Training Set")
+    else:
+        ax.set_xlabel(f"Weight applied to {'Old' if pv == 'age' else 'Male'} Loss")
+        x_ticks_long = ["1e-4", "5e-4", "1e-3", "0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9", "1.0"]
+        x_ticks_short = ["1e-4", "1e-3", "0.1", "0.9", "1.0"]
+        g.set_xticks(range(len(x_ticks_short if len(ax.get_xticks()) <= 5 else x_ticks_long)))
+        g.set_xticklabels(x_ticks_short if len(ax.get_xticks()) <= 5 else x_ticks_long)
+    ax.set_ylabel("s-AUC")
+    return ax
 
-def add_values_from_normal_runs(data_outer, split):
-    data_normal = load_logs(log_dir = "../logs_final/normal")
+def add_values_from_normal_runs(log_dir, data_outer, split):
+    data_normal = load_logs(log_dir = os.path.join(log_dir, "baseline"))
     for key, df_normal in data_normal.items():
         pv = "age" if "age" in key else "sex"
         dp = False if "noDP" in key else True
