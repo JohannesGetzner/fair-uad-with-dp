@@ -34,8 +34,8 @@ echo "Running script with Anaconda environment: $ANACONDA_ENV"
 # SEX DP
 # ---------
 date=$(date '+%Y-%m-%d %H:%M:%S')
-$ANACONDA_PYTHON -u train.py --run_config dp --run_version v2_finetuning --protected_attr_percent 0.00 --second_stage_steps 5000 --second_stage_epsilon 2 --no_img_log --group_name_mod  "bs512-finetuning" --d "${date}"
-$ANACONDA_PYTHON -u train.py --run_config dp --run_version v2_finetuning --protected_attr_percent 0.25 --second_stage_steps 5000 --second_stage_epsilon 2 --no_img_log --group_name_mod  "bs512-finetuning" --d "${date}"
-$ANACONDA_PYTHON -u train.py --run_config dp --run_version v2_finetuning --protected_attr_percent 0.50 --second_stage_steps 5000 --second_stage_epsilon 2 --no_img_log --group_name_mod  "bs512-finetuning" --d "${date}"
-$ANACONDA_PYTHON -u train.py --run_config dp --run_version v2_finetuning --protected_attr_percent 0.75 --second_stage_steps 5000 --second_stage_epsilon 2 --no_img_log --group_name_mod  "bs512-finetuning" --d "${date}"
+#$ANACONDA_PYTHON -u train.py --run_config dp --run_version v2_finetuning --protected_attr_percent 0.00 --second_stage_steps 5000 --second_stage_epsilon 2 --no_img_log --group_name_mod  "bs512-finetuning" --d "${date}"
+#$ANACONDA_PYTHON -u train.py --run_config dp --run_version v2_finetuning --protected_attr_percent 0.25 --second_stage_steps 5000 --second_stage_epsilon 2 --no_img_log --group_name_mod  "bs512-finetuning" --d "${date}"
+#$ANACONDA_PYTHON -u train.py --run_config dp --run_version v2_finetuning --protected_attr_percent 0.50 --second_stage_steps 5000 --second_stage_epsilon 2 --no_img_log --group_name_mod  "bs512-finetuning" --d "${date}"
+#$ANACONDA_PYTHON -u train.py --run_config dp --run_version v2_finetuning --protected_attr_percent 0.75 --second_stage_steps 5000 --second_stage_epsilon 2 --no_img_log --group_name_mod  "bs512-finetuning" --d "${date}"
 $ANACONDA_PYTHON -u train.py --run_config dp --run_version v2_finetuning --protected_attr_percent 1.00 --second_stage_steps 5000 --second_stage_epsilon 2 --no_img_log --group_name_mod  "bs512-finetuning" --d "${date}"

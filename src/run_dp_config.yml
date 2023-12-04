@@ -17,7 +17,7 @@ v1_finetuning:
   max_grad_norm: 0.01
   protected_attr: "age"
   dataset: 'rsna-old'
-  initial_seed: 2
+  initial_seed: 4
   num_seeds: 1
   wandb_project: "unsupervised-fairness"
   num_steps: 15000
@@ -67,7 +67,7 @@ v2_finetuning:
   max_grad_norm: 0.01
   dataset: 'rsna-old'
   protected_attr: "sex"
-  initial_seed: 2
+  initial_seed: 1
   num_seeds: 1
   wandb_project: "unsupervised-fairness"
   num_steps: 15000
