@@ -78,7 +78,9 @@ def plot_runs(df,
               regress=True,
               override_insignificance=False,
               ax=None,
-              font_size = 11
+              font_size = 11,
+              legend_outside=False,
+              ylim = 50
               ):
     palette = {
         "old": TUM_colors["TUMAccentBlue"], "young":TUM_colors["TUMAccentOrange"],
@@ -95,6 +97,8 @@ def plot_runs(df,
     df_melted[f"subgroup by {pv}"] = pd.Categorical(df_melted[f"subgroup by {pv}"], categories=metrics)
     df_melted["value"] = df_melted["value"] * 100
     df_melted["value"] = df_melted["value"].astype(int)
+    # multiply protected_attr_percent by 100
+    df_melted["protected_attr_percent"] = (df_melted["protected_attr_percent"] * 100).astype(int)
     g = sns.barplot(x=x_var, y="value", hue=f"subgroup by {pv}", data=df_melted, errorbar="ci", ax=ax, palette=palette)
 
     percent_values = sorted(df_melted[x_var].unique())
@@ -110,14 +114,14 @@ def plot_runs(df,
         #print(f"bar at {patch.get_x() + patch.get_width() / 2} has mean {bar_means[idx]:.3f} +- {cis[idx][1][1] - bar_means[idx]:.3f}")
         if idx < len(percent_values):
             if bar_means[idx] > bar_means[idx + len(percent_values)]:
-                y = cis[idx][1][1] + 0.03*100
+                y = cis[idx][1][1] + 0.065*(100-ylim)
             else:
-                y = cis[idx][0][1]  - 0.02*100
+                y = cis[idx][0][1]  - 0.02*(100-ylim)
         else:
             if bar_means[idx] > bar_means[idx - len(percent_values)]:
-                y = cis[idx][1][1] + 0.03*100
+                y = cis[idx][1][1] + 0.065*(100-ylim)
             else:
-                y = cis[idx][0][1]  - 0.02*100
+                y = cis[idx][0][1]  - 0.02*(100-ylim)
         ax.text(x=patch.get_x() + patch.get_width() / 2, y=y, s=f"{bar_means[idx]:.0f}", ha='center', va='top',
             color='black', fontsize=font_size*0.8)
     x_coords = sorted([patch.get_x() + patch.get_width() / 2 for patch in g.patches])
@@ -151,16 +155,19 @@ def plot_runs(df,
         handles.append(Rectangle((0, 0), 1, 1, fc='none', ec='red', linestyle='--', label='Legend Box'))
         labels.append(secondary_color_legend_text)
 
-    ax.legend(handles, labels, bbox_to_anchor=(1.01, 1), loc='upper left')
-    ax.set(ylim=(0, 100))
-    if x_var == "protected_attr_percen":
-        ax.set_xlabel(f"Percentage of {'Old' if pv == 'age' else 'Male'} Samples in Training Set")
+    if legend_outside:
+        ax.legend(handles, labels, bbox_to_anchor=(1.01, 1), loc='upper left')
     else:
+        ax.legend(handles, labels, loc='upper left')
+    ax.set(ylim=(ylim, 100))
+    if x_var == "weight":
         ax.set_xlabel(f"Weight applied to {'Old' if pv == 'age' else 'Male'} Loss")
         x_ticks_long = ["1e-4", "5e-4", "1e-3", "0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9", "1.0"]
         x_ticks_short = ["1e-4", "1e-3", "0.1", "0.9", "1.0"]
         g.set_xticks(range(len(x_ticks_short if len(ax.get_xticks()) <= 5 else x_ticks_long)))
         g.set_xticklabels(x_ticks_short if len(ax.get_xticks()) <= 5 else x_ticks_long)
+    else:
+        ax.set_xlabel(f"Percentage of {'Old' if pv == 'age' else 'Male'} Samples in Training Set")
     ax.set_ylabel("s-AUC")
     return ax
 
