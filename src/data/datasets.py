@@ -366,7 +366,8 @@ def get_dataloaders_other(dataset: str,
             best_samples = json.load(f)
         if "-" in train_dataset_mode:
             scoring_metric = train_dataset_mode.split("-")[1]
-            subset_sizes = [1, 5, 10, 25, 50]
+            #subset_sizes = [1, 5, 10, 25, 50]
+            subset_sizes = [100, 250]
         else:
             scoring_metric = "test/AUROC"
             subset_sizes = [1, 5, 10, 25, 50, 100, 250, 500]
@@ -537,10 +538,11 @@ def get_dataloaders_rsna(dataset: str,
             best_samples = json.load(f)
         if "-" in train_dataset_mode:
             scoring_metric = train_dataset_mode.split("-")[1]
-            subset_sizes = [1, 5, 10, 25, 50]
+            #subset_sizes = [1, 5, 10, 25, 50]
+            subset_sizes = [100, 250, 500]
         else:
             scoring_metric = "test/AUROC"
-            subset_sizes = [1, 5, 10, 25, 50, 100, 250, 500]
+            subset_sizes = [1, 5, 10, 25, 50,]
         best_samples = best_samples[scoring_metric]
         for subset_size in subset_sizes:
             temp_df = pd.DataFrame.from_dict(best_samples)

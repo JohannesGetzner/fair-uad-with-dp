@@ -274,13 +274,13 @@ def train_dp(model, optimizer, train_loader, val_loader, config, log_dir, privac
                 # forward
                 loss_dict, accumulated_per_sample_norms = train_step_dp(model, optimizer, x, y, per_sample_loss_weights)
                 # accumulate mean gradient norms per class
-                if accumulated_per_sample_norms.shape[0] == 1:
-                    mean_gradient_per_class[meta.item()] += torch.squeeze(accumulated_per_sample_norms)
-                    count_samples_per_class[meta.item()] += 1
-                else:
-                    for g_norm, pv_label in zip(torch.squeeze(accumulated_per_sample_norms).tolist(), meta.tolist()):
-                        mean_gradient_per_class[pv_label] += g_norm
-                        count_samples_per_class[pv_label] += 1
+                #if accumulated_per_sample_norms.shape[0] == 1:
+                #    mean_gradient_per_class[meta.item()] += torch.squeeze(accumulated_per_sample_norms)
+                #    count_samples_per_class[meta.item()] += 1
+                #else:
+                #    for g_norm, pv_label in zip(torch.squeeze(accumulated_per_sample_norms).tolist(), meta.tolist()):
+                #        mean_gradient_per_class[pv_label] += g_norm
+                #        count_samples_per_class[pv_label] += 1
                 # add loss
                 train_losses.add(loss_dict)
 
@@ -325,12 +325,12 @@ def train_dp(model, optimizer, train_loader, val_loader, config, log_dir, privac
             else:
                 print(f'Finished epoch {i_epoch}/{config.epochs}, ({i_step} iterations)')
             # log mean gradient norms per class to wandb
-            mapping = {
-                1: "young" if config.protected_attr == 'age' else "female",
-                0: "old" if config.protected_attr == 'age' else "male"}
-            wandb.log({"train/mean_grads": {
-                mapping[k]: v / count_samples_per_class[k] if count_samples_per_class[k] != 0 else 0 for k, v in
-                mean_gradient_per_class.items()}}, step=i_step)
+            #mapping = {
+            #    1: "young" if config.protected_attr == 'age' else "female",
+            #    0: "old" if config.protected_attr == 'age' else "male"}
+            #wandb.log({"train/mean_grads": {
+            #    mapping[k]: v / count_samples_per_class[k] if count_samples_per_class[k] != 0 else 0 for k, v in
+            #    mean_gradient_per_class.items()}}, step=i_step)
 
             if i_epoch >= config.epochs:
                 print(f'Reached {config.epochs} epochs.', 'Finished training.')

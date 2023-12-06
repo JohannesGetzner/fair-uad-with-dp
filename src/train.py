@@ -183,17 +183,17 @@ def train_on_best_subsets(config):
         best_samples = json.load(f)
     # get other test-loaders (not rsna)
     train_dataset = config.dataset
-    config.train_dataset_mode = ""
-    config.dataset = "chexpert"
-    _, _, test_loader_chexpert, _ = load_data(config)
-    config.dataset = "cxr14"
-    _, _, test_loader_cxr14, _ = load_data(config)
+    #config.train_dataset_mode = ""
+    #config.dataset = "chexpert"
+    #_, _, test_loader_chexpert, _ = load_data(config)
+    #config.dataset = "cxr14"
+    #_, _, test_loader_cxr14, _ = load_data(config)
     # set dataset back to rsna
-    config.dataset = train_dataset
-    if config.protected_attr_percent == "age":
-        keys = ["test/young_subgroupAUROC", "test/old_subgroupAUROC", "test/AUROC"]
+    #config.dataset = train_dataset
+    if config.protected_attr == "age":
+        keys = ["test/young_subgroupAUROC", "test/old_subgroupAUROC"]
     else:
-        keys = ["test/old_subgroupAUROC", "test/young_subgroupAUROC", "test/AUROC"]
+        keys = ["test/male_subgroupAUROC", "test/female_subgroupAUROC"]
     for key in keys:
         config.train_dataset_mode = f"best-{key}"
         train_loaders, val_loader, test_loader_rsna, _ = load_data(config)
@@ -214,11 +214,11 @@ def train_on_best_subsets(config):
                 model, optimizer = init_model(config)
                 model, _ = train(model, optimizer, train_loader, val_loader, config, log_dir)
                 test(config, model, test_loader_rsna, log_dir, file_name_mod=train_dataset)
-                config.dataset = "cxr14"
-                test(config, model, test_loader_cxr14, log_dir, file_name_mod=train_dataset)
-                config.dataset = "chexpert"
-                test(config, model, test_loader_chexpert, log_dir, file_name_mod=train_dataset)
-                config.dataset = train_dataset
+                #config.dataset = "cxr14"
+                #test(config, model, test_loader_cxr14, log_dir, file_name_mod=train_dataset)
+                #config.dataset = "chexpert"
+                #test(config, model, test_loader_chexpert, log_dir, file_name_mod=train_dataset)
+                #config.dataset = train_dataset
                 wandb.finish()
 
 def train_on_best_subsets_DP(config):
@@ -226,14 +226,20 @@ def train_on_best_subsets_DP(config):
         best_samples = json.load(f)
     # get other test-loaders (not rsna)
     train_dataset = config.dataset
-    config.train_dataset_mode = ""
-    config.dataset = "chexpert"
-    _, _, test_loader_chexpert, _ = load_data(config)
-    config.dataset = "cxr14"
-    _, _, test_loader_cxr14, _ = load_data(config)
-    # set dataset back to rsna
-    config.dataset = train_dataset
-    for key in best_samples.keys():
+    #config.train_dataset_mode = ""
+    #config.dataset = "chexpert"
+    #_, _, test_loader_chexpert, _ = load_data(config)
+    #config.dataset = "cxr14"
+    #_, _, test_loader_cxr14, _ = load_data(config)
+    ## set dataset back to rsna
+    #config.dataset = train_dataset
+    if config.protected_attr == "balanced":
+        keys = ["test/young_subgroupAUROC", "test/old_subgroupAUROC", "test/female_subgroupAUROC",  "test/male_subgroupAUROC"]
+    elif config.protected_attr == "age":
+        keys = ["test/young_subgroupAUROC", "test/old_subgroupAUROC"]
+    else:
+        keys = ["test/male_subgroupAUROC", "test/female_subgroupAUROC"]
+    for key in keys:
         config.train_dataset_mode = f"best-{key}"
         train_loaders, val_loader, test_loader_rsna, _ = load_data(config)
         for idx, train_loader in enumerate(train_loaders):
@@ -260,11 +266,11 @@ def train_on_best_subsets_DP(config):
                 model, steps_done = train_dp(model, optimizer, dp_train_loader, val_loader, config, log_dir,
                                              privacy_engine)
                 test(config, model, test_loader_rsna, log_dir, file_name_mod=train_dataset)
-                config.dataset = "cxr14"
-                test(config, model, test_loader_cxr14, log_dir, file_name_mod=config.dataset)
-                config.dataset = "chexpert"
-                test(config, model, test_loader_chexpert, log_dir, file_name_mod=config.dataset)
-                config.dataset = train_dataset
+                #config.dataset = "cxr14"
+                #test(config, model, test_loader_cxr14, log_dir, file_name_mod=config.dataset)
+                #config.dataset = "chexpert"
+                #test(config, model, test_loader_chexpert, log_dir, file_name_mod=config.dataset)
+                #config.dataset = train_dataset
                 wandb.finish()
 
 
