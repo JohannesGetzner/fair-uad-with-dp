@@ -137,6 +137,7 @@ def plot_runs(df,
             df_melted_sub.loc[:, "x_coord"] = df_melted_sub.loc[:, "protected_attr_percent"].map(percent_to_x_coord)
             slope, intercept, r_value, p_value, std_err = linregress(df_melted_sub["protected_attr_percent"],
                                                                      df_melted_sub["value"])
+            print(f"Slope for {metric} is {slope:.3f} with p-value {p_value:.3f} ")
             if p_value < 0.05 or override_insignificance:
                 line_label = f"{metric} regressed"
                 color = palette[metric]
