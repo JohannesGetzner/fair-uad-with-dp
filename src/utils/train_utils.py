@@ -82,7 +82,7 @@ DEFAULT_CONFIG = {
     "effective_dataset_size": 1.0,
     "dataset_random_state": 42,
     "n_training_samples": None,
-    "best_and_worst_subsets":None
+    "train_dataset_mode": "",
 }
 DEFAULT_CONFIG = DotMap(DEFAULT_CONFIG)
 DEFAULT_CONFIG.device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -92,7 +92,7 @@ print(f"Using {DEFAULT_CONFIG.device}")
 def load_data(config):
     print("Loading data...")
     t_load_data_start = time()
-    if config.dataset == "rsna":
+    if config.dataset == "rsna-old":
         train_loaders, val_loader, test_loader, max_sample_freq = get_dataloaders_rsna(
             dataset=config.dataset,
             batch_size=config.batch_size,
@@ -104,7 +104,7 @@ def load_data(config):
             effective_dataset_size=config.effective_dataset_size,
             random_state = config.dataset_random_state,
             n_training_samples=config.n_training_samples,
-            best_and_worst_subsets=config.best_and_worst_subsets
+            train_dataset_mode=config.train_dataset_mode
         )
     else:
         train_loaders, val_loader, test_loader = get_dataloaders_other(
@@ -114,11 +114,12 @@ def load_data(config):
             num_workers=config.num_workers,
             protected_attr=config.protected_attr,
             n_training_samples=config.n_training_samples,
+            train_dataset_mode=config.train_dataset_mode
         )
         max_sample_freq = 1
 
     print(f'Loaded datasets in {time() - t_load_data_start:.2f}s')
-    if config.n_training_samples or config.best_and_worst_subsets:
+    if config.n_training_samples or config.train_dataset_mode != "":
         return train_loaders, val_loader, test_loader, max_sample_freq
     else:
         return train_loaders[0], val_loader, test_loader, max_sample_freq
@@ -273,9 +274,13 @@ def train_dp(model, optimizer, train_loader, val_loader, config, log_dir, privac
                 # forward
                 loss_dict, accumulated_per_sample_norms = train_step_dp(model, optimizer, x, y, per_sample_loss_weights)
                 # accumulate mean gradient norms per class
-                for g_norm, pv_label in zip(torch.squeeze(accumulated_per_sample_norms).tolist(), meta.tolist()):
-                    mean_gradient_per_class[pv_label] += g_norm
-                    count_samples_per_class[pv_label] += 1
+                #if accumulated_per_sample_norms.shape[0] == 1:
+                #    mean_gradient_per_class[meta.item()] += torch.squeeze(accumulated_per_sample_norms)
+                #    count_samples_per_class[meta.item()] += 1
+                #else:
+                #    for g_norm, pv_label in zip(torch.squeeze(accumulated_per_sample_norms).tolist(), meta.tolist()):
+                #        mean_gradient_per_class[pv_label] += g_norm
+                #        count_samples_per_class[pv_label] += 1
                 # add loss
                 train_losses.add(loss_dict)
 
@@ -314,15 +319,18 @@ def train_dp(model, optimizer, train_loader, val_loader, config, log_dir, privac
                     return model
 
             i_epoch += 1
-            print(f'Finished epoch {i_epoch}/{config.epochs}, ({i_step} iterations)')
-
+            if config.train_dataset_mode != "":
+                if i_epoch % 100 == 0:
+                    print(f'Finished epoch {i_epoch}/{config.epochs}, ({i_step} iterations)')
+            else:
+                print(f'Finished epoch {i_epoch}/{config.epochs}, ({i_step} iterations)')
             # log mean gradient norms per class to wandb
-            mapping = {
-                1: "young" if config.protected_attr == 'age' else "female",
-                0: "old" if config.protected_attr == 'age' else "male"}
-            wandb.log({"train/mean_grads": {
-                mapping[k]: v / count_samples_per_class[k] if count_samples_per_class[k] != 0 else 0 for k, v in
-                mean_gradient_per_class.items()}}, step=i_step)
+            #mapping = {
+            #    1: "young" if config.protected_attr == 'age' else "female",
+            #    0: "old" if config.protected_attr == 'age' else "male"}
+            #wandb.log({"train/mean_grads": {
+            #    mapping[k]: v / count_samples_per_class[k] if count_samples_per_class[k] != 0 else 0 for k, v in
+            #    mean_gradient_per_class.items()}}, step=i_step)
 
             if i_epoch >= config.epochs:
                 print(f'Reached {config.epochs} epochs.', 'Finished training.')
@@ -418,7 +426,7 @@ def validate(config, model, optimizer, loader, step, log_dir, log_imgs=False, pr
 """"""""""""""""""""""""""""""""" Testing """""""""""""""""""""""""""""""""
 
 
-def test(config, model, loader, log_dir, stage_two=False):
+def test(config, model, loader, log_dir, stage_two=False, file_name_mod = ""):
     print("Testing...")
 
     device = next(model.parameters()).device
@@ -464,11 +472,12 @@ def test(config, model, loader, log_dir, stage_two=False):
 
     # Write test results to wandb summary
     for k, v in results.items():
-        wandb.run.summary[k] = v
+        k_with_mod = f"{file_name_mod}/" + k
+        wandb.run.summary[k_with_mod] = v
 
     # Save test results to csv
     if not config.debug:
-        csv_path = os.path.join(log_dir, 'test_results.csv' if not stage_two else 'test_results_stage_two.csv')
+        csv_path = os.path.join(log_dir, f'test_results_{file_name_mod}.csv' if not stage_two else f'test_results_stage_two_{file_name_mod}.csv')
         # create dataframe from dict, keys are the columns and values are single row
         metrics_c = {k: v.item() for k, v in metrics_c.items()}
         df = pd.DataFrame.from_dict(metrics_c, orient='index').T

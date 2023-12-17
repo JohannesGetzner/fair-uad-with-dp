@@ -20,6 +20,8 @@ mimic-cxr-2.0.0-metadata.csv
 mimic-cxr-2.0.0-chexpert.csv
 """
 import os
+import sys
+sys.path.append('../')
 from functools import partial
 from typing import Optional, Tuple
 
@@ -65,12 +67,8 @@ CHEXPERT_LABELS = [
 
 
 def prepare_mimic_cxr(mimic_dir: str = MIMIC_CXR_DIR):
-    # mimic_dir = "/vol/aimspace/projects/mimic_cxr/mimic-cxr-jpg_2-0-0"
-    # metadata = pd.read_csv("/vol/aimspace/projects/mimic_cxr/mimic-cxr-jpg_2-0-0/mimic-cxr-2.0.0-metadata.csv.gz")
-    # chexpert = pd.read_csv("/vol/aimspace/projects/mimic_cxr/mimic-cxr-jpg_2-0-0/mimic-cxr-2.0.0-chexpert.csv.gz")
-    # mimic_sex = pd.read_csv("/vol/aimspace/users/meissen/patients.csv")  # From MIMIC-IV, v2.2
-    metadata = pd.read_csv(os.path.join(mimic_dir, 'mimic-cxr-2.0.0-metadata.csv'))
-    chexpert = pd.read_csv(os.path.join(mimic_dir, 'mimic-cxr-2.0.0-chexpert.csv'))
+    metadata = pd.read_csv(os.path.join(mimic_dir, 'mimic-cxr-2.0.0-metadata.csv.gz'))
+    chexpert = pd.read_csv(os.path.join(mimic_dir, 'mimic-cxr-2.0.0-chexpert.csv.gz'))
     mimic_sex = pd.read_csv(os.path.join(mimic_dir, 'patients.csv'))  # From MIMIC-IV, v2.2
     print(f"Total number of images: {len(metadata)}")
 
@@ -112,8 +110,7 @@ def prepare_mimic_cxr(mimic_dir: str = MIMIC_CXR_DIR):
     # Save ordering of files in a new column 'memmap_idx'
     metadata['memmap_idx'] = np.arange(len(metadata))
 
-    memmap_dir = os.path.join(mimic_dir, 'memmap')
-    # memmap_dir = '/vol/aimspace/users/meissen/datasets/MIMIC-CXR/memmap'
+    memmap_dir = os.path.join("/vol/aimspace/users/getzner/mimic_cxr/mimic-cxr-jpg_2-0-0", 'memmap')
     os.makedirs(memmap_dir, exist_ok=True)
 
     # csv_dir = os.path.join(THIS_DIR, 'csvs', 'mimic-cxr_ap')
@@ -148,7 +145,7 @@ def prepare_mimic_cxr(mimic_dir: str = MIMIC_CXR_DIR):
         pathologies[pathology].to_csv(os.path.join(csv_dir, f'{pathology}.csv'), index=True)
 
     # Write memmap files for whole dataset
-    memmap_file = os.path.join(memmap_dir, 'ap_pa_no_support_devices_no_uncertain')
+        memmap_file = os.path.join(memmap_dir, 'ap_pa_no_support_devices_no_uncertain')
     print(f"Writing memmap file '{memmap_file}'...")
     write_memmap(
         metadata['path'].values.tolist(),
@@ -541,7 +538,7 @@ def load_mimic_cxr_intersectional_age_sex_race_split(mimic_cxr_dir: str = MIMIC_
 
     # remove patients who have inconsistent documented race information
     # credit to github.com/robintibor
-    admissions_df = pd.read_csv(os.path.join(mimic_cxr_dir, 'admissions.csv'))
+    admissions_df = pd.read_csv(os.path.join(mimic_cxr_dir, 'patients.csv'))
     race_df = admissions_df.loc[:, ['subject_id', 'race']].drop_duplicates()
     v = race_df.subject_id.value_counts()
     subject_id_more_than_once = v.index[v.gt(1)]
@@ -1086,7 +1083,7 @@ def load_mimic_cxr_intersectional_age_sex_split(mimic_cxr_dir: str = MIMIC_CXR_D
 
     img_data = read_memmap(
         os.path.join(
-            mimic_cxr_dir,
+            "/vol/aimspace/users/getzner/mimic_cxr/mimic-cxr-jpg_2-0-0",
             'memmap',
             'ap_pa_no_support_devices_no_uncertain'),
     )

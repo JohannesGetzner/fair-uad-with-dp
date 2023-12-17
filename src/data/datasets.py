@@ -1,26 +1,37 @@
+import os
 from collections import Counter
 from functools import partial
 from typing import Any, Callable, Dict, List, Optional, Tuple
 import torch
+import pandas as pd
 from torch import Tensor, Generator
 from torch.utils.data import DataLoader, Dataset, default_collate
 from torchvision import transforms
 import json
+import sys
+sys.path.append("..")
 from src import RSNA_DIR
+import numpy as np
 from src.data.data_utils import load_dicom_img
 from src.data.rsna_pneumonia_detection import (load_rsna_age_two_split,
                                                load_rsna_gender_split,
-                                               load_rsna_naive_split)
+                                               load_rsna_naive_split,
+                                               load_rsna_intersectional_age_sex_split
+                                               )
 from src import CHEXPERT_DIR, CXR14_DIR, MIMIC_CXR_DIR
 from src.data.chexpert import (load_chexpert_age_split,
                                load_chexpert_naive_split,
                                load_chexpert_race_split,
-                               load_chexpert_sex_split)
+                               load_chexpert_sex_split,
+                               load_chexpert_intersectional_age_sex_split
+                               )
 from src.data.cxr14 import (load_cxr14_age_split,
                             load_cxr14_naive_split,
-                            load_cxr14_sex_split)
+                            load_cxr14_sex_split,
+                            load_cxr14_intersectional_age_sex_split
+                            )
 from src.data.mimic_cxr import (load_mimic_cxr_age_split,
-                                load_mimic_cxr_intersectional_age_sex_race_split,
+                                load_mimic_cxr_intersectional_age_sex_split,
                                 load_mimic_cxr_naive_split,
                                 load_mimic_cxr_race_split,
                                 load_mimic_cxr_sex_split)
@@ -127,7 +138,8 @@ class NormalDataset_other(Dataset):
         self.index_mapping = index_mapping
         self.filenames = filenames
 
-        if self.index_mapping is None:
+        if self.index_mapping is None or (len(index_mapping) == len(self.data)):
+            self.index_mapping_cpy = index_mapping
             self.index_mapping = torch.arange(len(self.data))
 
         for i, d in enumerate(self.data):
@@ -185,7 +197,6 @@ class AnomalFairnessDataset_other(Dataset):
         return img, label, meta
 
 
-
 # default_collate does not work with Lists of dictionaries
 def group_collate_fn(batch: List[Tuple[Any, ...]]):
     assert len(batch[0]) == 3
@@ -206,7 +217,8 @@ def get_dataloaders_other(dataset: str,
                           old_percent: Optional[float] = 0.5,
                           white_percent: Optional[float] = 0.5,
                           n_training_samples: int = None,
-                          max_train_samples: Optional[int] = None) -> Tuple[DataLoader, DataLoader, DataLoader]:
+                          max_train_samples: Optional[int] = None,
+                          train_dataset_mode = "") -> Tuple[DataLoader, DataLoader, DataLoader]:
     """
     Returns dataloaders for the desired dataset.
     """
@@ -219,6 +231,7 @@ def get_dataloaders_other(dataset: str,
             return torch.tensor(x)
         if protected_attr == 'none':
             data, labels, meta, idx_map = load_cxr14_naive_split()
+            filenames = None
         elif protected_attr == 'sex':
             data, labels, meta, idx_map = load_cxr14_sex_split(
                 cxr14_dir=CXR14_DIR,
@@ -227,6 +240,10 @@ def get_dataloaders_other(dataset: str,
             data, labels, meta, idx_map, filenames = load_cxr14_age_split(
                 cxr14_dir=CXR14_DIR,
                 old_percent=old_percent)
+        elif protected_attr == 'balanced':
+            data, labels, meta, idx_map, filenames = load_cxr14_intersectional_age_sex_split(
+                cxr14_dir = CXR14_DIR
+            )
         else:
             raise NotImplementedError
     elif dataset == 'mimic-cxr':
@@ -250,8 +267,8 @@ def get_dataloaders_other(dataset: str,
                 mimic_cxr_dir=MIMIC_CXR_DIR,
                 white_percent=white_percent,
                 max_train_samples=max_train_samples)
-        elif protected_attr == 'intersectional_age_sex_race':
-            data, labels, meta, idx_map = load_mimic_cxr_intersectional_age_sex_race_split(
+        elif protected_attr == 'balanced':
+            data, labels, meta, idx_map = load_mimic_cxr_intersectional_age_sex_split(
                 mimic_cxr_dir=MIMIC_CXR_DIR)
         else:
             raise ValueError(f'Unknown protected attribute: {protected_attr} for dataset {dataset}')
@@ -277,8 +294,18 @@ def get_dataloaders_other(dataset: str,
                 chexpert_dir=CHEXPERT_DIR,
                 white_percent=white_percent,
                 max_train_samples=max_train_samples)
+        elif protected_attr == 'balanced':
+            data, labels, meta, idx_map, filenames = load_chexpert_intersectional_age_sex_split(
+                chexpert_dir=CHEXPERT_DIR
+            )
         else:
             raise ValueError(f'Unknown protected attribute: {protected_attr} for dataset {dataset}')
+    elif dataset == 'rsna':
+        def load_fn(x):
+            return torch.tensor(x)
+        data, labels, meta, idx_map, filenames = load_rsna_intersectional_age_sex_split(
+            RSNA_DIR
+        )
     else:
         raise ValueError(f'Unknown dataset: {dataset}')
 
@@ -286,7 +313,10 @@ def get_dataloaders_other(dataset: str,
     train_labels = labels['train']
     train_meta = meta['train']
     train_idx_map = idx_map['train']
-    train_filenames = filenames['train']
+    if filenames is not None:
+        train_filenames = filenames['train']
+    else:
+        train_filenames = None
     val_data = {k: v for k, v in data.items() if 'val' in k}
     val_labels = {k: v for k, v in labels.items() if 'val' in k}
     val_meta = {k: v for k, v in meta.items() if 'val' in k}
@@ -318,7 +348,7 @@ def get_dataloaders_other(dataset: str,
                 train_labels[prev:i],
                 train_meta[prev:i],
                 transform=transform,
-                index_mapping=None,
+                index_mapping=train_idx_map[prev:i],
                 load_fn=load_fn,
                 filenames=train_filenames[prev:i]
             )
@@ -331,9 +361,69 @@ def get_dataloaders_other(dataset: str,
             )
             train_dataloaders.append(temp_dataloader)
             prev = i
-            if len(train_dataloaders) >= 1355/n_training_samples:
-                print(f"Stopping at {1355/n_training_samples} dataloaders")
-                break
+    elif train_dataset_mode.startswith("best"):
+        with open('subsets.json', 'r') as f:
+            best_samples = json.load(f)
+        if "-" in train_dataset_mode:
+            scoring_metric = train_dataset_mode.split("-")[1]
+            #subset_sizes = [1, 5, 10, 25, 50]
+            subset_sizes = [100, 250]
+        else:
+            scoring_metric = "test/AUROC"
+            subset_sizes = [1, 5, 10, 25, 50, 100, 250, 500]
+        best_samples = best_samples[scoring_metric]
+        for subset_size in subset_sizes:
+            temp_df = pd.DataFrame.from_dict(best_samples)
+            temp_df = temp_df.sort_values(by=['scores'], ascending=False)
+            subset_idx_map = temp_df["idx_map"].iloc[:subset_size].to_list()
+            subset_labels = temp_df["labels"].iloc[:subset_size].to_list()
+            subset_meta = temp_df["meta"].iloc[:subset_size].to_list()
+            subset_filenames = temp_df["filenames"].iloc[:subset_size].to_list()
+
+            temp_dataset = NormalDataset_other(
+                train_data[subset_idx_map],
+                subset_labels,
+                subset_meta,
+                transform=transform,
+                index_mapping=subset_idx_map,
+                load_fn=load_fn,
+                filenames=subset_filenames
+            )
+            temp_dataloader = DataLoader(
+                temp_dataset,
+                batch_size=batch_size,
+                shuffle=True,
+                num_workers=num_workers,
+                generator=Generator().manual_seed(2147483647)
+                )
+            train_dataloaders.append(temp_dataloader)
+    elif train_dataset_mode == "random":
+        for subset_size in [1, 5, 10, 25, 50, 100, 250, 500]:
+            # get random subset of train_idx_map list
+            random_indices = np.random.choice(len(train_idx_map), subset_size, replace=False)
+            subset_labels = [train_labels[i] for i in random_indices]
+            subset_meta = [train_meta[i] for i in random_indices]
+            subset_filenames = [train_filenames[i] for i in random_indices]
+            subset_idx_map = [train_idx_map[i] for i in random_indices]
+
+            train_dataset = NormalDataset_other(
+                train_data,
+                subset_labels,
+                subset_meta,
+                transform=transform,
+                index_mapping=subset_idx_map,
+                load_fn=load_fn,
+                filenames=subset_filenames
+            )
+            train_dataloaders.append(
+                DataLoader(
+                    train_dataset,
+                    batch_size=batch_size,
+                    shuffle=True,
+                    num_workers=num_workers,
+                    generator=Generator().manual_seed(2147483647),
+                    pin_memory=True)
+            )
     else:
         train_dataset = NormalDataset_other(
             train_data,
@@ -380,15 +470,14 @@ def get_dataloaders_rsna(dataset: str,
                          upsampling_strategy=None,
                          effective_dataset_size=1.0,
                          random_state=42,
+                         train_dataset_mode = "",
                          n_training_samples: int = None,
-                         best_and_worst_subsets: bool = False
                          ) -> Tuple[List[DataLoader], DataLoader, DataLoader, int]:
     """
     Returns dataloaders for the RSNA dataset.
     """
     # Load filenames and labels
-    max_train_samples = 500
-    if dataset == 'rsna':
+    if dataset == 'rsna-old':
         load_fn = load_dicom_img
         if protected_attr == 'none':
             data, labels, meta = load_rsna_naive_split(RSNA_DIR)
@@ -444,83 +533,39 @@ def get_dataloaders_rsna(dataset: str,
     test_dataset = anomal_ds(test_data, test_labels, test_meta)
 
     train_dataloaders = []
-    if n_training_samples:
-        print("ATTENTION: n_training_samples is set to", n_training_samples)
-        print("splitting training set into", len(train_data) // n_training_samples, "dataloaders")
-        prev = 0
-        for i in range(n_training_samples, len(train_data), n_training_samples):
-            temp_dataset = NormalDataset_rsna(
-                train_data[prev:i],
-                train_labels[prev:i],
-                train_meta[prev:i],
-                transform=transform,
-                load_fn=load_fn
-            )
-            temp_dataloader = DataLoader(
-                temp_dataset,
-                batch_size=batch_size,
-                shuffle=True,
-                num_workers=num_workers,
-                generator=Generator().manual_seed(2147483647)
-            )
-            train_dataloaders.append(temp_dataloader)
-            prev = i
-            if len(train_dataloaders) >= 1355:
-                break
-    elif best_and_worst_subsets:
-        # load subsets.json
-        v2 = True
-        if not v2:
-            with open('logs_persist/distillation/subsets.json', 'r') as f:
-                subsets = json.load(f)
-                for subset in subsets:
-                    # get indices of filenames in subset from train_data
-                    indices = [train_data.index(filename) for filename in subset["filenames"]]
-                    temp_dataset = NormalDataset_rsna(
-                        [train_data[i] for i in indices],
-                        [train_labels[i] for i in indices],
-                        [train_meta[i] for i in indices],
-                        transform=transform,
-                        load_fn=load_fn
-                    )
-                    temp_dataloader = DataLoader(
-                        temp_dataset,
-                        batch_size=batch_size,
-                        shuffle=True,
-                        num_workers=num_workers,
-                        generator=Generator().manual_seed(2147483647)
-                    )
-                    train_dataloaders.append(temp_dataloader)
+    if train_dataset_mode.startswith("best"):
+        with open('subsets.json', 'r') as f:
+            best_samples = json.load(f)
+        if "-" in train_dataset_mode:
+            scoring_metric = train_dataset_mode.split("-")[1]
+            #subset_sizes = [1, 5, 10, 25, 50]
+            subset_sizes = [100, 250, 500]
         else:
-            with open('logs_persist/distillation/subsets_combined.json', 'r') as f:
-                subsets = json.load(f)
-                for subset in subsets:
-                    # get indices of filenames in subset from train_data
-                    filenames = subset["filenames"]["test/lungOpacity_old_subgroupAUROC"] + subset["filenames"]["test/lungOpacity_young_subgroupAUROC"]
-                    indices = [train_data.index(filename) for filename in filenames]
-                    temp_dataset = NormalDataset_rsna(
-                        [train_data[i] for i in indices],
-                        [train_labels[i] for i in indices],
-                        [train_meta[i] for i in indices],
-                        transform=transform,
-                        load_fn=load_fn
-                    )
-                    temp_dataloader = DataLoader(
-                        temp_dataset,
-                        batch_size=batch_size,
-                        shuffle=True,
-                        num_workers=num_workers,
-                        generator=Generator().manual_seed(2147483647)
-                    )
-                    train_dataloaders.append(temp_dataloader)
+            scoring_metric = "test/AUROC"
+            subset_sizes = [1, 5, 10, 25, 50,]
+        best_samples = best_samples[scoring_metric]
+        for subset_size in subset_sizes:
+            temp_df = pd.DataFrame.from_dict(best_samples)
+            temp_df = temp_df.sort_values(by=['scores'], ascending=False)
+            subset_filenames = temp_df["filenames"].iloc[:subset_size].to_list()
+            subset_labels = temp_df["labels"].iloc[:subset_size].to_list()
+            subset_meta = temp_df["meta"].iloc[:subset_size].to_list()
+            # map meta the following way: 0 and one to 0 and 2,3 to 1
+            subset_meta = [0 if m == 0 or m == 1 else 1 for m in subset_meta]
+            temp_dataset = NormalDataset_rsna(subset_filenames, subset_labels, subset_meta, transform=transform, load_fn=load_fn)
+            temp_dataloader = DataLoader(temp_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers,
+                generator=Generator().manual_seed(2147483647))
+            train_dataloaders.append(temp_dataloader)
     else:
         train_dataset = NormalDataset_rsna(train_data, train_labels, train_meta, transform=transform, load_fn=load_fn)
-        train_dataloaders.append(DataLoader(
-            train_dataset,
-            batch_size=batch_size,
-            shuffle=True,
-            num_workers=num_workers,
-            generator=Generator().manual_seed(2147483647)))
+        train_dataloader = DataLoader(
+        train_dataset,
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=num_workers,
+        generator=Generator().manual_seed(2147483647)
+        )
+        train_dataloaders.append(train_dataloader)
     dl = partial(DataLoader, batch_size=batch_size, num_workers=num_workers, collate_fn=group_collate_fn)
     val_dataloader = dl(
         val_dataset,

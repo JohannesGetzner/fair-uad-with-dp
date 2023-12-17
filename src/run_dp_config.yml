@@ -4,10 +4,59 @@ v1:
   dp: True
   max_grad_norm: 0.01
   protected_attr: "age"
+  dataset: 'rsna-old'
   initial_seed: 1
   num_seeds: 3
   wandb_project: "unsupervised-fairness"
   num_steps: 20000
+  batch_size: 512
+  max_physical_batch_size: 512
+  lr: 0.0002
+v1_finetuning:
+  dp: True
+  max_grad_norm: 0.01
+  protected_attr: "age"
+  dataset: 'rsna-old'
+  initial_seed: 4
+  num_seeds: 1
+  wandb_project: "unsupervised-fairness"
+  num_steps: 15000
+  batch_size: 512
+  max_physical_batch_size: 512
+  lr: 0.0002
+# best_subsets
+best_balanced_old_age:
+  dp: True
+  max_grad_norm: 0.01
+  protected_attr: "age"
+  dataset: "rsna-old"
+  initial_seed: 1
+  num_seeds: 5
+  wandb_project: "unsupervised-fairness"
+  num_steps: 5000
+  batch_size: 32
+  max_physical_batch_size: 32
+  lr: 0.0002
+best_balanced_old_sex:
+  dp: True
+  max_grad_norm: 0.01
+  protected_attr: "sex"
+  dataset: "rsna-old"
+  initial_seed: 1
+  num_seeds: 5
+  wandb_project: "unsupervised-fairness"
+  num_steps: 5000
+  batch_size: 32
+  max_physical_batch_size: 32
+  lr: 0.0002
+best_balanced:
+  dp: True
+  max_grad_norm: 0.01
+  protected_attr: "balanced"
+  initial_seed: 1
+  num_seeds: 5
+  wandb_project: "unsupervised-fairness"
+  num_steps: 5000
   batch_size: 512
   max_physical_batch_size: 512
   lr: 0.0002
@@ -16,23 +65,24 @@ v1:
 v2:
   dp: True
   max_grad_norm: 0.01
+  dataset: 'rsna-old'
   protected_attr: "sex"
   initial_seed: 1
   num_seeds: 3
   wandb_project: "unsupervised-fairness"
-  num_steps: 20000
+  num_steps: 45000
   batch_size: 512
   max_physical_batch_size: 512
   lr: 0.0002
-
-v2_fix:
+v2_finetuning:
   dp: True
   max_grad_norm: 0.01
+  dataset: 'rsna-old'
   protected_attr: "sex"
-  initial_seed: 3
+  initial_seed: 1
   num_seeds: 1
   wandb_project: "unsupervised-fairness"
-  num_steps: 20000
+  num_steps: 15000
   batch_size: 512
   max_physical_batch_size: 512
   lr: 0.0002

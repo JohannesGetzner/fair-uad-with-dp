@@ -6,8 +6,12 @@ import numpy as np
 import pandas as pd
 import pydicom as dicom
 from tqdm import tqdm
-
-from src import RSNA_DIR
+from src.data.data_utils import read_memmap, write_memmap
+from src import RSNA_DIR, SEED
+from functools import partial
+from typing import Tuple
+import torch
+from torchvision import transforms as T
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -21,7 +25,8 @@ SEX_MAPPING = {
     'M': 0,
     'F': 1
 }
-
+MAX_YOUNG = 31
+MIN_OLD = 61
 
 def download_rsna(rsna_dir: str = RSNA_DIR):
     """Downloads the RSNA dataset."""
@@ -221,14 +226,14 @@ def load_rsna_age_two_split(
     data = data[data.PatientAge < 110]
 
     # Split data into bins by age
-    n_bins = 3
-    t = np.histogram(normal_data.PatientAge, bins=n_bins)[1]
-    print(f"Splitting data into {n_bins - 1} bins by age: {t}")
+    #n_bins = 3
+    #t = np.histogram(normal_data.PatientAge, bins=n_bins)[1]
+    print(f"Splitting data into bins by age: young < {MAX_YOUNG}, old >= {MIN_OLD}")
 
-    normal_young = normal_data[normal_data.PatientAge < t[1]]
-    normal_old = normal_data[normal_data.PatientAge >= t[2]]
-    young = data[data.PatientAge < t[1]]
-    old = data[data.PatientAge >= t[2]]
+    normal_young = normal_data[normal_data.PatientAge < MAX_YOUNG]
+    normal_old = normal_data[normal_data.PatientAge >= MIN_OLD]
+    young = data[data.PatientAge < MAX_YOUNG]
+    old = data[data.PatientAge >= MIN_OLD]
 
     # Save 100 young and 100 old samples for every label for validation and test
     # Normal
@@ -286,9 +291,145 @@ def load_rsna_age_two_split(
     for mode, data in sets.items():
         filenames[mode] = [f'{img_dir}/{patient_id}.dcm' for patient_id in data.patientId]
         labels[mode] = [min(1, label) for label in data.label.values]
-        meta[mode] = np.where(data['PatientAge'] < t[1], 1, np.where(data['PatientAge'] >= t[2], 0, None))
+        meta[mode] = np.where(data['PatientAge'] < MAX_YOUNG, 1, np.where(data['PatientAge'] >= MIN_OLD, 0, None))
     return filenames, labels, meta
 
+def load_rsna_intersectional_age_sex_split(rsna_dir: str = RSNA_DIR):
+    """Load MIMIC-CXR dataset with intersectional val and test sets."""
+    csv_dir = os.path.join(THIS_DIR, 'csvs', 'rsna')
+    normal = pd.read_csv(os.path.join(csv_dir, 'normal.csv'))
+    abnormal = pd.read_csv(os.path.join(csv_dir, 'abnormal.csv'))
+
+    # Split normal images into sets
+    normal_male_young = normal[(normal.PatientSex == 'M') & (normal.PatientAge <= MAX_YOUNG)]
+    normal_female_young = normal[(normal.PatientSex == 'F') & (normal.PatientAge <= MAX_YOUNG)]
+    normal_male_old = normal[(normal.PatientSex == 'M') & (normal.PatientAge >= MIN_OLD)]
+    normal_female_old = normal[(normal.PatientSex == 'F') & (normal.PatientAge >= MIN_OLD)]
+
+    val_test_normal_male_young = normal_male_young.sample(n=100, random_state=SEED)
+    val_test_normal_female_young = normal_female_young.sample(n=100, random_state=SEED)
+    val_test_normal_male_old = normal_male_old.sample(n=100, random_state=SEED)
+    val_test_normal_female_old = normal_female_old.sample(n=100, random_state=SEED)
+
+    val_normal_male_young = val_test_normal_male_young[:50]
+    val_normal_female_young = val_test_normal_female_young[:50]
+    val_normal_male_old = val_test_normal_male_old[:50]
+    val_normal_female_old = val_test_normal_female_old[:50]
+
+    test_normal_male_young = val_test_normal_male_young[50:]
+    test_normal_female_young = val_test_normal_female_young[50:]
+    test_normal_male_old = val_test_normal_male_old[50:]
+    test_normal_female_old = val_test_normal_female_old[50:]
+
+    # Split abnormal images into sets
+    abnormal_male_young = abnormal[(abnormal.PatientSex == 'M') & (abnormal.PatientAge <= MAX_YOUNG)]
+    abnormal_female_young = abnormal[(abnormal.PatientSex == 'F') & (abnormal.PatientAge <= MAX_YOUNG)]
+    abnormal_male_old = abnormal[(abnormal.PatientSex == 'M') & (abnormal.PatientAge >= MIN_OLD)]
+    abnormal_female_old = abnormal[(abnormal.PatientSex == 'F') & (abnormal.PatientAge >= MIN_OLD)]
+
+    val_test_abnormal_male_young = abnormal_male_young.sample(n=100, random_state=SEED)
+    val_test_abnormal_female_young = abnormal_female_young.sample(n=100, random_state=SEED)
+    val_test_abnormal_male_old = abnormal_male_old.sample(n=100, random_state=SEED)
+    val_test_abnormal_female_old = abnormal_female_old.sample(n=100, random_state=SEED)
+
+    val_abnormal_male_young = val_test_abnormal_male_young[:50]
+    val_abnormal_female_young = val_test_abnormal_female_young[:50]
+    val_abnormal_male_old = val_test_abnormal_male_old[:50]
+    val_abnormal_female_old = val_test_abnormal_female_old[:50]
+
+    test_abnormal_male_young = val_test_abnormal_male_young[50:]
+    test_abnormal_female_young = val_test_abnormal_female_young[50:]
+    test_abnormal_male_old = val_test_abnormal_male_old[50:]
+    test_abnormal_female_old = val_test_abnormal_female_old[50:]
+
+    # Merge and shuffle normal and abnormal val and test sets
+    val_male_young = pd.concat([val_normal_male_young, val_abnormal_male_young]).sample(frac=1, random_state=SEED)
+    val_female_young = pd.concat([val_normal_female_young, val_abnormal_female_young]).sample(frac=1, random_state=SEED)
+    val_male_old = pd.concat([val_normal_male_old, val_abnormal_male_old]).sample(frac=1, random_state=SEED)
+    val_female_old = pd.concat([val_normal_female_old, val_abnormal_female_old]).sample(frac=1, random_state=SEED)
+
+    val_male = pd.concat([val_male_young, val_male_old]).sample(frac=1, random_state=SEED)
+    val_female = pd.concat([val_female_young, val_female_old]).sample(frac=1, random_state=SEED)
+    val_young = pd.concat([val_male_young, val_female_young]).sample(frac=1, random_state=SEED)
+    val_old = pd.concat([val_male_old, val_female_old]).sample(frac=1, random_state=SEED)
+
+    test_male_young = pd.concat([test_normal_male_young, test_abnormal_male_young]).sample(frac=1, random_state=SEED)
+    test_female_young = pd.concat([test_normal_female_young, test_abnormal_female_young]).sample(frac=1, random_state=SEED)
+    test_male_old = pd.concat([test_normal_male_old, test_abnormal_male_old]).sample(frac=1, random_state=SEED)
+    test_female_old = pd.concat([test_normal_female_old, test_abnormal_female_old]).sample(frac=1, random_state=SEED)
+
+    test_male = pd.concat([test_male_young, test_male_old]).sample(frac=1, random_state=SEED)
+    test_female = pd.concat([test_female_young, test_female_old]).sample(frac=1, random_state=SEED)
+    test_young = pd.concat([test_male_young, test_female_young]).sample(frac=1, random_state=SEED)
+    test_old = pd.concat([test_male_old, test_female_old]).sample(frac=1, random_state=SEED)
+
+    # Use rest of normal samples for training
+    val_test_normal = pd.concat([
+        val_test_normal_male_young,
+        val_test_normal_female_young,
+        val_test_normal_male_old,
+        val_test_normal_female_old
+    ])
+    train = normal[~normal.patientId.isin(val_test_normal.patientId)]
+    print(f"Using {len(train)} normal samples for training.")
+    print(f"Average age of training samples: {train.PatientAge.mean():.2f}, std: {train.PatientAge.std():.2f}")
+    print(f"Fraction of female samples in training: {(train.PatientSex == 'F').mean():.2f}")
+    print(f"Fraction of male samples in training: {(train.PatientSex == 'M').mean():.2f}")
+    print(f"Fraction of young samples in training: {(train.PatientAge <= MAX_YOUNG).mean():.2f}")
+    print(f"Fraction of old samples in training: {(train.PatientAge >= MIN_OLD).mean():.2f}")
+
+    print(f"val_male - samples: {len(val_male)}, male: {val_male.PatientSex.eq('M').mean():.2f}, female: {val_male.PatientSex.eq('F').mean():.2f}, young: {(val_male.PatientAge <= MAX_YOUNG).mean():.2f}, old {(val_male.PatientAge >= MIN_OLD).mean():.2f}, anomalous: {(val_male.label != 0).mean():.2f}")
+    print(f"val_female - samples: {len(val_female)}, male: {val_female.PatientSex.eq('M').mean():.2f}, female: {val_female.PatientSex.eq('F').mean():.2f}, young: {(val_female.PatientAge <= MAX_YOUNG).mean():.2f}, old {(val_female.PatientAge >= MIN_OLD).mean():.2f}, anomalous: {(val_female.label != 0).mean():.2f}")
+    print(f"val_young - samples: {len(val_young)}, male: {val_young.PatientSex.eq('M').mean():.2f}, female: {val_young.PatientSex.eq('F').mean():.2f}, young: {(val_young.PatientAge <= MAX_YOUNG).mean():.2f}, old {(val_young.PatientAge >= MIN_OLD).mean():.2f}, anomalous: {(val_young.label != 0).mean():.2f}")
+    print(f"val_old - samples: {len(val_old)}, male: {val_old.PatientSex.eq('M').mean():.2f}, female: {val_old.PatientSex.eq('F').mean():.2f}, young: {(val_old.PatientAge <= MAX_YOUNG).mean():.2f}, old {(val_old.PatientAge >= MIN_OLD).mean():.2f}, anomalous: {(val_old.label != 0).mean():.2f}")
+    print(f"test_male - samples: {len(test_male)}, male: {test_male.PatientSex.eq('M').mean():.2f}, female: {test_male.PatientSex.eq('F').mean():.2f}, young: {(test_male.PatientAge <= MAX_YOUNG).mean():.2f}, old {(test_male.PatientAge >= MIN_OLD).mean():.2f}, anomalous: {(test_male.label != 0).mean():.2f}")
+    print(f"test_female - samples: {len(test_female)}, male: {test_female.PatientSex.eq('M').mean():.2f}, female: {test_female.PatientSex.eq('F').mean():.2f}, young: {(test_female.PatientAge <= MAX_YOUNG).mean():.2f}, old {(test_female.PatientAge >= MIN_OLD).mean():.2f}, anomalous: {(test_female.label != 0).mean():.2f}")
+    print(f"test_young - samples: {len(test_young)}, male: {test_young.PatientSex.eq('M').mean():.2f}, female: {test_young.PatientSex.eq('F').mean():.2f}, young: {(test_young.PatientAge <= MAX_YOUNG).mean():.2f}, old {(test_young.PatientAge >= MIN_OLD).mean():.2f}, anomalous: {(test_young.label != 0).mean():.2f}")
+    print(f"test_old - samples: {len(test_old)}, male: {test_old.PatientSex.eq('M').mean():.2f}, female: {test_old.PatientSex.eq('F').mean():.2f}, young: {(test_old.PatientAge <= MAX_YOUNG).mean():.2f}, old {(test_old.PatientAge >= MIN_OLD).mean():.2f}, anomalous: {(test_old.label != 0).mean():.2f}")
+
+    img_data = read_memmap(
+        os.path.join(
+            rsna_dir,
+            'memmap',
+            'data'),
+    )
+
+    # Return
+    actual_data = {}
+    labels = {}
+    meta = {}
+    index_mapping = {}
+    file_names = {}
+    sets = {
+        'train': train,
+        'val/male': val_male,
+        'val/female': val_female,
+        'val/young': val_young,
+        'val/old': val_old,
+        'test/male': test_male,
+        'test/female': test_female,
+        'test/young': test_young,
+        'test/old': test_old,
+    }
+    def get_meta_num(data):
+        # young old combinations
+        combos = {
+            (True, True): 0,
+            (True, False): 1,
+            (False, True): 2,
+            (False, False): 3
+        }
+        meta_mappings = data.apply(lambda x: combos[(x.PatientAge >= MIN_OLD, x.PatientSex == 'M')], axis=1)
+        # return numpy array
+        return meta_mappings.values
+
+    for mode, data in sets.items():
+        actual_data[mode] = img_data
+        labels[mode] = [min(1, label) for label in data.label.values]
+        meta[mode] = get_meta_num(data)
+        index_mapping[mode] = data.memmap_idx.values
+        file_names[mode] = data.Path.values
+    return actual_data, labels, meta, index_mapping, file_names
 
 def upsample_dataset(data:pd.DataFrame, strategy:str, num_add_samples:int):
     n = len(data)
@@ -304,3 +445,63 @@ def upsample_dataset(data:pd.DataFrame, strategy:str, num_add_samples:int):
         data = pd.concat([data, data.sample(n=num_add_samples, replace=True, random_state=42)])
     print("Up-sampling by", num_add_samples)
     return data
+
+
+def prepare_rsna(rsna_dir: str = RSNA_DIR):
+    """Extracts metadata (labels, age, gender) from each sample of the RSNA
+    dataset."""
+    class_info = pd.read_csv(os.path.join(rsna_dir, 'stage_2_detailed_class_info.csv'))
+    class_info.drop_duplicates(subset='patientId', inplace=True)
+
+    metadata = []
+    files = glob(f"{rsna_dir}/stage_2_train_images/*.dcm")
+    for file in tqdm(files):
+        ds = dicom.dcmread(file)
+        patient_id = ds.PatientID
+        label = class_info[class_info.patientId == patient_id]['class'].values[0]
+        metadata.append({
+            'Path': file,
+            'patientId': patient_id,
+            'label': CLASS_MAPPING[label],
+            'PatientAge': int(ds.PatientAge),
+            'PatientSex': ds.PatientSex
+        })
+
+    metadata = pd.DataFrame.from_dict(metadata)
+
+    # Save ordering of files in a new column 'memmap_idx'
+    metadata['memmap_idx'] = np.arange(len(metadata))
+
+    # Save csv for normal and abnormal images
+    csv_dir = os.path.join(THIS_DIR, 'csvs', 'rsna')
+    os.makedirs(csv_dir, exist_ok=True)
+    normal = metadata[metadata.label == 0]
+    print(f"Number of normal images: {len(normal)}")
+    normal.to_csv(os.path.join(csv_dir, 'normal.csv'), index=True)
+
+    abnormal = metadata[metadata.label != 0]
+    print(f"Number of abnormal images: {len(abnormal)}")
+    abnormal.to_csv(os.path.join(csv_dir, 'abnormal.csv'), index=True)
+
+    # Write memmap files for whole dataset
+    memmap_file = os.path.join(rsna_dir, 'memmap', 'data')
+    os.makedirs(memmap_file, exist_ok=True)
+    print(f"Writing memmap file '{memmap_file}'...")
+    write_memmap(
+        metadata.Path.values.tolist(),
+        memmap_file,
+        load_fn=partial(load_and_resize, target_size=(256, 256)),
+        target_size=(256, 256)
+    )
+
+def load_and_resize(path: str, target_size: Tuple[int, int]):
+    ds = dicom.dcmread(path)
+    img = torch.tensor(ds.pixel_array, dtype=torch.float32)[None] / 255.
+    img = T.CenterCrop(min(img.shape[1:]))(img)
+    img = T.Resize(target_size, antialias=True)(img)
+    return img
+
+
+if __name__ == '__main__':
+    prepare_rsna()
+    pass

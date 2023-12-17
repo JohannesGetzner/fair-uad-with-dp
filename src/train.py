@@ -28,6 +28,8 @@ parser.add_argument('--n_adam', action=BooleanOptionalAction, default=None)
 parser.add_argument('--group_name_mod', default=None, type=str)
 parser.add_argument('--job_type_mod', default=None, type=str)
 parser.add_argument('--dataset', default=None, type=str)
+parser.add_argument('--test_dataset', default=None, type=str)
+parser.add_argument('--train_dataset_mode', default=None, type=str)
 parser.add_argument('--loss_weight_type', default=None, type=str)
 parser.add_argument('--weight', default=None, type=float)
 parser.add_argument('--second_stage_epsilon', default=None, type=float)
@@ -37,7 +39,6 @@ parser.add_argument('--wb_custom_run_name',  default=None, type=str)
 parser.add_argument('--upsampling_strategy', default=None, type=str)
 parser.add_argument('--custom_sr', action=BooleanOptionalAction, default=None)
 parser.add_argument('--no_img_log', action=BooleanOptionalAction, default=None)
-parser.add_argument('--best_and_worst_subsets', action=BooleanOptionalAction, default=None)
 parser.add_argument('--effective_dataset_size', default=None, type=float)
 parser.add_argument('--hidden_dims', nargs='+', default=None, type=int)
 parser.add_argument('--dataset_random_state', default=None, type=int)
@@ -118,12 +119,19 @@ def run_dataset_distillation(config):
     config.epochs = num_steps_to_epochs(config.num_steps, train_loaders[0])
     for idx, train_loader in enumerate(train_loaders):
         config.job_type_mod = f"train_loader_{idx}"
+        config.disable_wandb = True
+        time_start = datetime.now()
         for i in range(config.num_seeds):
             config.seed = config.initial_seed + i
             # get log dir
             log_dir, group_name, job_type = construct_log_dir(config, current_time)
             # create a dataframe from trainloader.dataset with the labels, meta and filenames
-            temp_df = pd.DataFrame({'meta': train_loader.dataset.meta, 'labels': train_loader.dataset.labels, 'filenames': train_loader.dataset.filenames})
+            temp_df = pd.DataFrame({
+                'meta': train_loader.dataset.meta,
+                'labels': train_loader.dataset.labels,
+                'filenames': train_loader.dataset.filenames,
+                'index_mapping': train_loader.dataset.index_mapping_cpy,
+            })
             # save
             init_wandb(config, log_dir, group_name, job_type)
             # reproducibility
@@ -138,50 +146,7 @@ def run_dataset_distillation(config):
             model, _ = train(model, optimizer, train_loader, val_loader, config, log_dir)
             test(config, model, test_loader, log_dir)
             wandb.finish()
-            del model
-            torch.cuda.empty_cache()
-            gc.collect()
-
-
-def run_best_and_worst_subsets(config):
-    train_loaders, val_loader, test_loader, max_sample_freq = load_data(config)
-    v2 = True
-    with open(f'logs_persist/distillation/subsets_{config.model_type}_{config.dataset}.json' if not v2 else f"logs_persist/distillation/subsets_combined_{config.model_type}_{config.dataset}.json", 'r') as f:
-        subsets = json.load(f)
-    config.epochs = num_steps_to_epochs(config.num_steps, train_loaders[0])
-    for idx, train_loader in enumerate(train_loaders):
-        subset = subsets[idx]
-        if not v2: assert subset["filenames"] == train_loader.dataset.filenames
-
-        tags = ["worst" if subset["mode"] == "min" else "best", str(subset["size"])]
-        if not v2: tags += ["young" if subset["score_var"] == "test/lungOpacity_young_subgroupAUROC" else "old"]
-        config.job_type_mod = f"train_loader_{idx}_" + "_".join(tags)
-        tags = ["distill_" + tag for tag in tags]
-        for i in range(config.num_seeds):
-            config.seed = config.initial_seed + i
-            # get log dir
-            log_dir, group_name, job_type = construct_log_dir(config, current_time)
-            # create a dataframe from trainloader.dataset with the labels, meta and filenames
-            temp_df = pd.DataFrame({'meta': train_loader.dataset.meta, 'labels': train_loader.dataset.labels, 'filenames': train_loader.dataset.filenames})
-            # save
-            run = init_wandb(config, log_dir, group_name, job_type)
-            run.tags = run.tags + tuple(tags)
-            # reproducibility
-            print(f"Setting seed to {config.seed}...")
-            seed_everything(config.seed)
-            # create log dir
-            if not config.debug:
-                os.makedirs(log_dir, exist_ok=True)
-            temp_df.to_csv(os.path.join(log_dir, 'train_loader.csv'), index=False)
-            # init model
-            model, optimizer = init_model(config)
-            model, _ = train(model, optimizer, train_loader, val_loader, config, log_dir)
-            test(config, model, test_loader, log_dir)
-            wandb.finish()
-            del model
-            torch.cuda.empty_cache()
-            gc.collect()
-
+        print(f"Time taken for train_loader_{idx}: {(datetime.now() - time_start).total_seconds()}s")
 
 def run_stage_two(model, optimizer, config, log_dir, steps_done):
     print("\nStarting second stage...")
@@ -213,19 +178,134 @@ def run_stage_two(model, optimizer, config, log_dir, steps_done):
     test(modified_config, model, test_loader, log_dir, stage_two=True)
     return model
 
+def train_on_best_subsets(config):
+    with open('subsets.json', 'r') as f:
+        best_samples = json.load(f)
+    # get other test-loaders (not rsna)
+    train_dataset = config.dataset
+    #config.train_dataset_mode = ""
+    #config.dataset = "chexpert"
+    #_, _, test_loader_chexpert, _ = load_data(config)
+    #config.dataset = "cxr14"
+    #_, _, test_loader_cxr14, _ = load_data(config)
+    # set dataset back to rsna
+    #config.dataset = train_dataset
+    if config.protected_attr == "age":
+        keys = ["test/young_subgroupAUROC", "test/old_subgroupAUROC"]
+    else:
+        keys = ["test/male_subgroupAUROC", "test/female_subgroupAUROC"]
+    for key in keys:
+        config.train_dataset_mode = f"best-{key}"
+        train_loaders, val_loader, test_loader_rsna, _ = load_data(config)
+        for idx, train_loader in enumerate(train_loaders):
+            config.epochs = num_steps_to_epochs(config.num_steps, train_loader)
+            config.job_type_mod = f"bestBy{key}-nsamples-{len(train_loader.dataset)}"
+            for i in range(config.num_seeds):
+                config.seed = config.initial_seed + i
+                log_dir, group_name, job_type = construct_log_dir(config, current_time)
+                init_wandb(config, log_dir, group_name, job_type)
+                # reproducibility
+                print(f"Setting seed to {config.seed}...")
+                seed_everything(config.seed)
+                # create log dir
+                if not config.debug:
+                    os.makedirs(log_dir, exist_ok=True)
+                # init model
+                model, optimizer = init_model(config)
+                model, _ = train(model, optimizer, train_loader, val_loader, config, log_dir)
+                test(config, model, test_loader_rsna, log_dir, file_name_mod=train_dataset)
+                #config.dataset = "cxr14"
+                #test(config, model, test_loader_cxr14, log_dir, file_name_mod=train_dataset)
+                #config.dataset = "chexpert"
+                #test(config, model, test_loader_chexpert, log_dir, file_name_mod=train_dataset)
+                #config.dataset = train_dataset
+                wandb.finish()
 
-def load_pretrained_model(path):
-    # load model from logs
-    path = os.path.join(os.getcwd(), 'logs', path)
-    checkpoint = torch.load(path)
-    old_config = DotMap(checkpoint["config"])
-    model = FeatureReconstructor(old_config)
-    model = ModuleValidator.fix(model)
-    state_dict = checkpoint["model"]
-    new_state_dict = {key.replace('_module.', ''): value for key, value in state_dict.items()}
-    model.load_state_dict(new_state_dict)
-    # accountant still needs to be loaded and optimizer needs to be initialized
-    return model, checkpoint["optimizer"], checkpoint["accountant"], checkpoint["step"], old_config
+def train_on_best_subsets_DP(config):
+    with open('subsets.json', 'r') as f:
+        best_samples = json.load(f)
+    # get other test-loaders (not rsna)
+    train_dataset = config.dataset
+    #config.train_dataset_mode = ""
+    #config.dataset = "chexpert"
+    #_, _, test_loader_chexpert, _ = load_data(config)
+    #config.dataset = "cxr14"
+    #_, _, test_loader_cxr14, _ = load_data(config)
+    ## set dataset back to rsna
+    #config.dataset = train_dataset
+    if config.protected_attr == "balanced":
+        keys = ["test/young_subgroupAUROC", "test/old_subgroupAUROC", "test/female_subgroupAUROC",  "test/male_subgroupAUROC"]
+    elif config.protected_attr == "age":
+        keys = ["test/young_subgroupAUROC", "test/old_subgroupAUROC"]
+    else:
+        keys = ["test/male_subgroupAUROC", "test/female_subgroupAUROC"]
+    for key in keys:
+        config.train_dataset_mode = f"best-{key}"
+        train_loaders, val_loader, test_loader_rsna, _ = load_data(config)
+        for idx, train_loader in enumerate(train_loaders):
+            config.epochs = num_steps_to_epochs(config.num_steps, train_loader)
+            config.job_type_mod = f"bestBy{key}-nsamples-{len(train_loader.dataset)}"
+            for i in range(config.num_seeds):
+                config.seed = config.initial_seed + i
+                log_dir, group_name, job_type = construct_log_dir(config, current_time)
+                init_wandb(config, log_dir, group_name, job_type)
+                # reproducibility
+                print(f"Setting seed to {config.seed}...")
+                seed_everything(config.seed)
+                # create log dir
+                if not config.debug:
+                    os.makedirs(log_dir, exist_ok=True)
+                # init model
+                model, optimizer = init_model(config)
+                privacy_engine = PrivacyEngine(accountant="rdp")
+                config.delta = 1 / len(train_loader.dataset)
+                model, optimizer, dp_train_loader = privacy_engine.make_private_with_epsilon(module=model,
+                    optimizer=optimizer, data_loader=train_loader, target_epsilon=config.epsilon,
+                    target_delta=config.delta, max_grad_norm=config.max_grad_norm, epochs=config.epochs,
+                    custom_sample_rate=None)
+                model, steps_done = train_dp(model, optimizer, dp_train_loader, val_loader, config, log_dir,
+                                             privacy_engine)
+                test(config, model, test_loader_rsna, log_dir, file_name_mod=train_dataset)
+                #config.dataset = "cxr14"
+                #test(config, model, test_loader_cxr14, log_dir, file_name_mod=config.dataset)
+                #config.dataset = "chexpert"
+                #test(config, model, test_loader_chexpert, log_dir, file_name_mod=config.dataset)
+                #config.dataset = train_dataset
+                wandb.finish()
+
+
+def train_on_one_but_test_val_on_other(config):
+    config.group_name_mod = f"testOn-{config.test_dataset}-mode-{config.train_dataset_mode}"
+    train_dataset = config.dataset
+    train_loaders, val_loader, test_loader_A, max_sample_freq = load_data(config)
+    if type(train_loaders) != list:
+        train_loaders = [train_loaders]
+    config.dataset = config.test_dataset
+    config.train_dataset_mode = ""
+    _, _, test_loader_B, max_sample_freq = load_data(config)
+    config.dataset = train_dataset
+    for idx, train_loader in enumerate(train_loaders):
+        config.epochs = num_steps_to_epochs(config.num_steps, train_loader)
+        config.job_type_mod = f"nsamples-{len(train_loader.dataset)}"
+        for i in range(config.num_seeds):
+            config.seed = config.initial_seed + i
+            # get log dir
+            log_dir, group_name, job_type = construct_log_dir(config, current_time)
+            init_wandb(config, log_dir, group_name, job_type)
+            # reproducibility
+            print(f"Setting seed to {config.seed}...")
+            seed_everything(config.seed)
+            # create log dir
+            if not config.debug:
+                os.makedirs(log_dir, exist_ok=True)
+            # init model
+            model, optimizer = init_model(config)
+            model, _ = train(model, optimizer, train_loader, val_loader, config, log_dir)
+            test(config, model, test_loader_A, log_dir, file_name_mod=config.dataset)
+            config.dataset = config.test_dataset
+            test(config, model, test_loader_B, log_dir, file_name_mod=config.dataset)
+            config.dataset = train_dataset
+            wandb.finish()
 
 
 if __name__ == '__main__':
@@ -242,7 +322,12 @@ if __name__ == '__main__':
     print(f"Run config: {run_config}")
     if current_config.n_training_samples:
         run_dataset_distillation(current_config)
-    elif current_config.best_and_worst_subsets:
-        run_best_and_worst_subsets(current_config)
+    elif current_config.test_dataset:
+        train_on_one_but_test_val_on_other(current_config)
+    elif current_config.train_dataset_mode:
+        if current_config.dp:
+            train_on_best_subsets_DP(current_config)
+        else:
+            train_on_best_subsets(current_config)
     else:
         run(current_config)
