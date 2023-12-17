@@ -12,11 +12,11 @@ from typing import List
 from scipy.stats import linregress
 from matplotlib.patches import Rectangle
 
-from matplotlib.font_manager import fontManager, FontProperties
-path = "/home/getznerj/Downloads/Palatino Font Free/Palatino.ttf"
-fontManager.addfont(path)
-prop = FontProperties(fname=path)
-plt.rcParams['font.family'] = prop.get_name()
+#from matplotlib.font_manager import fontManager, FontProperties
+#path = "/home/getznerj/Downloads/Palatino Font Free/Palatino.ttf"
+#fontManager.addfont(path)
+#prop = FontProperties(fname=path)
+#plt.rcParams['font.family'] = prop.get_name()
 
 PV_MAP = {
     "age": ("old","young"),
@@ -49,7 +49,11 @@ def load_logs(log_dir = "", fine_tuning= False):
         # each run split dir contains a set of runs (different seeds)
         for run_split_dir in run_split_dirs:
             seed_dirs = [os.path.join(run_split_dir, d) for d in os.listdir(run_split_dir) if os.path.isdir(os.path.join(run_split_dir, d))]
-            protected_attr_percent = run_split_dir.split("_")[-1]
+            if fine_tuning:
+                dp = not "noDP" in run_dir
+                protected_attr_percent = run_split_dir.split("_")[-1 if not dp else -2]
+            else:
+                protected_attr_percent = run_split_dir.split("_")[-1]
             if len(protected_attr_percent) > 1:
                 # add a '.' after the first 0
                 protected_attr_percent = protected_attr_percent[:1] + "." + protected_attr_percent[1:]
