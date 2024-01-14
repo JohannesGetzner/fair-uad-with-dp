@@ -17,12 +17,13 @@ class DataSetSizeExperiment(Experiment):
 
     def start_experiment(self, data_manager: AnomalyDataset, *args, **kwargs):
         train_loader, val_loader, test_loader = data_manager.get_dataloaders(self.custom_data_loading_hook)
+        job_type_mod = f"data-set-size={self.percent_of_data_to_use}"
         for seed in range(self.run_config["num_seeds"]):
             self.run_config["seed"] = self.run_config["initial_seed"] + seed
             if self.run_config["dp"]:
-                self._run_DP(train_loader, val_loader, test_loader)
+                self._run_DP(train_loader, val_loader, test_loader, job_type_mod=job_type_mod, group_name_mod=kwargs["group_name_mod"])
             else:
-                self._run(train_loader, val_loader, test_loader)
+                self._run(train_loader, val_loader, test_loader, job_type_mod=job_type_mod, group_name_mod=kwargs["group_name_mod"])
             wandb.finish()
 
     def custom_data_loading_hook(self, train_A, train_B, *args, **kwargs):

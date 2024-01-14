@@ -5,12 +5,12 @@ from time import time
 from ._trainer import Trainer
 
 class StandardTrainer(Trainer):
-    def __init__(self, optimizer, train_loader, val_loader, test_loader, config, log_dir):
-        super().__init__(optimizer, train_loader, val_loader, test_loader, config, log_dir)
+    def __init__(self, optimizer, train_loader, val_loader, test_loader, config, log_dir, previous_steps = 0):
+        super().__init__(optimizer, train_loader, val_loader, test_loader, config, log_dir, previous_steps)
 
     def train(self, model, **kwargs):
         print('Starting training...')
-        i_step = self.previous_step
+        i_step = self.previous_steps
         i_epoch = 0
         train_losses = AvgDictMeter()
         t_start = time()
@@ -44,14 +44,15 @@ class StandardTrainer(Trainer):
                     wandb.log(val_results, step=i_step)
 
             i_epoch += 1
-            if i_epoch % 100 == 0:
+            if i_epoch % 10 == 0:
                 print(f"Finished epoch {i_epoch}/{self.config['epochs']}, ({i_step} iterations)")
             if i_epoch >= self.config["epochs"]:
                 print(f"Reached {self.config['epochs']} epoch(s).Finished training.")
                 # Final validation
                 print("Final validation...")
                 self.validate(model, i_step, log_imgs)
-                return model, i_step
+                self.previous_steps = i_step
+                return model
 
     def train_step(self, model, x, loss_weights=None):
         model.train()

@@ -24,7 +24,7 @@ class RsnaAnomalyDataset(AnomalyDataset):
         self.split_info = None
 
     def load_data(self, anomaly="lungOpacity"):
-        csv_dir = os.path.join('./', 'csvs', 'rsna')
+        csv_dir = os.path.join('datasets', 'csvs', 'rsna')
         normal_data = pd.read_csv(os.path.join(csv_dir, 'normal.csv'))
         anomalous_data = pd.read_csv(os.path.join(csv_dir, 'abnormal.csv'))
 
@@ -71,8 +71,7 @@ class RsnaAnomalyDataset(AnomalyDataset):
             num_normal=50,
             num_anomalous=100
         )
-        train = pd.concat(
-            [*custom_data_loading_hook(train_A, train_B)]
+        train = pd.concat([*custom_data_loading_hook(train_A, train_B)]
         ).sample(frac=1, random_state=self.config["random_state"]).reset_index(drop=True)
 
         memmap_file = read_memmap(os.path.join(RSNA_DIR, 'memmap', 'data'), )
@@ -90,7 +89,7 @@ class RsnaAnomalyDataset(AnomalyDataset):
             f'test/{"lungOpacity"}_{ATTRIBUTE_MAPPINGS[self.config["protected_attr"]]["B"]}': test_B}
         for mode, data in sets.items():
             images[mode] = memmap_file
-            filenames[mode] = data.path.values
+            filenames[mode] = data.Path.values
             labels[mode] = [min(1, label) for label in data.label.values]
             meta[mode] = self.encode_metadata(data)
             index_mapping[mode] = data.memmap_idx.values

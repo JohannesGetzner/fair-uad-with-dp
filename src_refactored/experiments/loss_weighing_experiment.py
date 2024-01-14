@@ -31,11 +31,11 @@ class LossWeighingExperiment(Experiment):
                 loss_weights = (1.0, self.loss_weight)
         else:
             raise ValueError(f"Unknown protected variable {self.pv_to_weigh[0]}")
-
+        job_type_mod = f"loss_weight={self.loss_weight}"
         for seed in range(self.run_config["num_seeds"]):
             self.run_config["seed"] = self.run_config["initial_seed"] + seed
             if self.run_config["dp"]:
-                self._run_DP(train_loader, val_loader, test_loader, loss_weights=loss_weights)
+                self._run_DP(train_loader, val_loader, test_loader, loss_weights=loss_weights, job_type_mod=job_type_mod, group_name_mod=kwargs["group_name_mod"])
             else:
-                self._run(train_loader, val_loader, test_loader, loss_weights=loss_weights)
+                self._run(train_loader, val_loader, test_loader, loss_weights=loss_weights, job_type_mod=job_type_mod, group_name_mod=kwargs["group_name_mod"])
             wandb.finish()

@@ -26,10 +26,10 @@ EXPERIMENT_MAP = {
     'default': experiments.Experiment,
     'fine_tuning': experiments.FineTuningExperiment,
     'dataset_size': experiments.DataSetSizeExperiment,
-    'loss_weight': experiments.LossWeighingExperiment,
+    'loss_weighing': experiments.LossWeighingExperiment,
     'model_size': experiments.ModelSizeExperiment,
     'upsampling': experiments.UpsamplingExperiment,
-    'dataset_distillation': experiments.DatasetDistillationNSamplesExperiment,
+    'core_set_selection': experiments.CoreSetSelectionExperiment,
 }
 
 parser = ArgumentParser()
@@ -56,21 +56,21 @@ dataset_size_args = parser.add_argument_group('dataset_size')
 dataset_size_args.add_argument('--percent_of_data_to_use', default=None, type=float)
 
 # loss-weight experiment settings
-loss_weight_args = parser.add_argument_group('loss_weight')
+loss_weight_args = parser.add_argument_group('loss_weighing')
 loss_weight_args.add_argument('--loss_weight', default=None, type=float)
 loss_weight_args.add_argument('--pv_to_weigh', default=None, type=str, nargs='+')
 
 # model size experiment settings
 model_size_args = parser.add_argument_group('model_size')
-model_size_args.add_argument('--hidden_dims', default=None, type=int, nargs='+')
+model_size_args.add_argument('--reduce_hidden_dims', default=False, type=bool, action=BooleanOptionalAction)
 
 # upsampling experiment settings
 upsampling_args = parser.add_argument_group('upsampling')
 upsampling_args.add_argument('--upsampling_strategy', default=None, type=str, nargs='+')
 
 # dataset distillation experiment settings
-dataset_distillation_args = parser.add_argument_group('dataset_distillation')
-dataset_distillation_args.add_argument('--num_training_samples', default=None, type=int)
+core_set_selection_args = parser.add_argument_group('core_set_selection')
+core_set_selection_args.add_argument('--num_training_samples', default=None, type=int)
 RUN_PARAMS = parser.parse_args()
 
 if __name__ == '__main__':
@@ -100,8 +100,14 @@ if __name__ == '__main__':
 
     # TODO: shitty dependencies
     experiment = EXPERIMENT_MAP[exp_key](**config_dicts, **exp_args)
-    dataset = CXR14AnomalyDataset(experiment.dataset_config)
-    experiment.start_experiment(dataset)
+    if experiment.dataset_config["dataset"] == "rsna":
+        dataset = RsnaAnomalyDataset(experiment.dataset_config)
+    elif experiment.dataset_config["dataset"] == "cxr14":
+        dataset = CXR14AnomalyDataset(experiment.dataset_config)
+    else:
+        raise ValueError("Dataset not supported")
+    group_name_mod = f"experiment={exp_key}"
+    experiment.start_experiment(dataset, group_name_mod=group_name_mod)
 
 
 

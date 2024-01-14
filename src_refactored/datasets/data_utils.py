@@ -33,7 +33,8 @@ def default_load_func(x):
 
 def get_load_fn(dataset: str):
     if dataset == 'rsna':
-        return load_dicom_img
+        # TODO: what about loading the images
+        return default_load_func
     elif dataset in ['cxr14', 'mimic-cxr', 'chexpert']:
         return default_load_func
     else:

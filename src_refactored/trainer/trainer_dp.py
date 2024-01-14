@@ -7,13 +7,13 @@ from ._trainer import Trainer
 
 
 class DPTrainer(Trainer):
-    def __init__(self, optimizer, train_loader, val_loader, test_loader, config, log_dir, privacy_engine):
-        super().__init__(optimizer, train_loader, val_loader, test_loader, config, log_dir)
+    def __init__(self, optimizer, train_loader, val_loader, test_loader, config, log_dir, privacy_engine, previous_steps = 0):
+        super().__init__(optimizer, train_loader, val_loader, test_loader, config, log_dir, previous_steps)
         self.privacy_engine = privacy_engine
 
     def train(self, model, **kwargs):
         print('Starting training...')
-        i_step = self.previous_step
+        i_step = self.previous_steps
         i_epoch = 0
         train_losses = AvgDictMeter()
         t_start = time()
@@ -67,7 +67,8 @@ class DPTrainer(Trainer):
                     # Final validation
                     print("Final validation...")
                     self.validate(model, i_step, log_imgs)
-                    return model, i_step
+                    self.previous_steps = i_step
+                    return model
 
     def train_step(self, model, x, loss_weights=None):
         model.train()

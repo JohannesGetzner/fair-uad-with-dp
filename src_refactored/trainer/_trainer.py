@@ -12,14 +12,14 @@ from torch import nn
 
 
 class Trainer(ABC):
-    def __init__(self,  optimizer, train_loader, val_loader, test_loader, config, log_dir):
+    def __init__(self,  optimizer, train_loader, val_loader, test_loader, config, log_dir, previous_steps):
         self.optimizer = optimizer
         self.train_loader = train_loader
         self.val_loader = val_loader
         self.test_loader = test_loader
         self.config = config
         self.log_dir = log_dir
-        self.previous_step = 0
+        self.previous_steps = previous_steps
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.privacy_engine = None
 

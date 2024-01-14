@@ -287,14 +287,13 @@ class FeatureReconstructor(nn.Module):
         return rec
 
     def loss(self, x: Tensor, per_sample_loss_weights=None):
-        if per_sample_loss_weights:
+        if per_sample_loss_weights is not None:
             return self.weighted_loss(x, per_sample_loss_weights)
         feats, rec = self(x)
         loss = self.loss_fn(rec, feats).mean()
         return {'loss': loss, 'rec_loss': loss}
 
     def weighted_loss(self, x: Tensor, per_sample_loss_weights):
-        print("ATTENTION: Using weighted loss")
         feats, rec = self(x)
         loss = self.loss_fn(rec, feats)
         expanded_loss_weights = per_sample_loss_weights.view(-1, 1, 1, 1)

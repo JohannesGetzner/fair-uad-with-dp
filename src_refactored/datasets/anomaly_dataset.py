@@ -88,27 +88,20 @@ class AnomalyDataset(ABC):
 
         # Define transforms
         transform = get_transforms(self.config["img_size"])
-
         # Create datasets
         load_fn = get_load_fn(self.config["dataset"])
-        if self.config["dataset"] == "rsna":
-            anomaly_dataset = partial(AnomalFairnessDataset, transform=transform, load_fn=load_fn)
-            val_dataset = anomaly_dataset(val_data, val_labels, val_meta)
-            test_dataset = anomaly_dataset(test_data, test_labels, test_meta)
-            train_dataset = NormalDataset(train_data, train_labels, train_meta, transform=transform, load_fn=load_fn)
-        else:
-            anomaly_dataset = partial(MEMMAP_AnomalFairnessDataset, transform=transform, load_fn=load_fn)
-            val_dataset = anomaly_dataset(val_data, val_labels, val_meta, index_mapping=val_idx_map)
-            test_dataset = anomaly_dataset(test_data, test_labels, test_meta, index_mapping=test_idx_map)
-            train_dataset = MEMMAP_NormalDataset(
-                train_data,
-                train_labels,
-                train_meta,
-                transform=transform,
-                index_mapping=train_idx_map,
-                load_fn=load_fn,
-                filenames=train_filenames
-            )
+        anomaly_dataset = partial(MEMMAP_AnomalFairnessDataset, transform=transform, load_fn=load_fn)
+        val_dataset = anomaly_dataset(val_data, val_labels, val_meta, index_mapping=val_idx_map)
+        test_dataset = anomaly_dataset(test_data, test_labels, test_meta, index_mapping=test_idx_map)
+        train_dataset = MEMMAP_NormalDataset(
+            train_data,
+            train_labels,
+            train_meta,
+            transform=transform,
+            index_mapping=train_idx_map,
+            load_fn=load_fn,
+            filenames=train_filenames
+        )
 
         train_dataloader = DataLoader(
             train_dataset,

@@ -30,7 +30,7 @@ class Experiment(ABC):
     def _run(self, train_loader, val_loader, test_loader, **kwargs):
         seed_everything(self.run_config["seed"])
         self.run_config["epochs"] = self.steps_to_epochs(train_loader)
-        model, optimizer, log_dir = self.prep_run()
+        model, optimizer, log_dir = self.prep_run(**kwargs)
         trainer = StandardTrainer(
             optimizer=optimizer,
             train_loader=train_loader,
@@ -39,7 +39,7 @@ class Experiment(ABC):
             config=self.run_config,
             log_dir=log_dir
         )
-        model, _ = trainer.train(model, **kwargs)
+        model = trainer.train(model, **kwargs)
         trainer.test(model)
 
     def _run_DP(self, train_loader, val_loader, test_loader, **kwargs):
@@ -47,7 +47,7 @@ class Experiment(ABC):
         self.dp_config["delta"] = 1 / len(train_loader.dataset)
         self.run_config["epochs"] = self.steps_to_epochs(train_loader)
         privacy_engine = PrivacyEngine(accountant="rdp")
-        model, optimizer, log_dir = self.prep_run()
+        model, optimizer, log_dir = self.prep_run(**kwargs)
         model, optimizer, dp_train_loader = privacy_engine.make_private_with_epsilon(
             module=model,
             optimizer=optimizer,
@@ -65,7 +65,7 @@ class Experiment(ABC):
             log_dir=log_dir,
             privacy_engine=privacy_engine
         )
-        model, _ = trainer.train(model, **kwargs)
+        model = trainer.train(model, **kwargs)
         trainer.test(model)
 
     def start_experiment(self, data_manager: AnomalyDataset, *args, **kwargs):
@@ -111,7 +111,7 @@ class Experiment(ABC):
         # job_type is always the same
         job_type = f"male_percent" if self.dataset_config["protected_attr"] == "sex" else "old_percent"
         # add protected_attr_percent
-        job_type += str(self.dataset_config["protected_attr_percent"]).replace('.', '')
+        job_type += "_" + str(self.dataset_config["protected_attr_percent"]).replace('.', '')
         job_type += f"_{job_type_mod}" if job_type_mod else ""
         # build log_dir and group_name
         group_name = f"{timestamp}-{self.model_config['model_type']}-{self.dataset_config['dataset'].upper()}-{self.dataset_config['protected_attr'].upper()}"
@@ -144,9 +144,10 @@ class Experiment(ABC):
         )
         return run
 
-    def prep_run(self, timestamp=CURRENT_TIMESTAMP, job_type_mod="", group_name_mod=""):
+    def prep_run(self, timestamp=CURRENT_TIMESTAMP, job_type_mod="", group_name_mod="", **kwargs):
+        print(job_type_mod)
         model, optimizer = self._init_model()
-        log_dir, group_name, job_type = self._construct_log_dir(timestamp,job_type_mod,group_name_mod)
+        log_dir, group_name, job_type = self._construct_log_dir(timestamp, job_type_mod, group_name_mod)
         self._init_wandb(log_dir, group_name, job_type)
         return model, optimizer, log_dir
 
