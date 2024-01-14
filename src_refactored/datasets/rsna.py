@@ -80,13 +80,12 @@ class RsnaAnomalyDataset(AnomalyDataset):
         meta = {}
         index_mapping = {}
         filenames = {}
-        # TODO: this lungOpacity should not be part of the key
         sets = {
             f'train': train,
-            f'val/{"lungOpacity"}_{ATTRIBUTE_MAPPINGS[self.config["protected_attr"]]["A"]}': val_A,
-            f'val/{"lungOpacity"}_{ATTRIBUTE_MAPPINGS[self.config["protected_attr"]]["B"]}': val_B,
-            f'test/{"lungOpacity"}_{ATTRIBUTE_MAPPINGS[self.config["protected_attr"]]["A"]}': test_A,
-            f'test/{"lungOpacity"}_{ATTRIBUTE_MAPPINGS[self.config["protected_attr"]]["B"]}': test_B}
+            f'val/{ATTRIBUTE_MAPPINGS[self.config["protected_attr"]]["A"]}': val_A,
+            f'val/{ATTRIBUTE_MAPPINGS[self.config["protected_attr"]]["B"]}': val_B,
+            f'test/{ATTRIBUTE_MAPPINGS[self.config["protected_attr"]]["A"]}': test_A,
+            f'test/{ATTRIBUTE_MAPPINGS[self.config["protected_attr"]]["B"]}': test_B}
         for mode, data in sets.items():
             images[mode] = memmap_file
             filenames[mode] = data.Path.values

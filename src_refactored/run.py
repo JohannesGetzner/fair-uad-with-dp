@@ -34,9 +34,8 @@ EXPERIMENT_MAP = {
 
 parser = ArgumentParser()
 parser.add_argument('--experiment', default="default", type=str, choices=EXPERIMENT_MAP.keys())
-# TODO: specify choices for dataset and protected_attr
-parser.add_argument('--dataset', default=None, type=str)
-parser.add_argument('--protected_attr', default=None, type=str)
+parser.add_argument('--dataset', default=None, type=str, choices=['cxr14', 'rsna'])
+parser.add_argument('--protected_attr', default=None, type=str, choices=['age', 'sex'])
 parser.add_argument('--dp', default=False, action=BooleanOptionalAction)
 parser.add_argument('--debug', default=False, action=BooleanOptionalAction)
 # override experiment settings
@@ -98,7 +97,6 @@ if __name__ == '__main__':
             if key in default_config.keys():
                 default_config[key] = value
 
-    # TODO: shitty dependencies
     experiment = EXPERIMENT_MAP[exp_key](**config_dicts, **exp_args)
     if experiment.dataset_config["dataset"] == "rsna":
         dataset = RsnaAnomalyDataset(experiment.dataset_config)

@@ -322,7 +322,6 @@ class FeatureReconstructor(nn.Module):
         for i in range(x.shape[0]):
             # roi are those regions where x has "content"
             try:
-                # rsna TODO: bad solution
                 roi = anomaly_map[i][x[i] > 0]
                 roi = roi[roi > torch.quantile(roi, 0.9)]
             except:

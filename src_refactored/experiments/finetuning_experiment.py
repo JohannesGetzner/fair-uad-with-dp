@@ -44,7 +44,6 @@ class FineTuningExperiment(Experiment):
             # run fine-tuning
             print("Starting fine-tuning...")
             self.run_config["num_steps"] = self.fine_tuning_steps
-            # TODO: won't now the wrong steps be logged
             data_manager.config = self.fine_tuning_dataset_config
             fine_tuning_train_loader, _, _ = data_manager.get_dataloaders(self.custom_data_loading_hook)
             if self.run_config["dp"]:

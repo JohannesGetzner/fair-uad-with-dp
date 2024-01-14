@@ -84,10 +84,8 @@ class Experiment(ABC):
     def _init_model(self):
         print("Initializing model...")
         if self.model_config["model_type"] == 'FAE':
-            # TODO: what config elements does it need
             model = FeatureReconstructor(self.model_config)
         elif self.model_config["model_type"] == 'DeepSVDD':
-            # TODO: what config elements does it need
             model = DeepSVDD(self.model_config)
         else:
             raise ValueError(f'Unknown model type {self.model_config["model_type"]}')
