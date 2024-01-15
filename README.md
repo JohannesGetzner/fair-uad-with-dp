@@ -3,13 +3,13 @@ This repository contains the sourcecode to my master thesis.
 ## Repository Structure
 
 
-- **./src** contains the new sourcecode for the thesis (DISCLAIMER: the code is not yet cleaned up and might contain some bugs)
+- **./src** contains the new sourcecode for the thesis (DISCLAIMER: clean structure, but not fully tested and might contain some bugs)
     - **./src/datasets** contains the wrapper classes for the datasets
     - **./src/models** contains the models
     - **./src/plotting** contains the code used to plot the graphs and charts in the thesis
     - **./src/trainer** contains the wrappers for training the models with and without DP
     - **./src/utils** contains the code to compute the metrics and other utilities
-- **./(archived) src** contains the sourcecode for the deprecated version of the thesis 
+- **./(archived) src** contains the sourcecode for the deprecated version of the thesis  (INFO: messy, but fully tested and working)
     - **./src/data** contains the code to prepare and load the datasets
     - **./src/datasets** should contain the actual datasets, see the required structure of data directories in the corresponding files to load the data
     - **./src/analysis** contains the script to plot the results
