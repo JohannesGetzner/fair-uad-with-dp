@@ -15,9 +15,11 @@ class CoreSetSelectionExperiment(Experiment):
                  model_config: Dict,
                  wandb_config: Dict,
                  num_training_samples: int = 1,
+                 cutoff: int = 1000
                  ):
         super().__init__(run_config, dp_config, dataset_config, model_config, wandb_config)
         self.num_training_samples = num_training_samples
+        self.cutoff = cutoff
 
     def start_experiment(self, data_manager: AnomalyDataset, *args, **kwargs):
         train_loader, val_loader, test_loader = data_manager.get_dataloaders(self.custom_data_loading_hook)
@@ -47,6 +49,8 @@ class CoreSetSelectionExperiment(Experiment):
                 generator=Generator().manual_seed(2147483647)
             )
             n_samples_train_loaders.append(temp_dataloader)
+            if i > self.cutoff:
+                break
         for idx, n_samples_train_loader in enumerate(n_samples_train_loaders):
             job_type_name = f"train_loader_idx={idx}"
             for seed in range(self.run_config["num_seeds"]):

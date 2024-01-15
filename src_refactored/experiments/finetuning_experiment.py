@@ -43,7 +43,7 @@ class FineTuningExperiment(Experiment):
                 self._run(train_loader, val_loader, test_loader, group_name_mod=kwargs["group_name_mod"])
             # run fine-tuning
             print("Starting fine-tuning...")
-            self.run_config["num_steps"] = self.fine_tuning_steps
+            self.run_config["num_steps"] = self.run_config["num_steps"] + self.fine_tuning_steps
             data_manager.config = self.fine_tuning_dataset_config
             fine_tuning_train_loader, _, _ = data_manager.get_dataloaders(self.custom_data_loading_hook)
             if self.run_config["dp"]:
@@ -105,3 +105,12 @@ class FineTuningExperiment(Experiment):
         if self.base_model is None:
             self.base_model = model
             self.previous_steps = trainer.previous_steps
+
+
+    def steps_to_epochs(self, train_loader):
+        if self.base_model is None:
+            epochs =  self.run_config["num_steps"] // len(train_loader)
+        else:
+            epochs = self.fine_tuning_steps // len(train_loader)
+        assert epochs > 0, f"Number of epochs is {epochs}. Increase your steps or fine-tuning steps."
+        return epochs

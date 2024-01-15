@@ -39,14 +39,16 @@ class AnomalyDataset(ABC):
     def to_train_val_and_test(self, normal_A, normal_B, anomalous_A, anomalous_B, num_normal, num_anomalous):
         random_state = self.config["random_state"]
 
+
         val_test_normal_A = normal_A.sample(n=num_normal, random_state=random_state)
         val_test_normal_B = normal_B.sample(n=num_normal, random_state=random_state)
         val_test_anomalous_A = anomalous_A.sample(n=num_anomalous,  random_state=random_state)
         val_test_anomalous_B = anomalous_B.sample(n=num_anomalous,  random_state=random_state)
-        val_A = val_test_anomalous_A.iloc[:num_normal, :]
-        val_B = val_test_anomalous_B.iloc[:num_normal, :]
-        test_A = val_test_anomalous_A.iloc[num_normal:, :]
-        test_B = val_test_anomalous_B.iloc[num_normal:, :]
+        num_anomalous_each = int(num_anomalous / 2)
+        val_A = val_test_anomalous_A.iloc[:num_anomalous_each, :]
+        val_B = val_test_anomalous_B.iloc[:num_anomalous_each, :]
+        test_A = val_test_anomalous_A.iloc[num_anomalous_each:, :]
+        test_B = val_test_anomalous_B.iloc[num_anomalous_each:, :]
 
         val_A = pd.concat([val_test_normal_A, val_A]).sample(frac=1, random_state=random_state).reset_index(drop=True)
         val_B = pd.concat([val_test_normal_B, val_B]).sample(frac=1, random_state=random_state).reset_index(drop=True)
@@ -55,7 +57,6 @@ class AnomalyDataset(ABC):
         rest_normal_A = normal_A[~normal_A.id.isin(val_test_normal_A.id)]
         rest_normal_B = normal_B[~normal_B.id.isin(val_test_normal_B.id)]
         print(f"Dataset Composition: {self.config['protected_attr_percent']*100}% {ATTRIBUTE_MAPPINGS[self.config['protected_attr']]['A']}")
-
         n_samples = min(len(rest_normal_A), len(rest_normal_B))
         n_A = int(n_samples * self.config["protected_attr_percent"])
         n_B = int(n_samples * (1 - self.config["protected_attr_percent"]))

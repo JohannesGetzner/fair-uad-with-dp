@@ -71,7 +71,7 @@ class CXR14AnomalyDataset(AnomalyDataset):
             anomalous_A,
             anomalous_B,
             num_normal=1000,
-            num_anomalous=500
+            num_anomalous=1000
         )
         train = pd.concat([*custom_data_loading_hook(train_A, train_B)]).sample(frac=1, random_state=self.config[
             "random_state"]).reset_index(drop=True)

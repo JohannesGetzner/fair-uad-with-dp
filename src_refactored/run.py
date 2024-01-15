@@ -38,6 +38,7 @@ parser.add_argument('--dataset', default=None, type=str, choices=['cxr14', 'rsna
 parser.add_argument('--protected_attr', default=None, type=str, choices=['age', 'sex'])
 parser.add_argument('--dp', default=False, action=BooleanOptionalAction)
 parser.add_argument('--debug', default=False, action=BooleanOptionalAction)
+
 # override experiment settings
 override_args = parser.add_argument_group('override')
 override_args.add_argument('--batch_size', default=None, type=int)
@@ -70,6 +71,7 @@ upsampling_args.add_argument('--upsampling_strategy', default=None, type=str, na
 # dataset distillation experiment settings
 core_set_selection_args = parser.add_argument_group('core_set_selection')
 core_set_selection_args.add_argument('--num_training_samples', default=None, type=int)
+core_set_selection_args.add_argument('--cutoff', default=None, type=int)
 RUN_PARAMS = parser.parse_args()
 
 if __name__ == '__main__':
@@ -96,7 +98,8 @@ if __name__ == '__main__':
         for key, value in base_config.items():
             if key in default_config.keys():
                 default_config[key] = value
-
+    if RUN_PARAMS.dp:
+        config_dicts["run_config"]["dp"] = True
     experiment = EXPERIMENT_MAP[exp_key](**config_dicts, **exp_args)
     if experiment.dataset_config["dataset"] == "rsna":
         dataset = RsnaAnomalyDataset(experiment.dataset_config)

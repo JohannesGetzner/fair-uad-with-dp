@@ -63,7 +63,8 @@ class Experiment(ABC):
             test_loader=test_loader,
             config=self.run_config,
             log_dir=log_dir,
-            privacy_engine=privacy_engine
+            privacy_engine=privacy_engine,
+            dp_config=self.dp_config
         )
         model = trainer.train(model, **kwargs)
         trainer.test(model)
@@ -150,6 +151,8 @@ class Experiment(ABC):
         return model, optimizer, log_dir
 
     def steps_to_epochs(self, train_loader):
-        return self.run_config["num_steps"] // len(train_loader)
+        epochs = self.run_config["num_steps"] // len(train_loader)
+        assert epochs > 0, f"Number of epochs is {epochs}. Increase num_steps or increase batch_size."
+        return epochs
 
 

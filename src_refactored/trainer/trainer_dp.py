@@ -7,9 +7,10 @@ from ._trainer import Trainer
 
 
 class DPTrainer(Trainer):
-    def __init__(self, optimizer, train_loader, val_loader, test_loader, config, log_dir, privacy_engine, previous_steps = 0):
+    def __init__(self, optimizer, train_loader, val_loader, test_loader, config, log_dir, privacy_engine, dp_config, previous_steps = 0):
         super().__init__(optimizer, train_loader, val_loader, test_loader, config, log_dir, previous_steps)
         self.privacy_engine = privacy_engine
+        self.dp_config = dp_config
 
     def train(self, model, **kwargs):
         print('Starting training...')
@@ -22,7 +23,7 @@ class DPTrainer(Trainer):
         while True:
             with BatchMemoryManager(
                     data_loader=self.train_loader,
-                    max_physical_batch_size=self.config["max_physical_batch_size"],
+                    max_physical_batch_size=self.dp_config["max_physical_batch_size"],
                     optimizer=self.optimizer
             ) as new_train_loader:
                 model.train()
@@ -42,17 +43,17 @@ class DPTrainer(Trainer):
                         train_losses.reset()
 
                     # validation
-                    eps = self.privacy_engine.get_epsilon(self.config.delta)
+                    eps = self.privacy_engine.get_epsilon(self.dp_config["delta"])
                     if i_step % self.config["val_frequency"] == 0:
                         log_imgs = i_step % self.config["log_img_freq"] == 0 and self.config["num_imgs_log"] != 0
                         val_results = self.validate(model, i_step, log_imgs)
-                        print(f"ɛ: {eps:.2f} (target: {self.config['epsilon']})")
+                        print(f"ɛ: {eps:.2f} (target: {self.dp_config['epsilon']})")
                         val_results['epsilon'] = eps
                         # Log to w&b
                         wandb.log(val_results, step=i_step)
 
-                    if eps >= self.config["epsilon"]:
-                        print(f'Reached maximum ɛ {eps}/{self.config["epsilon"]}.', 'Finished training.')
+                    if eps >= self.dp_config["epsilon"]:
+                        print(f'Reached maximum ɛ {eps}/{self.dp_config["epsilon"]}.', 'Finished training.')
                         # Final validation
                         print("Final validation...")
                         self.validate(model, i_step, log_imgs,)
@@ -63,7 +64,7 @@ class DPTrainer(Trainer):
                     print(f"Finished epoch {i_epoch}/{self.config['epochs']}, ({i_step} iterations)")
                 if i_epoch >= self.config["epochs"]:
                     print(f"Reached {self.config['epochs']} epoch(s). Finished training.")
-                    print(f"ɛ: {eps:.2f} (target: {self.config['epsilon']})")
+                    print(f"ɛ: {eps:.2f} (target: {self.dp_config['epsilon']})")
                     # Final validation
                     print("Final validation...")
                     self.validate(model, i_step, log_imgs)
@@ -73,7 +74,10 @@ class DPTrainer(Trainer):
     def train_step(self, model, x, loss_weights=None):
         model.train()
         self.optimizer.zero_grad()
-        loss_dict = model.loss(x, per_sample_loss_weights=loss_weights)
+        if self.config["dp"]:
+            loss_dict = model._module.loss(x, per_sample_loss_weights=loss_weights)
+        else:
+            loss_dict = model.loss(x, per_sample_loss_weights=loss_weights)
         loss = loss_dict['loss']
         loss.backward()
         self.optimizer.step()
