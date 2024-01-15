@@ -1,6 +1,6 @@
 from ._experiment import Experiment
 from typing import Dict
-from src_refactored.datasets.anomaly_dataset import ATTRIBUTE_MAPPINGS, AnomalyDataset
+from src.datasets.anomaly_dataset import ATTRIBUTE_MAPPINGS, AnomalyDataset
 import wandb
 
 class DataSetSizeExperiment(Experiment):

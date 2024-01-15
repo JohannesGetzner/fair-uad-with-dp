@@ -1,6 +1,6 @@
 import torch
 import wandb
-from src_refactored.utils.metrics import AvgDictMeter
+from src.utils.metrics import AvgDictMeter
 from time import time
 from ._trainer import Trainer
 

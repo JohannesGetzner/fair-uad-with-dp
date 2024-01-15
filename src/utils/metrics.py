@@ -12,21 +12,6 @@ from torchmetrics import Metric, MetricCollection
 from torchmetrics.utilities.data import _flatten_dict
 
 
-def common_string_left(strings: List[str]) -> str:
-    """Returns the longest common string of all strings from the left."""
-    if len(strings) == 0:
-        return ''
-    if len(strings) == 1:
-        return strings[0]
-    common = ''
-    for i in range(len(strings[0])):
-        if all([s.startswith(strings[0][:i + 1]) for s in strings]):
-            common = strings[0][:i + 1]
-        else:
-            break
-    return common
-
-
 class MyMetricCollection(MetricCollection):
     def __init__(
             self,
@@ -146,26 +131,16 @@ class AUROC(Metric):
 
         return torch.tensor(auroc)
 
-    @staticmethod
-    def compute_overall(preds: Tensor, targets: Tensor):
-        if targets.sum() == 0 or targets.sum() == len(targets):
-            return torch.tensor(0.)
-        auroc = roc_auc_score(targets, preds)
-        return torch.tensor(auroc, dtype=torch.float32)
-
     def compute(self, **kwargs):
         preds = torch.cat(self.preds)  # [N]
         targets = torch.cat(self.targets)  # [N]
         subgroups = torch.cat(self.subgroups)  # [N]
         res = {}
-        # Compute score for each subgroup
         for subgroup, subgroup_name in enumerate(self.subgroup_names):
             result = self.compute_subgroup(preds, targets, subgroups, subgroup)
             res[f'{subgroup_name}_AUROC'] = result
-        # Compute score for whole dataset
-        result = self.compute_overall(preds, targets)
-        res[f'{common_string_left(self.subgroup_names)}AUROC'] = result
         return res
+
 
 class AveragePrecision(Metric):
     """

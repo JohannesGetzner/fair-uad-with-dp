@@ -1,7 +1,7 @@
 from ._experiment import Experiment
 from typing import Dict, Tuple, List
 import wandb
-from src_refactored.datasets.anomaly_dataset import AnomalyDataset
+from src.datasets.anomaly_dataset import AnomalyDataset
 
 class ModelSizeExperiment(Experiment):
     def __init__(self,

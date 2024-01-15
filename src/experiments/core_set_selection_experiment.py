@@ -3,7 +3,7 @@ from typing import Dict
 import wandb
 from torch import Tensor, Generator
 from datasets.data_utils import get_transforms, get_load_fn
-from src_refactored.datasets.anomaly_dataset import AnomalyDataset, MEMMAP_NormalDataset
+from src.datasets.anomaly_dataset import AnomalyDataset, MEMMAP_NormalDataset
 from torch.utils.data import DataLoader
 
 

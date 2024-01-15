@@ -6,7 +6,7 @@ import torch.nn.functional as F
 from torch import Tensor
 from torchvision import models as tv_models
 
-from src_refactored.models.pytorch_ssim import SSIMLoss
+from src.models.pytorch_ssim import SSIMLoss
 
 """"""""""""""""""""""" Feature Extractor """""""""""""""""""""""""""
 
@@ -247,29 +247,35 @@ class VanillaFeatureDecoder(nn.Module):
 class FeatureReconstructor(nn.Module):
     def __init__(self, config):
         super().__init__()
-        self.extractor = Extractor(inp_size=config["img_size"],
-                                   cnn_layers=config["extractor_cnn_layers"],
-                                   keep_feature_prop=config["keep_feature_prop"],
+        self.extractor = Extractor(inp_size=config.img_size,
+                                   cnn_layers=config.extractor_cnn_layers,
+                                   keep_feature_prop=config.keep_feature_prop,
                                    pretrained=True)
 
-        config["in_channels"] = self.extractor.c_feats
-        self.enc = VanillaFeatureEncoder(config["in_channels"],
-                                         config["hidden_dims"],
+        config.in_channels = self.extractor.c_feats
+        self.enc = VanillaFeatureEncoder(config.in_channels,
+                                         config.hidden_dims,
                                          norm_layer="nn.BatchNorm2d",
-                                         dropout=config["dropout"],
+                                         dropout=config.dropout,
                                          bias=False)
-        self.dec = VanillaFeatureDecoder(config["in_channels"],
-                                         config["hidden_dims"],
+        self.dec = VanillaFeatureDecoder(config.in_channels,
+                                         config.hidden_dims,
                                          norm_layer="nn.BatchNorm2d",
-                                         dropout=config["dropout"],
+                                         dropout=config.dropout,
                                          bias=False)
 
-        if config["loss_fn"] == 'ssim':
+        if config.loss_fn == 'ssim':
             self.loss_fn = SSIMLoss(window_size=5, size_average=False)
-        elif config["loss_fn"] == 'mse':
+        elif config.loss_fn == 'mse':
             self.loss_fn = nn.MSELoss(reduction='none')
         else:
-            raise ValueError(f"Unknown loss function: {config['loss_fn']}")
+            raise ValueError(f"Unknown loss function: {config.loss_fn}")
+        self.use_weighted_loss = config.loss_weight_type is not None
+        if self.use_weighted_loss:
+            print(f"Using weighted loss: {config.loss_weight_type}")
+        else:
+            print("Using normal loss")
+        self.config = config
 
     def forward(self, x: Tensor):
         feats = self.get_feats(x)
@@ -286,17 +292,17 @@ class FeatureReconstructor(nn.Module):
         rec = self.dec(z)
         return rec
 
-    def loss(self, x: Tensor, per_sample_loss_weights=None):
-        if per_sample_loss_weights is not None:
-            return self.weighted_loss(x, per_sample_loss_weights)
+    def loss(self, x: Tensor, **kwargs):
+        if self.use_weighted_loss and "per_sample_loss_weights" in kwargs.keys():
+            return self.weighted_loss(x, **kwargs)
         feats, rec = self(x)
         loss = self.loss_fn(rec, feats).mean()
         return {'loss': loss, 'rec_loss': loss}
 
-    def weighted_loss(self, x: Tensor, per_sample_loss_weights):
+    def weighted_loss(self, x: Tensor, **kwargs):
         feats, rec = self(x)
         loss = self.loss_fn(rec, feats)
-        expanded_loss_weights = per_sample_loss_weights.view(-1, 1, 1, 1)
+        expanded_loss_weights = kwargs["per_sample_loss_weights"].view(-1, 1, 1, 1)
         weighted_loss = (loss * expanded_loss_weights)
         min_loss = torch.min(weighted_loss)
         max_loss = torch.max(weighted_loss)
@@ -321,14 +327,12 @@ class FeatureReconstructor(nn.Module):
         # iterate over all samples in batch
         for i in range(x.shape[0]):
             # roi are those regions where x has "content"
-            try:
+            if self.config.dataset == "rsna":
                 roi = anomaly_map[i][x[i] > 0]
-                roi = roi[roi > torch.quantile(roi, 0.9)]
-            except:
-                # rest
+            else:
                 roi = anomaly_map[i]
-                roi = roi[roi > torch.quantile(roi, 0.9)]
             # only take the top 10% of the values to compute the mean
+            roi = roi[roi > torch.quantile(roi, 0.9)]
             anomaly_score.append(roi.mean())
         anomaly_score = torch.stack(anomaly_score)
         # the training loss, the anomaly map and the anomaly score are all derived from the loss function

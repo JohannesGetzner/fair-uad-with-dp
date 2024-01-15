@@ -6,8 +6,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch import Tensor
 
-from src_refactored.models.RD.de_resnet import de_resnet18
-from src_refactored.models.RD.resnet import resnet18
+from src.models.RD.de_resnet import de_resnet18
+from src.models.RD.resnet import resnet18
 
 
 class ReverseDistillation(nn.Module):

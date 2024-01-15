@@ -165,10 +165,10 @@ cython_debug/
 logs
 src/analysis/**/*.csv
 src/analysis/**/*.png
-/src/datasets/
-/src/wandb/
-/src/logs_persist/
-/src_refactored/data/
-/src/data/csvs/
+/(archived) src/datasets/
+/(archived) src/wandb/
+/(archived) src/logs_persist/
+/src/data/
+/(archived) src/data/csvs/
 /remote_data/
-/src_refactored/datasets/csvs/
+/src/datasets/csvs/

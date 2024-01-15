@@ -4,9 +4,9 @@ import wandb
 import os
 from collections import defaultdict
 import pandas as pd
-from src_refactored.utils.metrics import AvgDictMeter, build_metrics
+from src.utils.metrics import AvgDictMeter, build_metrics
 from time import time
-from src_refactored.utils.utils import get_remaining_time_as_str
+from src.utils.utils import get_remaining_time_as_str
 from datetime import datetime
 from torch import nn
 

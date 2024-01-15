@@ -1,7 +1,7 @@
 import torch
 import wandb
 from opacus.utils.batch_memory_manager import BatchMemoryManager
-from src_refactored.utils.metrics import AvgDictMeter
+from src.utils.metrics import AvgDictMeter
 from time import time
 from ._trainer import Trainer
 

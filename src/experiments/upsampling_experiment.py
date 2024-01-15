@@ -3,7 +3,7 @@ from typing import Dict, Tuple, List
 import wandb
 import pandas as pd
 import numpy as np
-from src_refactored.datasets.anomaly_dataset import AnomalyDataset, ATTRIBUTE_MAPPINGS
+from src.datasets.anomaly_dataset import AnomalyDataset, ATTRIBUTE_MAPPINGS
 
 
 class UpsamplingExperiment(Experiment):
