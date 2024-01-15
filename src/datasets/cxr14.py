@@ -36,8 +36,6 @@ class CXR14AnomalyDataset(AnomalyDataset):
         self.split_info = None
 
     def load_data(self, anomaly="lungOpacity"):
-        import os
-        test = os.getcwd()
         csv_dir = os.path.join('datasets', 'csvs', 'cxr14_ap_pa')
         normal_data = pd.read_csv(os.path.join(csv_dir, 'normal.csv'))
         anomalous_data = pd.read_csv(os.path.join(csv_dir, 'abnormal.csv'))

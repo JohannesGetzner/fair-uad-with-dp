@@ -38,8 +38,6 @@ class AnomalyDataset(ABC):
 
     def to_train_val_and_test(self, normal_A, normal_B, anomalous_A, anomalous_B, num_normal, num_anomalous):
         random_state = self.config["random_state"]
-
-
         val_test_normal_A = normal_A.sample(n=num_normal, random_state=random_state)
         val_test_normal_B = normal_B.sample(n=num_normal, random_state=random_state)
         val_test_anomalous_A = anomalous_A.sample(n=num_anomalous,  random_state=random_state)
